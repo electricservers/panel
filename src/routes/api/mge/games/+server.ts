@@ -1,17 +1,23 @@
-import { json } from '@sveltejs/kit';
-import { Prisma, PrismaClient } from "@prisma/client";
+import prisma from '$lib/prisma'
+import { json, type RequestHandler } from '@sveltejs/kit';
 
-export async function GET(event) {
-	const prisma = new PrismaClient();
-    const query = event.request.url;
-    console.log(query);
+export const GET: RequestHandler = async (event) => {
+    const query = event.url.searchParams;
     const games = await prisma.mgemod_duels.findMany({
         orderBy: [
             {
                 id: 'desc'
             }
         ],
-        take: 500
+        take: Number(query.get('limit')) || 500,
+        where: {
+            ...(query.has('steamid') ? {
+                OR: [
+                    { winner: query.get('steamid') },
+                    { loser: query.get('steamid') }
+                ]
+            } : {})
+        }
     });
 	return json(games);
 }

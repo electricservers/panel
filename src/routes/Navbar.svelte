@@ -1,6 +1,6 @@
 <script>
-    import AppsMenu from '../utils/widgets/AppsMenu.svelte';
-    import UserMenu from '../utils/widgets/UserMenu.svelte';
+    import AppsMenu from './utils/widgets/AppsMenu.svelte';
+    import UserMenu from './utils/widgets/UserMenu.svelte';
     import {
         DarkMode,
         Dropdown,
@@ -13,8 +13,8 @@
         Search
     } from 'flowbite-svelte';
     import { ChevronDownOutline } from 'flowbite-svelte-icons';
-    import '../../app.pcss';
-    import Users from '../data/users.json';
+    import '../app.pcss';
+    import Users from './data/users.json';
 
     export let fluid = true;
     export let drawerHidden = false;

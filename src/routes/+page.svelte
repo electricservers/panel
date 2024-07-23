@@ -1,6 +1,5 @@
 <script lang="ts">
     import type { PageData } from './$types';
-    import MetaTag from '../utils/MetaTag.svelte';
     export let data: PageData;
 
     const path: string = '';
@@ -9,5 +8,4 @@
     const subtitle: string = 'Admin Dashboard';
 </script>
 
-<MetaTag {path} {description} {title} {subtitle} />
 <main class="p-4"></main>
