@@ -1,7 +1,7 @@
 <script>
     import '../app.pcss';
-    import Navbar from './Navbar.svelte';
-    import Sidebar from './Sidebar.svelte';
+    import Navbar from '../components/Navbar.svelte';
+    import Sidebar from '../components/Sidebar.svelte';
     let drawerHidden = false;
 </script>
 

@@ -57,8 +57,10 @@
         "svelte": "^4.0.0"
     },
     "dependencies": {
+        "@node-steam/id": "^1.2.0",
         "@prisma/client": "5.17.0",
         "fastify": "^4.28.1",
+        "flag-icons": "^7.2.3",
         "flowbite": "^2.4.1",
         "flowbite-svelte": "^0.46.15",
         "flowbite-svelte-icons": "^1.6.1",

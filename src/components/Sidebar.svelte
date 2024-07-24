@@ -9,7 +9,13 @@
         SidebarItem,
         SidebarWrapper
     } from 'flowbite-svelte';
-    import { AngleDownOutline, AngleUpOutline, ChartOutline, UsersGroupOutline } from 'flowbite-svelte-icons';
+    import {
+        AngleDownOutline,
+        AngleUpOutline,
+        ChartOutline,
+        UserHeadsetOutline,
+        UsersGroupOutline
+    } from 'flowbite-svelte-icons';
 
     export let drawerHidden: boolean = false;
 
@@ -45,6 +51,12 @@
             name: 'MGE Stats',
             icon: ChartOutline,
             href: '/mgestats',
+            children: {}
+        },
+        {
+            name: 'TF2 Pickup',
+            icon: UserHeadsetOutline,
+            href: '/tf2pickup',
             children: {}
         }
     ];

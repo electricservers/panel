@@ -1,6 +1,8 @@
 <script lang="ts">
     import type { PageData } from './$types';
+    import { ID } from '@node-steam/id';
     import {
+        A,
         Table,
         TableBody,
         TableBodyCell,
@@ -13,7 +15,7 @@
 </script>
 
 {#if data.ranking}
-    <Table tableBodyClass="divide-y" divClass="m-10" striped={true} hoverable={true}>
+    <Table striped={true} hoverable={true}>
         <TableHead>
             <TableHeadCell>Position</TableHeadCell>
             <TableHeadCell>Name</TableHeadCell>
@@ -28,17 +30,28 @@
             {#each data.ranking as user, i}
                 <TableBodyRow>
                     <TableBodyCell>#{i + 1}</TableBodyCell>
-                    <TableBodyCell>{user.name}</TableBodyCell>
+                    <TableBodyCell>
+                        <A
+                            target="_blank"
+                            href="https://steamcommunity.com/profiles/{new ID(
+                                user.steamid
+                            ).get64()}">
+                            {user.name}
+                        </A>
+                    </TableBodyCell>
                     <TableBodyCell>{user.rating}</TableBodyCell>
                     <TableBodyCell>{user.wins}</TableBodyCell>
                     <TableBodyCell>{user.losses}</TableBodyCell>
-                    <TableBodyCell>{(user.wins + user.losses)}</TableBodyCell>
+                    <TableBodyCell>{user.wins + user.losses}</TableBodyCell>
                     <TableBodyCell>{(user.wins / user.losses).toFixed(1)}</TableBodyCell>
-                    <TableBodyCell>{((user.wins / (user.wins + user.losses)) * 100).toFixed(1)}%</TableBodyCell>
+                    <TableBodyCell
+                        >{((user.wins / (user.wins + user.losses)) * 100).toFixed(
+                            1
+                        )}%</TableBodyCell>
                 </TableBodyRow>
             {/each}
         </TableBody>
     </Table>
-    {:else}
+{:else}
     <h1>Loading...</h1>
 {/if}
