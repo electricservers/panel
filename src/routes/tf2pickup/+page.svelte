@@ -2,15 +2,34 @@
     import Title from '../../lib/components/Title.svelte';
     import { selectedSite } from '$lib/stores/selectedSite';
     import type { PageData } from './$types';
-    import { Button, Dropdown, Search, DropdownItem, P, Datepicker } from 'flowbite-svelte';
+    import {
+        Button,
+        Dropdown,
+        Search,
+        DropdownItem,
+        P,
+        Table,
+        TableBody,
+        TableHead,
+        TableHeadCell,
+        A,
+        TableBodyRow,
+        TableBodyCell
+    } from 'flowbite-svelte';
     import { ChevronDownOutline } from 'flowbite-svelte-icons';
     import { pickupSites } from '$lib/pickupSites';
+    import { DatePicker } from '@svelte-plugins/datepicker';
+    import { format } from 'date-fns';
+    import type { Games } from '$lib/game';
+    import { getPlayerGames, type PlayerGames } from '$lib/rankings';
+    import { writable } from 'svelte/store';
 
     let searchTerm = '';
     let dropOpen = false;
-    let apiData: any = null;
     let loading = false;
     let error: string | null = null;
+    let games: Games;
+    let playerGames: PlayerGames[] = [];
 
     const clicked = (e: MouseEvent) => {
         const button = e.target as HTMLButtonElement;
@@ -30,22 +49,18 @@
         icon: ''
     });
 
-    $: if ($selectedSite) {
-        fetchApiData($selectedSite.name);
-    }
-
-    async function fetchApiData(siteName: string) {
+    async function fetchApiData() {
         loading = true;
         error = null;
-        apiData = null;
 
         try {
-            const apiUrl = `https://api.${siteName}/games?limit=3`;
+            const apiUrl = `https://api.${$selectedSite?.name}/games?from=${formattedStartDate}&to=${formattedEndDate}&state=ended&limit=0`;
             const response = await fetch(apiUrl);
             if (!response.ok) {
                 throw new Error('API request failed');
             }
-            apiData = await response.json();
+            games = await response.json();
+            $sortItems = getPlayerGames(games);
         } catch (err: any) {
             error = err.message;
         } finally {
@@ -53,12 +68,69 @@
         }
     }
 
+    const today = new Date();
+
+    const MILLISECONDS_IN_DAY = 24 * 60 * 60 * 1000;
+
+    const getDateFromToday = (days) => {
+        return Date.now() - days * MILLISECONDS_IN_DAY;
+    };
+
+    let startDate = getDateFromToday(29);
+    let endDate = today;
+    let dateFormat = 'yyyy-MM-dd';
+    let isOpen = false;
+
+    let formattedStartDate = '';
+
+    const onClearDates = () => {
+        startDate = '';
+        endDate = '';
+    };
+
+    const toggleDatePicker = () => (isOpen = !isOpen);
+    const formatDate = (dateString: any) =>
+        (dateString && format(new Date(dateString), dateFormat)) || '';
+
+    $: formattedStartDate = formatDate(startDate);
+    $: formattedEndDate = formatDate(endDate);
+
+    const sortKey = writable('id'); // default sort key
+    const sortDirection = writable(1); // default sort direction (ascending)
+    const sortItems = writable(playerGames.slice()); // make a copy of the items array
+
+    // Define a function to sort the items
+    const sortTable = (key: string) => {
+        // If the same key is clicked, reverse the sort direction
+        if ($sortKey === key) {
+            sortDirection.update((val) => -val);
+        } else {
+            sortKey.set(key);
+            sortDirection.set(1);
+        }
+    };
+
+    $: {
+        const key = $sortKey;
+        const direction = $sortDirection;
+        const sorted = [...$sortItems].sort((a, b) => {
+            const aVal = a[key];
+            const bVal = b[key];
+            if (aVal < bVal) {
+                return -direction;
+            } else if (aVal > bVal) {
+                return direction;
+            }
+            return 0;
+        });
+        sortItems.set(sorted);
+    }
     export let data: PageData;
 </script>
 
 <div class="h-[90vh] p-4">
     <Title>TF2 Pickup Stats</Title>
-    <Button>
+    <Button class="mb-3">
         {#if $selectedSite?.icon !== ''}
             <span class="fi fi-{$selectedSite?.icon} mr-2" />
         {/if}
@@ -78,19 +150,64 @@
             </DropdownItem>
         {/each}
     </Dropdown>
-    <Datepicker style="max-width: 200px" placeholder="sdfjklfsd" />
-    {#if $selectedSite && $selectedSite.icon}
-        <Title>API Results for {$selectedSite.name}</Title>
+    <div class="date-filter">
+        <DatePicker bind:isOpen bind:startDate bind:endDate isRange>
+            <!-- svelte-ignore a11y-click-events-have-key-events -->
+            <!-- svelte-ignore a11y-no-static-element-interactions -->
+            <div class="date-field" on:click={toggleDatePicker} class:open={isOpen}>
+                <i class="icon-calendar" />
+                <div class="date">
+                    {#if startDate}
+                        {formattedStartDate} - {formattedEndDate}
+                    {:else}
+                        Pick a date
+                    {/if}
+                </div>
+                {#if startDate}
+                    <span on:click={onClearDates}>
+                        <i class="os-icon-x" />
+                    </span>
+                {/if}
+            </div>
+        </DatePicker>
+    </div>
+    <Button class="mt-3" on:click={fetchApiData}>Search</Button>
+    <div class="mt-4">
         {#if loading}
             <P>Loading...</P>
         {:else if error}
             <P>Error: {error}</P>
-        {:else if apiData}
-            <pre class="text-black dark:text-white">{JSON.stringify(apiData, null, 2)}</pre>
+        {:else if games}
+            <Table>
+                <TableHead>
+                    <TableHeadCell>Name</TableHeadCell>
+                    <TableHeadCell on:click={() => sortTable('totalGames')}>Total Games</TableHeadCell>
+                    <TableHeadCell on:click={() => sortTable('scoutGames')}>Scout Games</TableHeadCell>
+                    <TableHeadCell on:click={() => sortTable('soldierGames')}>Soldier Games</TableHeadCell>
+                    <TableHeadCell on:click={() => sortTable('demomanGames')}>Demoman Games</TableHeadCell>
+                    <TableHeadCell on:click={() => sortTable('medicGames')}>Medic Games</TableHeadCell>
+                </TableHead>
+                <TableBody tableBodyClass="divide-y">
+                    {#each $sortItems as pos}
+                        <TableBodyRow>
+                            <TableBodyCell>
+                                <A href="https://steamcommunity.com/profiles/{pos.steamid}">
+                                    {pos.name}
+                                </A>
+                            </TableBodyCell>
+                            <TableBodyCell>{pos.totalGames}</TableBodyCell>
+                            <TableBodyCell>{pos.scoutGames}</TableBodyCell>
+                            <TableBodyCell>{pos.soldierGames}</TableBodyCell>
+                            <TableBodyCell>{pos.demomanGames}</TableBodyCell>
+                            <TableBodyCell>{pos.medicGames}</TableBodyCell>
+                        </TableBodyRow>
+                    {/each}
+                </TableBody>
+            </Table>
         {:else}
             <P>No data available</P>
+            <P>Start: {formattedStartDate}</P>
+            <P>End: {formattedEndDate}</P>
         {/if}
-    {:else}
-        <P>Please select a site to view API data</P>
-    {/if}
+    </div>
 </div>
