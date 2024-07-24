@@ -1,8 +1,8 @@
 <script>
-    import UserMenu from '../routes/utils/widgets/UserMenu.svelte';
+    import UserMenu from '../../routes/utils/widgets/UserMenu.svelte';
     import { DarkMode, NavBrand, NavHamburger, Navbar } from 'flowbite-svelte';
-    import '../app.pcss';
-    import Users from '../routes/data/users.json';
+    import '../../app.pcss';
+    import Users from '../../routes/data/users.json';
 
     export let fluid = true;
     export let drawerHidden = false;
