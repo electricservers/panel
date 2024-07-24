@@ -2,17 +2,18 @@
     import type { PageData } from './$types';
     import { Button, Dropdown, Search, DropdownItem } from 'flowbite-svelte';
     import { ChevronDownOutline } from 'flowbite-svelte-icons';
-    import { pickupSites, type PickupSite } from '$lib/pickupSites';
+    import { pickupSites } from '$lib/pickupSites';
 
-    let selected: PickupSite = {
-        name: 'Select a site...',
-        icon: ''
-    };
+    let selected = 'Select a site...';
+    let selectedIcon = '';
     let searchTerm = '';
+    let dropOpen = false;
 
-    const clicked = (e: any) => {
-        e.preventDefault();
-        console.log(e.target)
+    const clicked = (e: MouseEvent) => {
+        const button = e.target as HTMLButtonElement;
+        selected = button.innerText;
+        selectedIcon = pickupSites.find((site) => site.name === selected)?.icon!;
+        dropOpen = false;
     };
 
     $: filteredSites = pickupSites.filter(
@@ -24,19 +25,22 @@
 
 <div class="h-[90vh] p-4">
     <Button>
-        {selected.name}
+        {#if selectedIcon !== ''}
+            <span class="fi fi-{selectedIcon} mr-2" />
+        {/if}
+        {selected}
         <ChevronDownOutline class="ms-2 h-6 w-6 text-white dark:text-white" />
     </Button>
-    <Dropdown class="h-72 overflow-y-auto px-3 pb-3 text-sm">
+    <Dropdown bind:open={dropOpen} class="h-72 overflow-y-auto px-3 pb-3 text-sm">
         <div slot="header" class="p-3">
             <Search size="md" bind:value={searchTerm} />
         </div>
-        {#each pickupSites as person (person.name)}
+        {#each filteredSites as site (site.name)}
             <DropdownItem
                 on:click={clicked}
                 class="flex items-center gap-2 text-base font-semibold">
-                <span class="fi fi-{person.icon}" />
-                {person.name}
+                <span class="fi fi-{site.icon}" />
+                {site.name}
             </DropdownItem>
         {/each}
     </Dropdown>

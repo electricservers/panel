@@ -31,23 +31,23 @@
                 <TableBodyRow>
                     <TableBodyCell>#{i + 1}</TableBodyCell>
                     <TableBodyCell>
-                        <A
-                            target="_blank"
-                            href="https://steamcommunity.com/profiles/{new ID(
-                                user.steamid
-                            ).get64()}">
+                        {@const steamid = new ID(user.steamid).get64()}
+                        <A target="_blank" href="https://steamcommunity.com/profiles/{steamid}">
                             {user.name}
                         </A>
                     </TableBodyCell>
                     <TableBodyCell>{user.rating}</TableBodyCell>
                     <TableBodyCell>{user.wins}</TableBodyCell>
                     <TableBodyCell>{user.losses}</TableBodyCell>
-                    <TableBodyCell>{user.wins + user.losses}</TableBodyCell>
-                    <TableBodyCell>{(user.wins / user.losses).toFixed(1)}</TableBodyCell>
-                    <TableBodyCell
-                        >{((user.wins / (user.wins + user.losses)) * 100).toFixed(
-                            1
-                        )}%</TableBodyCell>
+
+                    {@const totalGames = user.wins + user.losses}
+                    <TableBodyCell>{totalGames}</TableBodyCell>
+
+                    {@const wl = (user.wins / user.losses).toFixed(1)}
+                    <TableBodyCell>{wl}</TableBodyCell>
+
+                    {@const winrate = ((user.wins / totalGames) * 100).toFixed(1)}
+                    <TableBodyCell>{winrate}%</TableBodyCell>
                 </TableBodyRow>
             {/each}
         </TableBody>
