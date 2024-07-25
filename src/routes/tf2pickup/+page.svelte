@@ -30,14 +30,22 @@
     let error: string | null = null;
     let games: Games;
     let playerGames: PlayerGames[] = [];
+    let apiVersion = '';
 
-    const clicked = (e: MouseEvent) => {
+    const clicked = async (e: MouseEvent) => {
         const button = e.target as HTMLButtonElement;
         selectedSite.set({
             name: button.innerText,
             icon: pickupSites.find((site) => site.name === button.innerText)?.icon!
         });
         dropOpen = false;
+        apiVersion = 'Loading...';
+        const response = await fetch(`https://api.${$selectedSite?.name}`);
+        if (!response.ok) {
+            apiVersion = 'API request failed';
+        }
+        const body = await response.json();
+        apiVersion = body.version;
     };
 
     $: filteredSites = pickupSites.filter(
@@ -50,9 +58,11 @@
     });
 
     async function fetchApiData() {
+        if (!$selectedSite?.icon) {
+            return;
+        }
         loading = true;
         error = null;
-
         try {
             const apiUrl = `https://api.${$selectedSite?.name}/games?from=${formattedStartDate}&to=${formattedEndDate}&state=ended&limit=0`;
             const response = await fetch(apiUrl);
@@ -130,13 +140,16 @@
 
 <div class="h-[90vh] p-4">
     <Title>TF2 Pickup Stats</Title>
-    <Button class="mb-3">
-        {#if $selectedSite?.icon !== ''}
-            <span class="fi fi-{$selectedSite?.icon} mr-2" />
-        {/if}
-        {$selectedSite?.name}
-        <ChevronDownOutline class="ms-2 h-6 w-6 text-white dark:text-white" />
-    </Button>
+    <div class="inline-flex">
+        <Button class="mb-3">
+            {#if $selectedSite?.icon !== ''}
+                <span class="fi fi-{$selectedSite?.icon} mr-2" />
+            {/if}
+            {$selectedSite?.name}
+            <ChevronDownOutline class="ms-2 h-6 w-6 text-white dark:text-white" />
+        </Button>
+        <P>{apiVersion}</P>
+    </div>
     <Dropdown bind:open={dropOpen} class="h-72 overflow-y-auto px-3 pb-3 text-sm">
         <div slot="header" class="p-3">
             <Search size="md" bind:value={searchTerm} />
@@ -151,7 +164,7 @@
         {/each}
     </Dropdown>
     <div class="date-filter">
-        <DatePicker bind:isOpen bind:startDate bind:endDate isRange>
+        <DatePicker class="{apiVersion !== '11.8.0' ? 'hidden' : ''}" bind:isOpen bind:startDate bind:endDate isRange>
             <!-- svelte-ignore a11y-click-events-have-key-events -->
             <!-- svelte-ignore a11y-no-static-element-interactions -->
             <div class="date-field" on:click={toggleDatePicker} class:open={isOpen}>
@@ -178,14 +191,19 @@
         {:else if error}
             <P>Error: {error}</P>
         {:else if games}
-            <Table>
-                <TableHead>
+            <Table class="max-w-80">
+                <TableHead class="select-none">
                     <TableHeadCell>Name</TableHeadCell>
-                    <TableHeadCell on:click={() => sortTable('totalGames')}>Total Games</TableHeadCell>
-                    <TableHeadCell on:click={() => sortTable('scoutGames')}>Scout Games</TableHeadCell>
-                    <TableHeadCell on:click={() => sortTable('soldierGames')}>Soldier Games</TableHeadCell>
-                    <TableHeadCell on:click={() => sortTable('demomanGames')}>Demoman Games</TableHeadCell>
-                    <TableHeadCell on:click={() => sortTable('medicGames')}>Medic Games</TableHeadCell>
+                    <TableHeadCell on:click={() => sortTable('totalGames')}
+                        >Total Games</TableHeadCell>
+                    <TableHeadCell on:click={() => sortTable('scoutGames')}
+                        >Scout Games</TableHeadCell>
+                    <TableHeadCell on:click={() => sortTable('soldierGames')}
+                        >Soldier Games</TableHeadCell>
+                    <TableHeadCell on:click={() => sortTable('demomanGames')}
+                        >Demoman Games</TableHeadCell>
+                    <TableHeadCell on:click={() => sortTable('medicGames')}
+                        >Medic Games</TableHeadCell>
                 </TableHead>
                 <TableBody tableBodyClass="divide-y">
                     {#each $sortItems as pos}
@@ -204,10 +222,6 @@
                     {/each}
                 </TableBody>
             </Table>
-        {:else}
-            <P>No data available</P>
-            <P>Start: {formattedStartDate}</P>
-            <P>End: {formattedEndDate}</P>
         {/if}
     </div>
 </div>
