@@ -11,7 +11,7 @@ export const GET: RequestHandler = async (event) => {
                     rating: 'desc'
                 }
             ],
-            take: Number(query.get('limit')) || 100,
+            take: Number(query.get('limit')) || 250,
             where: query.has('steamid') ? {steamid: query.get('steamid')!} : {}
         });
         return json(ranking);
