@@ -19,7 +19,8 @@ export function getPlayerGames(games: Games): PlayerGames[] {
                     scoutGames: 0,
                     demomanGames: 0,
                     soldierGames: 0,
-                    medicGames: 0
+                    medicGames: 0,
+                    medicDifference: 0,
                 };
             }
 
@@ -39,8 +40,11 @@ export function getPlayerGames(games: Games): PlayerGames[] {
         }
     }
 
-    // Convert the playerStatsMap object into an array
-    return Object.values(playerStatsMap);
+    // Calculate the difference and convert the playerStatsMap object into an array
+    return Object.values(playerStatsMap).map((player) => {
+        player.medicDifference = player.totalGames - player.medicGames;
+        return player;
+    });
 }
 
 export interface PlayerGames {
@@ -51,4 +55,5 @@ export interface PlayerGames {
     demomanGames: number;
     soldierGames: number;
     medicGames: number;
+    medicDifference: number;
 }

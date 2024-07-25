@@ -14,7 +14,10 @@
         TableHeadCell,
         A,
         TableBodyRow,
-        TableBodyCell
+        TableBodyCell,
+
+        Tooltip
+
     } from 'flowbite-svelte';
     import { ChevronDownOutline } from 'flowbite-svelte-icons';
     import { pickupSites } from '$lib/pickupSites';
@@ -30,7 +33,7 @@
     let error: string | null = null;
     let games: Games;
     let playerGames: PlayerGames[] = [];
-    let apiVersion = '';
+    let apiVersion = writable('');
 
     const clicked = async (e: MouseEvent) => {
         const button = e.target as HTMLButtonElement;
@@ -39,13 +42,13 @@
             icon: pickupSites.find((site) => site.name === button.innerText)?.icon!
         });
         dropOpen = false;
-        apiVersion = 'Loading...';
+        $apiVersion = 'Loading...';
         const response = await fetch(`https://api.${$selectedSite?.name}`);
         if (!response.ok) {
-            apiVersion = 'API request failed';
+            $apiVersion = 'API request failed';
         }
         const body = await response.json();
-        apiVersion = body.version;
+        $apiVersion = body.version;
     };
 
     $: filteredSites = pickupSites.filter(
@@ -148,7 +151,13 @@
             {$selectedSite?.name}
             <ChevronDownOutline class="ms-2 h-6 w-6 text-white dark:text-white" />
         </Button>
-        <P>{apiVersion}</P>
+        {#if $apiVersion !== ''}
+            <P class="m-3"
+                >API Version: {$apiVersion}
+                {$apiVersion !== 'Loading...' && $apiVersion !== '11.8.0' && $apiVersion !== ''
+                    ? ' - date range not available'
+                    : ''}</P>
+        {/if}
     </div>
     <Dropdown bind:open={dropOpen} class="h-72 overflow-y-auto px-3 pb-3 text-sm">
         <div slot="header" class="p-3">
@@ -164,7 +173,12 @@
         {/each}
     </Dropdown>
     <div class="date-filter">
-        <DatePicker class="{apiVersion !== '11.8.0' ? 'hidden' : ''}" bind:isOpen bind:startDate bind:endDate isRange>
+        <DatePicker
+            class={$apiVersion !== '11.8.0' ? 'hidden' : ''}
+            bind:isOpen
+            bind:startDate
+            bind:endDate
+            isRange>
             <!-- svelte-ignore a11y-click-events-have-key-events -->
             <!-- svelte-ignore a11y-no-static-element-interactions -->
             <div class="date-field" on:click={toggleDatePicker} class:open={isOpen}>
@@ -191,7 +205,7 @@
         {:else if error}
             <P>Error: {error}</P>
         {:else if games}
-            <Table class="max-w-80">
+            <Table class="max-w-lg">
                 <TableHead class="select-none">
                     <TableHeadCell>Name</TableHeadCell>
                     <TableHeadCell on:click={() => sortTable('totalGames')}
@@ -204,6 +218,11 @@
                         >Demoman Games</TableHeadCell>
                     <TableHeadCell on:click={() => sortTable('medicGames')}
                         >Medic Games</TableHeadCell>
+                    <TableHeadCell id="medicDifferenceCell" on:click={() => sortTable('medicDifference')}
+                        >Medic games difference</TableHeadCell>
+                    <Tooltip triggeredBy="#medicDifferenceCell" placement="right">
+                        Amount of games not played as Medic
+                    </Tooltip>
                 </TableHead>
                 <TableBody tableBodyClass="divide-y">
                     {#each $sortItems as pos}
@@ -218,6 +237,7 @@
                             <TableBodyCell>{pos.soldierGames}</TableBodyCell>
                             <TableBodyCell>{pos.demomanGames}</TableBodyCell>
                             <TableBodyCell>{pos.medicGames}</TableBodyCell>
+                            <TableBodyCell>{pos.medicDifference}</TableBodyCell>
                         </TableBodyRow>
                     {/each}
                 </TableBody>
