@@ -6,6 +6,7 @@
         Button,
         Dropdown,
         Search,
+        Popover,
         DropdownItem,
         P,
         Table,
@@ -15,9 +16,8 @@
         A,
         TableBodyRow,
         TableBodyCell,
-
-        Tooltip
-
+        Tooltip,
+        Spinner
     } from 'flowbite-svelte';
     import { ChevronDownOutline } from 'flowbite-svelte-icons';
     import { pickupSites } from '$lib/pickupSites';
@@ -201,12 +201,15 @@
     <Button class="mt-3" on:click={fetchApiData}>Search</Button>
     <div class="mt-4">
         {#if loading}
-            <P>Loading...</P>
+            <div class="inline-flex">
+                <Spinner size="6" />
+                <P class="m-0.5">Loading...</P>
+            </div>
         {:else if error}
             <P>Error: {error}</P>
         {:else if games}
             <Table class="max-w-lg">
-                <TableHead class="select-none">
+                <TableHead  class="select-none lowercase">
                     <TableHeadCell>Name</TableHeadCell>
                     <TableHeadCell on:click={() => sortTable('totalGames')}
                         >Total Games</TableHeadCell>
@@ -218,11 +221,18 @@
                         >Demoman Games</TableHeadCell>
                     <TableHeadCell on:click={() => sortTable('medicGames')}
                         >Medic Games</TableHeadCell>
-                    <TableHeadCell id="medicDifferenceCell" on:click={() => sortTable('medicDifference')}
-                        >Medic games difference</TableHeadCell>
-                    <Tooltip triggeredBy="#medicDifferenceCell" placement="right">
-                        Amount of games not played as Medic
-                    </Tooltip>
+                    <TableHeadCell
+                        id="medicDifferenceCell"
+                        on:click={() => sortTable('nonMedicGamesWeight')}
+                        >Non-medic games weighted score</TableHeadCell>
+                    <Popover triggeredBy="#medicDifferenceCell" title="Info" placement="right">
+                        <div class="w-72 text-sm font-light text-gray-500 bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 p-3 space-y-2">
+                            <h3 class="font-semibold text-gray-900 dark:text-white">Explanation of Metric Calculation</h3>
+                            <p><strong>Total Games:</strong> The absolute number of games a player has participated in.</p>
+                            <p><strong>Proportion of Non-Medic Games:</strong> Calculated as <code>1 - (Medic Games / Total Games)</code>. This represents the fraction of games played in roles other than medic.</p>
+                            <p><strong>Weighted Score:</strong> The total games played are weighted by the proportion of games not played as medic, emphasizing players who participate frequently in non-medic roles.</p>
+                        </div>
+                    </Popover>
                 </TableHead>
                 <TableBody tableBodyClass="divide-y">
                     {#each $sortItems as pos}
@@ -237,7 +247,7 @@
                             <TableBodyCell>{pos.soldierGames}</TableBodyCell>
                             <TableBodyCell>{pos.demomanGames}</TableBodyCell>
                             <TableBodyCell>{pos.medicGames}</TableBodyCell>
-                            <TableBodyCell>{pos.medicDifference}</TableBodyCell>
+                            <TableBodyCell>{pos.nonMedicGamesWeight}</TableBodyCell>
                         </TableBodyRow>
                     {/each}
                 </TableBody>

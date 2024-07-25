@@ -20,7 +20,7 @@ export function getPlayerGames(games: Games): PlayerGames[] {
                     demomanGames: 0,
                     soldierGames: 0,
                     medicGames: 0,
-                    medicDifference: 0,
+                    nonMedicGamesWeight: 0,
                 };
             }
 
@@ -40,9 +40,11 @@ export function getPlayerGames(games: Games): PlayerGames[] {
         }
     }
 
-    // Calculate the difference and convert the playerStatsMap object into an array
-    return Object.values(playerStatsMap).map((player) => {
-        player.medicDifference = player.totalGames - player.medicGames;
+    // Calculate the weighted score and convert the playerStatsMap object into an array
+    return Object.values(playerStatsMap).map(player => {
+        const { totalGames, medicGames } = player;
+        const nonMedicProportion = totalGames > 0 ? (1 - (medicGames / totalGames)) : 0;
+        player.nonMedicGamesWeight = Number((totalGames * nonMedicProportion).toFixed(1));
         return player;
     });
 }
@@ -55,5 +57,5 @@ export interface PlayerGames {
     demomanGames: number;
     soldierGames: number;
     medicGames: number;
-    medicDifference: number;
+    nonMedicGamesWeight: number;
 }
