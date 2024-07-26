@@ -1,9 +1,10 @@
-import type { mgemod_stats } from '@prisma/client';
+import type { mgemod_stats, whois_permname } from '@prisma/client';
 import type { PageServerLoad } from './$types';
 
 export const load = (async (event) => {
-    const response = await event.fetch('/api/mge/rank');
-    const ranking: mgemod_stats[] = await response.json();
+    const rankResponse = await event.fetch('/api/mge/rank');
+    const ranking: mgemod_stats[] = await rankResponse.json();
+    const permnamesResponse: 
 
     // Modify each user's data to include totalGames, wl, and winrate
     const modifiedRanking = ranking.map(user => {

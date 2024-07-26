@@ -1,4 +1,4 @@
-import type { Games, Player } from './game';
+import type { Games, Player } from './pickup/game';
 
 export function getPlayerGames(games: Games): PlayerGames[] {
     const playerStatsMap: { [steamId: string]: PlayerGames } = {};
@@ -40,11 +40,11 @@ export function getPlayerGames(games: Games): PlayerGames[] {
         }
     }
 
-    // Calculate the weighted score and convert the playerStatsMap object into an array
+    // Calculate the enhanced score and convert the playerStatsMap object into an array
     return Object.values(playerStatsMap).map(player => {
         const { totalGames, medicGames } = player;
-        const nonMedicProportion = totalGames > 0 ? (1 - (medicGames / totalGames)) : 0;
-        player.nonMedicGamesWeight = Number((totalGames * nonMedicProportion).toFixed(1));
+        const nonMedicPercentage = totalGames > 0 ? (1 - (medicGames / totalGames)) * 10 : 0;
+        player.nonMedicGamesWeight = Number(((totalGames - medicGames) + nonMedicPercentage).toFixed(2));
         return player;
     });
 }

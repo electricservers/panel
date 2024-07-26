@@ -23,8 +23,8 @@
     import { pickupSites } from '$lib/pickupSites';
     import { DatePicker } from '@svelte-plugins/datepicker';
     import { format } from 'date-fns';
-    import type { Games } from '$lib/game';
-    import { getPlayerGames, type PlayerGames } from '$lib/rankings';
+    import type { Games } from '$lib/pickup/game';
+    import { getPlayerGames, type PlayerGames } from '$lib/mge/rankings';
     import { writable } from 'svelte/store';
 
     let searchTerm = '';

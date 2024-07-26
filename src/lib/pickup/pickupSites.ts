@@ -1,6 +1,7 @@
 import '/node_modules/flag-icons/css/flag-icons.min.css';
 
 export const pickupSites: PickupSite[] = [
+    { name: 'ar.tf2pickup.org', icon: 'ar' },
     { name: 'br.tf2pickup.org', icon: 'br' },
     { name: 'hl.br.tf2pickup.org', icon: 'br' },
     { name: 'hl.tf2pickup.eu', icon: 'eu' },
