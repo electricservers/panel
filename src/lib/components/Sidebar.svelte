@@ -41,17 +41,19 @@
     });
 
     let posts: NavItem[] = [
+        // {
+        //     name: 'Whois',
+        //     icon: UsersGroupOutline,
+        //     href: '/whois',
+        //     children: {}
+        // },
         {
-            name: 'Whois',
-            icon: UsersGroupOutline,
-            href: '/whois',
-            children: {}
-        },
-        {
-            name: 'MGE Stats',
+            name: 'MGE',
             icon: ChartOutline,
-            href: '/mgestats',
-            children: {}
+            href: '#',
+            children: {
+                Stats: '/mge/rank'
+            }
         },
         {
             name: 'TF2 Pickup',
