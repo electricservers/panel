@@ -1,5 +1,6 @@
 <script>
     import '../app.pcss';
+    import '/node_modules/flag-icons/css/flag-icons.min.css';
     import Navbar from '../lib/components/Navbar.svelte';
     import Sidebar from '../lib/components/Sidebar.svelte';
     let drawerHidden = false;

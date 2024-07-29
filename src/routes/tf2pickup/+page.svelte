@@ -16,11 +16,10 @@
         A,
         TableBodyRow,
         TableBodyCell,
-        Tooltip,
         Spinner
     } from 'flowbite-svelte';
     import { ChevronDownOutline } from 'flowbite-svelte-icons';
-    import { pickupSites } from '$lib/pickupSites';
+    import { pickupSites } from '$lib/pickup/pickupSites';
     import { DatePicker } from '@svelte-plugins/datepicker';
     import { format } from 'date-fns';
     import type { Games } from '$lib/pickup/game';

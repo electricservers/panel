@@ -1,0 +1,587 @@
+generator client {
+  provider = "prisma-client-js"
+  output = "../node_modules/@prisma-br/client"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL_2")
+}
+
+model Teleports {
+  ID       Int    @id @default(autoincrement())
+  MapName  String @db.TinyText
+  TeleName String @db.Text
+  L1       Float  @db.Float
+  L2       Float  @db.Float
+  L3       Float  @db.Float
+  A1       Float  @db.Float
+  A2       Float  @db.Float
+  A3       Float  @db.Float
+}
+
+model jse_autosaves {
+  id                    Int                    @id @default(autoincrement())
+  auth                  BigInt
+  map_id                Int
+  team                  Int
+  class                 Int
+  course_id             Int
+  jump_id               Int?
+  controlpoint_id       Int?
+  timestamp             DateTime               @default(now()) @db.DateTime(0)
+  jse_map_controlpoints jse_map_controlpoints? @relation(fields: [controlpoint_id], references: [id], onDelete: Cascade, map: "fk_autosave_controlpoint")
+  jse_map_courses       jse_map_courses        @relation(fields: [course_id], references: [id], onDelete: Cascade, map: "fk_autosave_course")
+  jse_map_jumps         jse_map_jumps?         @relation(fields: [jump_id], references: [id], onDelete: Cascade, map: "fk_autosave_jump")
+  jse_maps              jse_maps               @relation(fields: [map_id], references: [id], onDelete: Cascade, map: "fk_autosave_map")
+
+  @@unique([auth, map_id, team, class, course_id], map: "auth")
+  @@index([controlpoint_id], map: "fk_autosave_controlpoint")
+  @@index([course_id], map: "fk_autosave_course")
+  @@index([jump_id], map: "fk_autosave_jump")
+  @@index([map_id], map: "fk_autosave_map")
+  @@index([timestamp], map: "timestamp")
+}
+
+model jse_map_controlpoints {
+  id                         Int                          @id @default(autoincrement())
+  map_id                     Int
+  course_id                  Int
+  identifier                 String?                      @db.VarChar(128)
+  x                          Int?
+  y                          Int?
+  z                          Int?
+  jse_autosaves              jse_autosaves[]
+  jse_map_courses            jse_map_courses              @relation(fields: [course_id], references: [id], onDelete: Cascade, map: "fk_controlpoint_course")
+  jse_maps                   jse_maps                     @relation(fields: [map_id], references: [id], onDelete: Cascade, map: "fk_controlpoint_map")
+  jse_progress_controlpoints jse_progress_controlpoints[]
+
+  @@unique([map_id, course_id], map: "map_id")
+  @@index([course_id], map: "fk_controlpoint_course")
+}
+
+model jse_map_courses {
+  id                         Int                          @id @default(autoincrement())
+  map_id                     Int
+  course                     Int
+  name                       String?                      @db.VarChar(128)
+  jse_autosaves              jse_autosaves[]
+  jse_map_controlpoints      jse_map_controlpoints[]
+  jse_maps                   jse_maps                     @relation(fields: [map_id], references: [id], onDelete: Cascade, map: "fk_course_map")
+  jse_map_jumps              jse_map_jumps[]
+  jse_progress_controlpoints jse_progress_controlpoints[]
+  jse_progress_jumps         jse_progress_jumps[]
+
+  @@unique([map_id, course], map: "map_id")
+}
+
+model jse_map_jumps {
+  id                 Int                  @id @default(autoincrement())
+  map_id             Int
+  course_id          Int
+  jump               Int
+  identifier         String?              @db.VarChar(128)
+  x                  Float?               @db.Float
+  y                  Float?               @db.Float
+  z                  Float?               @db.Float
+  jse_autosaves      jse_autosaves[]
+  jse_map_courses    jse_map_courses      @relation(fields: [course_id], references: [id], onDelete: Cascade, map: "fk_jump_course")
+  jse_maps           jse_maps             @relation(fields: [map_id], references: [id], onDelete: Cascade, map: "fk_jump_map")
+  jse_progress_jumps jse_progress_jumps[]
+
+  @@unique([map_id, course_id, jump], map: "map_id")
+  @@index([course_id], map: "fk_jump_course")
+}
+
+model jse_maps {
+  id                         Int                          @id @default(autoincrement())
+  filename                   String?                      @unique(map: "filename") @db.VarChar(256)
+  lastupdate                 DateTime?                    @db.DateTime(0)
+  jse_autosaves              jse_autosaves[]
+  jse_map_controlpoints      jse_map_controlpoints[]
+  jse_map_courses            jse_map_courses[]
+  jse_map_jumps              jse_map_jumps[]
+  jse_progress_controlpoints jse_progress_controlpoints[]
+  jse_progress_jumps         jse_progress_jumps[]
+}
+
+model jse_progress_controlpoints {
+  id                    Int                   @id @default(autoincrement())
+  auth                  BigInt
+  map_id                Int
+  team                  Int
+  class                 Int
+  course_id             Int
+  controlpoint_id       Int
+  timestamp             DateTime              @default(now()) @db.DateTime(0)
+  jse_map_controlpoints jse_map_controlpoints @relation(fields: [controlpoint_id], references: [id], onDelete: Cascade, map: "fk_progress_controlpoint_controlpoint")
+  jse_map_courses       jse_map_courses       @relation(fields: [course_id], references: [id], onDelete: Cascade, map: "fk_progress_controlpoint_course")
+  jse_maps              jse_maps              @relation(fields: [map_id], references: [id], onDelete: Cascade, map: "fk_progress_controlpoint_map")
+
+  @@unique([auth, map_id, team, class, course_id, controlpoint_id], map: "auth")
+  @@index([controlpoint_id], map: "fk_progress_controlpoint_controlpoint")
+  @@index([course_id], map: "fk_progress_controlpoint_course")
+  @@index([map_id], map: "fk_progress_controlpoint_map")
+  @@index([timestamp], map: "timestamp")
+}
+
+model jse_progress_jumps {
+  id              Int             @id @default(autoincrement())
+  auth            BigInt
+  map_id          Int
+  team            Int
+  class           Int
+  course_id       Int
+  jump_id         Int
+  timestamp       DateTime        @default(now()) @db.DateTime(0)
+  jse_map_courses jse_map_courses @relation(fields: [course_id], references: [id], onDelete: Cascade, map: "fk_progress_jump_course")
+  jse_map_jumps   jse_map_jumps   @relation(fields: [jump_id], references: [id], onDelete: Cascade, map: "fk_progress_jump_jump")
+  jse_maps        jse_maps        @relation(fields: [map_id], references: [id], onDelete: Cascade, map: "fk_progress_jump_map")
+
+  @@unique([auth, map_id, team, class, course_id, jump_id], map: "auth")
+  @@index([course_id], map: "fk_progress_jump_course")
+  @@index([jump_id], map: "fk_progress_jump_jump")
+  @@index([map_id], map: "fk_progress_jump_map")
+  @@index([timestamp], map: "timestamp")
+}
+
+model map_settings {
+  ID      Int    @id @default(autoincrement())
+  Map     String @db.Text
+  Team    Int
+  LockCPs Int
+  Class   Int
+}
+
+model mgemod_duels {
+  winner      String? @db.VarChar(255)
+  loser       String? @db.VarChar(255)
+  winnerscore String? @db.VarChar(255)
+  loserscore  String? @db.VarChar(255)
+  winlimit    String? @db.VarChar(255)
+  gametime    String? @db.VarChar(255)
+  mapname     String? @db.VarChar(255)
+  arenaname   String? @db.VarChar(255)
+  id          Int     @id @default(autoincrement())
+}
+
+model mgemod_duels_2v2 {
+  winner      String? @db.VarChar(255)
+  winner2     String? @db.VarChar(255)
+  loser       String? @db.VarChar(255)
+  loser2      String? @db.VarChar(255)
+  winnerscore String? @db.VarChar(255)
+  loserscore  String? @db.VarChar(255)
+  winlimit    String? @db.VarChar(255)
+  gametime    String? @db.VarChar(255)
+  mapname     String? @db.VarChar(255)
+  arenaname   String? @db.VarChar(255)
+  id          Int     @id @default(autoincrement())
+}
+
+model mgemod_stats {
+  rating     Int?
+  steamid    String  @id @db.VarChar(255)
+  name       String? @db.VarChar(255)
+  wins       Int?
+  losses     Int?
+  lastplayed String? @db.VarChar(255)
+  hitblip    String? @db.VarChar(255)
+}
+
+model player_profiles {
+  ID                Int    @id @default(autoincrement())
+  SteamID           String @db.Text
+  Health            Int    @default(0)
+  Ammo              Int    @default(0)
+  Hardcore          Int    @default(0)
+  PlayerFOV         Int    @default(90)
+  SKEYS_RED_COLOR   Int    @default(255)
+  SKEYS_GREEN_COLOR Int    @default(255)
+  SKEYS_BLUE_COLOR  Int    @default(255)
+}
+
+model player_saves {
+  RecID       Int     @id @default(autoincrement())
+  steamID     String  @db.VarChar(32)
+  playerClass Int
+  playerTeam  Int
+  playerMap   String  @db.VarChar(32)
+  save1       Int
+  save2       Int
+  save3       Int
+  save4       Int
+  save5       Int
+  save6       Int
+  Capped      String? @db.VarChar(32)
+}
+
+model players {
+  steamid         String   @id @db.VarChar(20)
+  nickname        String?  @db.VarChar(255)
+  points          Decimal? @db.Decimal(65, 6)
+  seen            Int?
+  deaths          Int?
+  kills           Int?
+  assists         Int?
+  backstabs       Int?
+  headshots       Int?
+  feigns          Int?
+  merkills        Int?     @default(0)
+  merlvl          Int?     @default(0)
+  monkills        Int?     @default(0)
+  monlvl          Int?     @default(0)
+  hhhkills        Int?     @default(0)
+  playtime        Float?   @default(0) @db.Float
+  flagcaptures    Int?     @default(0)
+  flagdefends     Int?     @default(0)
+  capcaptures     Int?     @default(0)
+  capdefends      Int?     @default(0)
+  roundsplayed    Int?     @default(0)
+  dominationsgood Int?     @default(0)
+  dominationsbad  Int?     @default(0)
+  deflects        Int?     @default(0)
+  streak          Int?     @default(0)
+}
+
+model sb_admins {
+  aid          Int     @id @default(autoincrement())
+  user         String  @unique(map: "user") @db.VarChar(64)
+  authid       String  @default("") @db.VarChar(64)
+  password     String  @db.VarChar(128)
+  gid          Int
+  email        String  @db.VarChar(128)
+  validate     String? @db.VarChar(128)
+  extraflags   Int
+  immunity     Int     @default(0)
+  srv_group    String? @db.VarChar(128)
+  srv_flags    String? @db.VarChar(64)
+  srv_password String? @db.VarChar(128)
+  lastvisit    Int?
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model sb_admins_servers_groups {
+  admin_id     Int
+  group_id     Int
+  srv_group_id Int
+  server_id    Int
+
+  @@ignore
+}
+
+model sb_banlog {
+  sid  Int
+  time Int
+  name String @db.VarChar(128)
+  bid  Int
+
+  @@id([sid, time, bid])
+}
+
+model sb_bans {
+  bid        Int     @id @default(autoincrement())
+  ip         String? @db.VarChar(32)
+  authid     String  @default("") @db.VarChar(64)
+  name       String  @default("unnamed") @db.VarChar(128)
+  created    Int     @default(0)
+  ends       Int     @default(0)
+  length     Int     @default(0)
+  reason     String  @db.VarChar(256)
+  aid        Int     @default(0)
+  adminIp    String  @default("") @db.VarChar(128)
+  sid        Int     @default(0)
+  country    String? @db.VarChar(4)
+  RemovedBy  Int?
+  RemoveType String? @db.VarChar(3)
+  RemovedOn  Int?
+  type       Int     @default(0) @db.TinyInt
+  ureason    String? @db.Text
+
+  @@index([authid], map: "authid_2")
+  @@index([reason], map: "reason")
+  @@index([sid], map: "sid")
+  @@index([type, authid], map: "type_authid")
+  @@index([type, ip], map: "type_ip")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model sb_comms {
+  bid        Int     @id @default(autoincrement())
+  authid     String  @db.VarChar(64)
+  name       String  @default("unnamed") @db.VarChar(128)
+  created    Int     @default(0)
+  ends       Int     @default(0)
+  length     Int     @default(0)
+  reason     String  @db.Text
+  aid        Int     @default(0)
+  adminIp    String  @default("") @db.VarChar(128)
+  sid        Int     @default(0)
+  RemovedBy  Int?
+  RemoveType String? @db.VarChar(3)
+  RemovedOn  Int?
+  type       Int     @default(0) @db.TinyInt
+  ureason    String? @db.Text
+
+  @@index([RemoveType], map: "RemoveType")
+  @@index([aid], map: "aid")
+  @@index([authid], map: "authid")
+  @@index([created], map: "created")
+  @@index([sid], map: "sid")
+  @@index([type], map: "type")
+}
+
+model sb_demos {
+  demid    Int
+  demtype  String @db.VarChar(1)
+  filename String @db.VarChar(128)
+  origname String @db.VarChar(128)
+
+  @@id([demid, demtype])
+}
+
+model sb_groups {
+  gid   Int    @id @default(autoincrement())
+  type  Int    @default(0) @db.SmallInt
+  name  String @default("unnamed") @db.VarChar(128)
+  flags Int
+}
+
+model sb_log {
+  lid      Int         @id @default(autoincrement())
+  type     sb_log_type
+  title    String      @db.VarChar(512)
+  message  String      @db.Text
+  function String      @db.Text
+  query    String      @db.Text
+  aid      Int
+  host     String      @db.Text
+  created  Int
+}
+
+model sb_login_tokens {
+  jti          String @id @db.VarChar(16)
+  secret       String @unique(map: "secret") @db.VarChar(64)
+  lastAccessed Int
+}
+
+model sb_mods {
+  mid            Int    @id @default(autoincrement())
+  name           String @unique(map: "name") @db.VarChar(128)
+  icon           String @db.VarChar(128)
+  modfolder      String @unique(map: "modfolder") @db.VarChar(64)
+  steam_universe Int    @default(0) @db.TinyInt
+  enabled        Int    @default(1) @db.TinyInt
+
+  @@index([steam_universe], map: "steam_universe")
+}
+
+model sb_overrides {
+  id    Int               @id @default(autoincrement())
+  type  sb_overrides_type
+  name  String            @db.VarChar(32)
+  flags String            @db.VarChar(30)
+
+  @@unique([type, name], map: "type")
+}
+
+model sb_protests {
+  pid           Int      @id @default(autoincrement())
+  bid           Int
+  datesubmitted Int
+  reason        String   @db.Text
+  email         String   @db.VarChar(128)
+  archiv        Boolean? @default(false)
+  archivedby    Int?
+  pip           String   @db.VarChar(64)
+
+  @@index([bid], map: "bid")
+}
+
+model sb_servers {
+  sid     Int    @id @default(autoincrement())
+  ip      String @db.VarChar(64)
+  port    Int
+  rcon    String @db.VarChar(64)
+  modid   Int
+  enabled Int    @default(1) @db.TinyInt
+
+  @@unique([ip, port], map: "ip")
+}
+
+model sb_servers_groups {
+  server_id Int
+  group_id  Int
+
+  @@id([server_id, group_id])
+}
+
+model sb_settings {
+  setting String @unique(map: "setting") @db.VarChar(128)
+  value   String @db.Text
+  id      Int    @id @default(autoincrement()) @db.UnsignedInt
+}
+
+model sb_srvgroups {
+  id            Int    @id @default(autoincrement()) @db.UnsignedInt
+  flags         String @db.VarChar(30)
+  immunity      Int    @db.UnsignedInt
+  name          String @db.VarChar(120)
+  groups_immune String @db.VarChar(255)
+}
+
+model sb_srvgroups_overrides {
+  id       Int                           @id @default(autoincrement())
+  group_id Int                           @db.UnsignedSmallInt
+  type     sb_srvgroups_overrides_type
+  name     String                        @db.VarChar(32)
+  access   sb_srvgroups_overrides_access
+
+  @@unique([group_id, type, name], map: "group_id")
+}
+
+model sb_submissions {
+  subid      Int      @id @default(autoincrement())
+  submitted  Int
+  ModID      Int
+  SteamId    String   @default("unnamed") @db.VarChar(64)
+  name       String   @db.VarChar(128)
+  email      String   @db.VarChar(128)
+  reason     String   @db.Text
+  ip         String   @db.VarChar(64)
+  subname    String?  @db.VarChar(128)
+  sip        String?  @db.VarChar(64)
+  archiv     Boolean? @default(false)
+  archivedby Int?
+  server     Int?     @db.TinyInt
+}
+
+model settings {
+  key   String  @id @db.VarChar(255)
+  value String? @db.VarChar(16)
+}
+
+model ssh {
+  auth String  @id @db.VarChar(32)
+  name String? @default("<unknown>") @db.VarChar(32)
+}
+
+model startlocs {
+  ID      Int    @id @default(autoincrement())
+  MapName String @db.TinyText
+  x       Float
+  y       Float
+  z       Float
+  xang    Float
+  yang    Float
+  zang    Float
+}
+
+model steamids {
+  ID      Int    @id @default(autoincrement())
+  SteamID String @db.Text
+  name    String @db.Text
+}
+
+model teleports {
+  ID       Int    @id @default(autoincrement())
+  MapName  String @db.TinyText
+  TeleName String @db.Text
+  L1       Float  @db.Float
+  L2       Float  @db.Float
+  L3       Float  @db.Float
+  A1       Float  @db.Float
+  A2       Float  @db.Float
+  A3       Float  @db.Float
+}
+
+model times {
+  ID      Int    @id @default(autoincrement())
+  SteamID String @db.Text
+  class   Int
+  MapName String @db.TinyText
+  time    BigInt
+  c0      Float? @default(0)
+  c1      Float? @default(0)
+  c2      Float? @default(0)
+  c3      Float? @default(0)
+  c4      Float? @default(0)
+  c5      Float? @default(0)
+  c6      Float? @default(0)
+  c7      Float? @default(0)
+  c8      Float? @default(0)
+  c9      Float? @default(0)
+  c10     Float? @default(0)
+  c11     Float? @default(0)
+  c12     Float? @default(0)
+  c13     Float? @default(0)
+  c14     Float? @default(0)
+  c15     Float? @default(0)
+  c16     Float? @default(0)
+  c17     Float? @default(0)
+  c18     Float? @default(0)
+  c19     Float? @default(0)
+  c20     Float? @default(0)
+  c21     Float? @default(0)
+  c22     Float? @default(0)
+  c23     Float? @default(0)
+  c24     Float? @default(0)
+  c25     Float? @default(0)
+  c26     Float? @default(0)
+  c27     Float? @default(0)
+  c28     Float? @default(0)
+  c29     Float? @default(0)
+  c30     Float? @default(0)
+  c31     Float? @default(0)
+}
+
+model whois_logs {
+  entry       Int       @id @default(autoincrement())
+  steam_id    String?   @db.VarChar(64)
+  name        String?   @db.VarChar(128)
+  date        DateTime? @db.Date
+  time        DateTime? @db.Time(0)
+  timestamp   Int?
+  ip          String?   @db.VarChar(32)
+  server_ip   String?   @db.VarChar(32)
+  server_name String?   @db.VarChar(128)
+  action      String?   @db.VarChar(32)
+}
+
+model whois_permname {
+  steam_id String  @id @db.VarChar(64)
+  name     String? @db.VarChar(128)
+}
+
+model zones {
+  ID      Int    @id @default(autoincrement())
+  Number  Int
+  MapName String @db.TinyText
+  x1      Float
+  y1      Float
+  z1      Float
+  x2      Float
+  y2      Float
+  z2      Float
+}
+
+enum sb_log_type {
+  m
+  w
+  e
+}
+
+enum sb_overrides_type {
+  command
+  group
+}
+
+enum sb_srvgroups_overrides_type {
+  command
+  group
+}
+
+enum sb_srvgroups_overrides_access {
+  allow
+  deny
+}

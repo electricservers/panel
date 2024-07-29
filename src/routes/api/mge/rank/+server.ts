@@ -1,21 +1,30 @@
 import type { RequestHandler } from './$types';
-import prisma from '$lib/prisma';
+import prismaArg from '$lib/prismaArg';
+import prismaBr from '$lib/prismaBr';
 import { error, json } from '@sveltejs/kit';
+import type { mgemod_stats, Prisma } from '@prisma/client';
 
 export const GET: RequestHandler = async (event) => {
-    try {
-        const query = event.url.searchParams;
-        let ranking = await prisma.mgemod_stats.findMany({
-            orderBy: [
-                {
-                    rating: 'desc'
-                }
-            ],
-            take: Number(query.get('limit')) || 250,
-            where: query.has('steamid') ? {steamid: query.get('steamid')!} : {}
-        });
-        return json(ranking);
-    } catch (err: any) {
-        return error(500, err);
+    const query = event.url.searchParams;
+    const statsQuery = {
+        orderBy: [
+            {
+                rating: 'desc'
+            }
+        ],
+        take: Number(query.get('limit')) || 250,
+        where: query.has('steamid') ? { steamid: query.get('steamid')! } : {}
+    } satisfies Prisma.mgemod_statsFindManyArgs;
+    let ranking: mgemod_stats[];
+    switch (query.get('db')) {
+        case 'ar':
+            ranking = await prismaArg.mgemod_stats.findMany(statsQuery);
+            break;
+        case 'br':
+            ranking = await prismaBr.mgemod_stats.findMany(statsQuery);
+            break;
+        default:
+            return error(400, "wrong db supplied (only 'ar' or 'br' accepted)");
     }
+    return json(ranking);
 };
