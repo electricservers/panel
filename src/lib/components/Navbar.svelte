@@ -1,8 +1,10 @@
 <script>
     import UserMenu from '../../routes/utils/widgets/UserMenu.svelte';
-    import { DarkMode, NavBrand, NavHamburger, Navbar } from 'flowbite-svelte';
+    import { Button, DarkMode, NavBrand, NavHamburger, Navbar, P } from 'flowbite-svelte';
     import '../../app.pcss';
     import Users from '../../routes/data/users.json';
+    import { steamProfile } from '$lib/stores/steamStore';
+    import { goto } from '$app/navigation';
 
     export let fluid = true;
     export let drawerHidden = false;
@@ -23,7 +25,12 @@
         </NavBrand>
         <div class="ms-auto flex items-center text-gray-500 dark:text-gray-400 sm:order-2">
             <DarkMode />
-            <UserMenu {...Users[4]} />
+            {#if $steamProfile !== undefined}
+                <P>{$steamProfile.personaname ?? ''}</P>
+                <UserMenu />
+            {:else}
+                <Button on:click={() => goto('/auth/login')}>Login with Steam</Button>
+            {/if}
         </div>
     </NavContainer>
 </Navbar>

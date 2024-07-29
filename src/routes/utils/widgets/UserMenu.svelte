@@ -6,17 +6,15 @@
         DropdownHeader,
         DropdownItem
     } from 'flowbite-svelte';
-
-    export let name: string = ''; // "Neil Sims",
-    export let avatar: string = ''; // "neil-sims.png",
+    import { steamProfile } from "$lib/stores/steamStore";
 </script>
 
 <button class="ms-3 rounded-full ring-gray-400 focus:ring-4 dark:ring-gray-600">
-    <Avatar size="sm" src={imagesPath(avatar, 'users')} tabindex="0" />
+    <Avatar size="sm" src={$steamProfile.avatar} tabindex="0" />
 </button>
 <Dropdown placement="bottom-end">
     <DropdownHeader>
-        <span class="block text-sm">{name}</span>
+        <span class="block text-sm">{$steamProfile.personaname}</span>
     </DropdownHeader>
     <DropdownItem>Sign out</DropdownItem>
 </Dropdown>
