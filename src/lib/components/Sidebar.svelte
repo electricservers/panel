@@ -52,7 +52,7 @@
             icon: ChartOutline,
             href: '#',
             children: {
-                Stats: '/mge/rank'
+                Stats: '/mge/ranking'
             }
         },
         {
