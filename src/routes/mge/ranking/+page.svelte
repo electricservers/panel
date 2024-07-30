@@ -22,7 +22,8 @@
 
     const sortKey = writable('id'); // default sort key
     const sortDirection = writable(1); // default sort direction (ascending)
-    const sortItems = writable(data.ranking.slice()); // make a copy of the items array
+    const sortItems = writable(data.rankingPromise.slice()); // make a copy of the items array
+    export const loading = writable(false);
 
     // Define a function to sort the items
     const sortTable = (key: string) => {
@@ -64,6 +65,8 @@
     let flagChosen: string = 'ar';
 
     const clicked = async (arg: string) => {
+        dropOpen = false;
+        $loading = true;
         if (arg === 'ar') {
             serverChosen = 'Electric #1';
         } else {
@@ -75,9 +78,9 @@
 
         // Modify each user's data to include totalGames, wl, and winrate
         const modifiedRanking = ranking.map((user) => {
-            const totalGames = user.wins + user.losses;
-            const wl = user.losses !== 0 ? (user.wins / user.losses).toFixed(1) : 'N/A';
-            const winrate = totalGames !== 0 ? ((user.wins / totalGames) * 100).toFixed(1) : '0.0';
+            const totalGames = user.wins! + user.losses!;
+            const wl = user.losses !== 0 ? (user.wins! / user.losses!).toFixed(1) : 'N/A';
+            const winrate = totalGames !== 0 ? ((user.wins! / totalGames) * 100).toFixed(1) : '0.0';
             user.name = user.name!.replace(/[^\w\s]/g, '_');
             return {
                 ...user, // Include existing properties
@@ -86,7 +89,6 @@
                 winrate
             };
         });
-        dropOpen = false;
         $sortItems = modifiedRanking;
     };
 </script>
@@ -112,7 +114,9 @@
             Electric #5
         </DropdownItem>
     </Dropdown>
-    {#if data.ranking}
+    {#await $sortItems}
+        <P>Loading ranking...</P>
+    {:then}
         <Table striped={true} hoverable={true}>
             <TableHead class="select-none">
                 <TableHeadCell>Position</TableHeadCell>
@@ -144,7 +148,5 @@
                 {/each}
             </TableBody>
         </Table>
-    {:else}
-        <h1>Loading...</h1>
-    {/if}
+    {/await}
 </div>
