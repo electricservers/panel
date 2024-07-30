@@ -1,6 +1,6 @@
 import type { RequestHandler } from './$types';
-import prismaArg from '$lib/prismaArg';
-import prismaBr from '$lib/prismaBr';
+import prismaArg from '$lib/prisma/prismaArg';
+import prismaBr from '$lib/prisma/prismaBr';
 import { error, json } from '@sveltejs/kit';
 import type { mgemod_stats, Prisma } from '@prisma/client';
 

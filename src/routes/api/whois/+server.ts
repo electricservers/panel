@@ -1,4 +1,4 @@
-import prismaArg from '$lib/prismaArg';
+import prismaArg from '$lib/prisma/prismaArg';
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 

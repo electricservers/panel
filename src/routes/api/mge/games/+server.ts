@@ -1,5 +1,5 @@
-import prismaArg from '$lib/prismaArg';
-import prismaBr from '$lib/prismaBr';
+import prismaArg from '$lib/prisma/prismaArg';
+import prismaBr from '$lib/prisma/prismaBr';
 import type { mgemod_duels, Prisma } from '@prisma/client';
 import { error, json, type RequestHandler } from '@sveltejs/kit';
 
