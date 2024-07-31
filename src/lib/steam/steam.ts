@@ -1,9 +1,12 @@
 import SteamAuth from 'node-steam-openid'
-import { DOMAIN, STEAM_API_KEY } from "./config";
+import { getDomain, STEAM_API_KEY } from "./config";
 
 const path = `/api/auth/return`
-export const steam = new SteamAuth({
-    realm: DOMAIN, 
-    returnUrl: `${DOMAIN}${path}`,
-    apiKey: STEAM_API_KEY
-})
+export function createSteamAuth(request: Request) {
+    const domain = getDomain(request);
+    return new SteamAuth({
+        realm: domain, 
+        returnUrl: `${domain}${path}`,
+        apiKey: STEAM_API_KEY
+    });
+}

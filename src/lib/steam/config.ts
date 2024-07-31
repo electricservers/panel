@@ -1,6 +1,11 @@
 import { env } from '$env/dynamic/private';
-export const DOMAIN = env.DOMAIN || 'http://localhost:5173';
 export const STEAM_API_KEY = env.STEAM_API_KEY || '';
+
+export function getDomain(request: Request) {
+    const host = request.headers.get('host') || 'localhost:5173';
+    const protocol = host.includes('localhost') ? 'http' : 'https';
+    return `${protocol}://${host}`;
+}
 
 export interface SteamProfile {
     steamid: string;
