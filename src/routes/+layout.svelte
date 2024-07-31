@@ -4,6 +4,16 @@
     import Navbar from '../lib/components/Navbar.svelte';
     import Sidebar from '../lib/components/Sidebar.svelte';
     let drawerHidden = false;
+    import { onMount } from 'svelte';
+    import { steamStore } from '$lib/stores/steamStore';
+
+    export let data;
+
+    onMount(() => {
+        if (data.user) {
+            steamStore.set(data.user);
+        }
+    });
 </script>
 
 <header

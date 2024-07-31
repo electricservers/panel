@@ -1,11 +1,8 @@
-<script lang="ts">
-    import type { PageData } from './$types';
-    export let data: PageData;
-
-    const path: string = '';
-    const description: string = 'Admin Dashboard example using Flowbite Svelte';
-    const title: string = 'Flowbite Svelte Admin Dashboard - Home';
-    const subtitle: string = 'Admin Dashboard';
+<script>
+    import Title from '$lib/components/Title.svelte';
+    import { steamStore } from '$lib/stores/steamStore'
 </script>
 
-<main class="p-4"></main>
+<div class="p-4">
+    <Title>Welcome{$steamStore ? ` ${$steamStore.personaname}!` : `! You're not logged in.`}</Title>
+</div>

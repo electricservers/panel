@@ -1,14 +1,25 @@
 <script>
     import UserMenu from '../../routes/utils/widgets/UserMenu.svelte';
-    import { Button, DarkMode, NavBrand, NavHamburger, Navbar, P } from 'flowbite-svelte';
-    import '../../app.pcss';
-    import Users from '../../routes/data/users.json';
-    import { steamProfile } from '$lib/stores/steamStore';
+    import { Avatar, Button, DarkMode, NavBrand, NavHamburger, Navbar, P } from 'flowbite-svelte';
+    import { steamStore } from '$lib/stores/steamStore';
     import { goto } from '$app/navigation';
+    import { onMount } from 'svelte';
 
     export let fluid = true;
     export let drawerHidden = false;
     export let list = false;
+
+    let loading = true;
+
+    onMount(() => {
+        const unsubscribe = steamStore.subscribe((value) => {
+            if (value !== undefined) {
+                loading = false;
+            }
+        });
+
+        return unsubscribe;
+    });
 </script>
 
 <Navbar {fluid} class="text-black" color="default" let:NavContainer>
@@ -25,11 +36,14 @@
         </NavBrand>
         <div class="ms-auto flex items-center text-gray-500 dark:text-gray-400 sm:order-2">
             <DarkMode />
-            {#if $steamProfile !== undefined}
-                <P>{$steamProfile.personaname ?? ''}</P>
+            {#if loading}
+                <div class="pulse mr-3 h-4 w-20 rounded-lg bg-gray-200 dark:bg-gray-700"></div>
+                <Avatar size="sm" class="pulse" />
+            {:else if $steamStore}
+                <P>{$steamStore.personaname ?? ''}</P>
                 <UserMenu />
             {:else}
-                <Button on:click={() => goto('/auth/login')}>Login with Steam</Button>
+                <Button on:click={() => goto('/api/auth/login')}>Login with Steam</Button>
             {/if}
         </div>
     </NavContainer>
