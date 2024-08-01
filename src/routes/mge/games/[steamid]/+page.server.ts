@@ -7,9 +7,6 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     }
     
     if (locals.user.steamid !== params.steamid) {
-        console.log(locals.user.steamid)
-        console.log(params.steamid)
         throw error(403, 'Access denied');
     }
-    console.log(params.steamid)
 };
