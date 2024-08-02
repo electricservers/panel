@@ -4,18 +4,20 @@
     import { steamStore } from '$lib/stores/steamStore';
     import type { SteamProfile } from '$lib/steam/config';
 
-    export let data: { user?: string };
+    export let data: { user?: string; error?: string };
 
     onMount(() => {
         if (data.user) {
             try {
-                const profile: SteamProfile = JSON.parse(data.user);
+                const profile: SteamProfile & { role: string } = JSON.parse(data.user);
                 steamStore.set(profile);
+                goto('/');
             } catch (error) {
                 console.error('Error parsing user data:', error);
             }
+        } else if (data.error) {
+            console.error('Authentication error:', data.error);
         }
-        goto('/');
     });
 </script>
 

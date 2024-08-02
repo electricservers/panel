@@ -68,6 +68,8 @@
         "flowbite": "^2.4.1",
         "flowbite-svelte": "^0.46.15",
         "flowbite-svelte-icons": "^1.6.1",
+        "mongodb": "^6.8.0",
+        "mongoose": "^8.5.2",
         "node-steam-openid": "^1.2.3",
         "passport": "^0.7.0",
         "passport-steam": "^1.0.18",

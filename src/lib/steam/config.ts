@@ -25,4 +25,5 @@ export interface SteamProfile {
     timecreated: number;
     personastateflags: number;
     loccountrycode: string;
+    role?: string;
 }

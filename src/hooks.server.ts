@@ -1,5 +1,8 @@
 import type { SteamProfile } from '$lib/steam/config';
 import type { Cookies, Handle } from '@sveltejs/kit';
+import { connectToDatabase } from '$lib/db';
+
+connectToDatabase();
 
 export const handle: Handle = async ({ event, resolve }) => {
     event.locals.user = getUserFromCookies(event.cookies);
