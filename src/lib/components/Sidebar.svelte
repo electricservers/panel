@@ -16,6 +16,9 @@
         UserHeadsetOutline,
         UsersGroupOutline
     } from 'flowbite-svelte-icons';
+    import TrophyOutline from './icons/TrophyOutline.svelte';
+    import { steamStore } from '$lib/stores/steamStore';
+    import { derived } from 'svelte/store';
 
     export let drawerHidden: boolean = false;
 
@@ -40,35 +43,46 @@
         activeMainSidebar = navigation.to?.url.pathname ?? '';
     });
 
-    let posts: NavItem[] = [
-        // {
-        //     name: 'Whois',
-        //     icon: UsersGroupOutline,
-        //     href: '/whois',
-        //     children: {}
-        // },
-        {
-            name: 'MGE',
-            icon: ChartOutline,
-            href: '#',
-            children: {
-                Stats: '/mge/ranking'
-            }
-        },
-        {
-            name: 'TF2 Pickup',
-            icon: UserHeadsetOutline,
-            href: '/tf2pickup',
-            children: {}
-        }
-    ];
-
     interface NavItem {
         name: string;
         icon: any;
         href: string;
-        children: object;
+        children?: NavItem[];
     }
+
+    const baseMgeChildren: NavItem[] = [
+        { name: 'Leaderboard', href: '/mge/ranking', icon: ChartOutline }
+    ];
+
+    const mgeItem = derived(steamStore, ($steamStore) => ({
+        name: 'MGE',
+        icon: ChartOutline,
+        href: '#',
+        children: $steamStore
+            ? [
+                  ...baseMgeChildren,
+                  {
+                      name: 'My stats',
+                      href: `/mge/games/${$steamStore?.steamid}`,
+                      icon: ChartOutline
+                  }
+              ]
+            : baseMgeChildren
+    }));
+
+    const pickupItem: NavItem = {
+        name: 'TF2 Pickup',
+        icon: UserHeadsetOutline,
+        href: '/tf2pickup'
+    };
+
+    const whoisItem: NavItem = {
+        name: 'Whois',
+        icon: UsersGroupOutline,
+        href: '/whois'
+    };
+
+    $: items = [$mgeItem, pickupItem, whoisItem];
 </script>
 
 <Sidebar
@@ -81,30 +95,30 @@
         divClass="overflow-y-auto px-3 pt-20 lg:pt-5 h-full bg-white scrolling-touch max-w-2xs lg:h-[calc(100vh-4rem)] lg:block dark:bg-gray-800 lg:me-0 lg:sticky top-2">
         <nav class="divide-y divide-gray-200 dark:divide-gray-700">
             <SidebarGroup ulClass={groupClass} class="mb-3">
-                {#each posts as { name, icon, children, href } (name)}
-                    {#if children && Object.keys(children).length > 0}
-                        <SidebarDropdownWrapper label={name} class="pr-3">
+                {#each items as item}
+                    {#if item.children && item.children.length > 0}
+                        <SidebarDropdownWrapper label={item.name} class="pr-3">
                             <AngleDownOutline slot="arrowdown" strokeWidth="3.3" size="sm" />
                             <AngleUpOutline slot="arrowup" strokeWidth="3.3" size="sm" />
-                            <svelte:component this={icon} slot="icon" class={iconClass} />
-
-                            {#each Object.entries(children) as [title, href]}
+                            <svelte:component this={item.icon} slot="icon" class={iconClass} />
+                            {#each item.children as child}
                                 <SidebarItem
-                                    label={title}
-                                    {href}
-                                    spanClass="ml-9"
+                                    label={child.name}
+                                    href={child.href}
+                                    spanClass="ml-12"
                                     class={itemClass}
-                                    active={activeMainSidebar === href} />
+                                    active={activeMainSidebar === child.href}>
+                                </SidebarItem>
                             {/each}
                         </SidebarDropdownWrapper>
                     {:else}
                         <SidebarItem
-                            label={name}
-                            {href}
+                            label={item.name}
+                            href={item.href}
                             spanClass="ml-3"
                             class={itemClass}
-                            active={activeMainSidebar === href}>
-                            <svelte:component this={icon} slot="icon" class={iconClass} />
+                            active={activeMainSidebar === item.href}>
+                            <svelte:component this={item.icon} slot="icon" class={iconClass} />
                         </SidebarItem>
                     {/if}
                 {/each}
