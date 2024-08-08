@@ -82,7 +82,13 @@
         href: '/whois'
     };
 
-    $: items = [$mgeItem, pickupItem, whoisItem];
+    $: items = derived(steamStore, ($steamStore) => {
+        const baseItems = [$mgeItem, pickupItem];
+        if ($steamStore && ($steamStore.role === 'admin' || $steamStore.role === 'owner')) {
+            return [...baseItems, whoisItem];
+        }
+        return baseItems;
+    });
 </script>
 
 <Sidebar
@@ -95,7 +101,7 @@
         divClass="overflow-y-auto px-3 pt-20 lg:pt-5 h-full bg-white scrolling-touch max-w-2xs lg:h-[calc(100vh-4rem)] lg:block dark:bg-gray-800 lg:me-0 lg:sticky top-2">
         <nav class="divide-y divide-gray-200 dark:divide-gray-700">
             <SidebarGroup ulClass={groupClass} class="mb-3">
-                {#each items as item}
+                {#each $items as item}
                     {#if item.children && item.children.length > 0}
                         <SidebarDropdownWrapper label={item.name} class="pr-3">
                             <AngleDownOutline slot="arrowdown" strokeWidth="3.3" size="sm" />
