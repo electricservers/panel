@@ -1,158 +1,113 @@
 <script lang="ts">
-    import { run } from 'svelte/legacy';
+  import { ID } from '@node-steam/id';
+  import type { mgemod_stats } from '@prisma/client';
+  import { A, P, Button, Dropdown, DropdownItem, Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell } from 'flowbite-svelte';
+  import { ChevronDownOutline } from 'flowbite-svelte-icons';
+  import Title from '$lib/components/Title.svelte';
 
-    import type { PageData } from '../$types';
-    import { ID } from '@node-steam/id';
-    import type { mgemod_stats } from '@prisma/client';
-    import {
-        A,
-        P,
-        Button,
-        Dropdown,
-        DropdownItem,
-        Table,
-        TableBody,
-        TableBodyCell,
-        TableBodyRow,
-        TableHead,
-        TableHeadCell
-    } from 'flowbite-svelte';
-    import { ChevronDownOutline } from 'flowbite-svelte-icons';
-    import { writable } from 'svelte/store';
-    import Title from '$lib/components/Title.svelte';
-    interface Props {
-        data: PageData;
-    }
+  let dropOpen: boolean = $state(false);
+  let server = $state({
+    name: 'Electric #1',
+    flag: 'ar'
+  });
+  let loading = $state(false);
+  let ranking = $state([]);
 
-    let { data }: Props = $props();
+  const fetchRankingData = async (db: string = 'ar') => {
+    const rankResponse = await fetch(`/api/mge/rank?db=${db}`);
+    const rank: mgemod_stats[] = await rankResponse.json();
+    
+    let ranking = rank.map((user) => {
+      const totalGames = user.wins! + user.losses!;
+      const wl = user.losses !== 0 ? (user.wins! / user.losses!).toFixed(1) : 'N/A';
+      const winrate = totalGames !== 0 ? ((user.wins! / totalGames) * 100).toFixed(1) : '0.0';
 
-    const sortKey = writable('id'); // default sort key
-    const sortDirection = writable(1); // default sort direction (ascending)
-    const sortItems = writable(data.rankingPromise.slice()); // make a copy of the items array
-    export const loading = writable(false);
-
-    // Define a function to sort the items
-    const sortTable = (key: string) => {
-        console.log(key);
-        // If the same key is clicked, reverse the sort direction
-        if ($sortKey === key) {
-            sortDirection.update((val) => -val);
-        } else {
-            sortKey.set(key);
-            sortDirection.set(1);
-        }
-    };
-
-    run(() => {
-        const key = $sortKey;
-        const direction = $sortDirection;
-        const sorted = [...$sortItems].sort((a, b) => {
-            const aVal = a[key];
-            const bVal = b[key];
-
-            // Convert to number if the values are numeric
-            const aNum =
-                typeof aVal === 'string' && !isNaN(parseFloat(aVal)) ? parseFloat(aVal) : aVal;
-            const bNum =
-                typeof bVal === 'string' && !isNaN(parseFloat(bVal)) ? parseFloat(bVal) : bVal;
-
-            if (aNum < bNum) {
-                return -direction;
-            } else if (aNum > bNum) {
-                return direction;
-            }
-            return 0;
-        });
-        sortItems.set(sorted);
+      return {
+        ...user,
+        totalGames,
+        wl,
+        winrate
+      };
     });
 
-    let dropOpen: boolean = $state();
-    let serverChosen: string = $state('Electric #1');
-    let flagChosen: string = $state('ar');
+    return ranking;
+  };
 
-    const clicked = async (arg: string) => {
-        dropOpen = false;
-        $loading = true;
-        if (arg === 'ar') {
-            serverChosen = 'Electric #1';
-        } else {
-            serverChosen = 'Electric #5';
-        }
-        flagChosen = arg;
-        const rankResponse = await fetch(`/api/mge/rank?db=${arg}`);
-        const ranking: mgemod_stats[] = await rankResponse.json();
+  const dropClicked = async (arg: string) => {
+    dropOpen = false;
+    loading = true;
+    if (arg === 'ar') {
+      server.name = 'Electric #1';
+    } else {
+      server.name = 'Electric #5';
+    }
+    server.flag = arg;
+    console.log(arg)
+    ranking = await fetchRankingData(arg);
+    loading = false;
+  };
 
-        // Modify each user's data to include totalGames, wl, and winrate
-        const modifiedRanking = ranking.map((user) => {
-            const totalGames = user.wins! + user.losses!;
-            const wl = user.losses !== 0 ? (user.wins! / user.losses!).toFixed(1) : 'N/A';
-            const winrate = totalGames !== 0 ? ((user.wins! / totalGames) * 100).toFixed(1) : '0.0';
-            user.name = user.name!.replace(/[^\w\s]/g, '_');
-            return {
-                ...user, // Include existing properties
-                totalGames,
-                wl,
-                winrate
-            };
-        });
-        $sortItems = modifiedRanking;
-    };
+  $effect(() => {
+    const fetchData = async () => {
+        loading = true;
+        ranking = await fetchRankingData();
+        loading = false;
+    }
+
+    fetchData();
+  })
 </script>
 
 <div class="h-[90vh] p-4">
-    <Title>MGE Stats</Title>
-    <Button class="mb-3">
-        <span class="fi fi-{flagChosen} mr-2"></span>
-        {serverChosen}
-        <ChevronDownOutline class="ms-2 h-6 w-6 text-white dark:text-white" />
-    </Button>
-    <Dropdown bind:open={dropOpen} class="overflow-y-auto px-3 pb-3 text-sm">
-        <DropdownItem
-            on:click={() => clicked('ar')}
-            class="flex items-center gap-2 text-base font-semibold">
-            <span class="fi fi-ar"></span>
-            Electric #1
-        </DropdownItem>
-        <DropdownItem
-            on:click={() => clicked('br')}
-            class="flex items-center gap-2 text-base font-semibold">
-            <span class="fi fi-br"></span>
-            Electric #5
-        </DropdownItem>
-    </Dropdown>
-    {#await $sortItems}
-        <P>Loading ranking...</P>
-    {:then}
-        <Table striped={true} hoverable={true}>
-            <TableHead class="select-none">
-                <TableHeadCell>Position</TableHeadCell>
-                <TableHeadCell>Name</TableHeadCell>
-                <TableHeadCell on:click={() => sortTable('rating')}>Rating</TableHeadCell>
-                <TableHeadCell on:click={() => sortTable('wins')}>Wins</TableHeadCell>
-                <TableHeadCell on:click={() => sortTable('losses')}>Losses</TableHeadCell>
-                <TableHeadCell on:click={() => sortTable('totalGames')}>Total Games</TableHeadCell>
-                <TableHeadCell on:click={() => sortTable('wl')}>W/L Ratio</TableHeadCell>
-                <TableHeadCell on:click={() => sortTable('winrate')}>Winrate</TableHeadCell>
-            </TableHead>
-            <TableBody>
-                {#each $sortItems as user, i}
-                    <TableBodyRow>
-                        <TableBodyCell>#{i + 1}</TableBodyCell>
-                        <TableBodyCell>
-                            {@const steamid = new ID(user.steamid).get64()}
-                            <A target="_blank" href="https://steamcommunity.com/profiles/{steamid}">
-                                {user.name}
-                            </A>
-                        </TableBodyCell>
-                        <TableBodyCell>{user.rating}</TableBodyCell>
-                        <TableBodyCell>{user.wins}</TableBodyCell>
-                        <TableBodyCell>{user.losses}</TableBodyCell>
-                        <TableBodyCell>{user.totalGames}</TableBodyCell>
-                        <TableBodyCell>{user.wl}</TableBodyCell>
-                        <TableBodyCell>{user.winrate}%</TableBodyCell>
-                    </TableBodyRow>
-                {/each}
-            </TableBody>
-        </Table>
-    {/await}
+  <Title>MGE Stats</Title>
+  <Button class="my-3">
+    <span class="fi fi-{server.flag} mr-2"></span>
+    {server.name}
+    <ChevronDownOutline class="ms-2 h-6 w-6 text-white dark:text-white" />
+  </Button>
+  <Dropdown bind:open={dropOpen} class="overflow-y-auto px-3 pb-3 text-sm">
+    <DropdownItem on:click={async () => await dropClicked('ar')} class="flex items-center gap-2 text-base font-semibold">
+      <span class="fi fi-ar"></span>
+      Electric #1
+    </DropdownItem>
+    <DropdownItem on:click={async () => await dropClicked('br')} class="flex items-center gap-2 text-base font-semibold">
+      <span class="fi fi-br"></span>
+      Electric #5
+    </DropdownItem>
+  </Dropdown>
+  {#if loading}
+    <P>Loading ranking...</P>
+  {:else}
+    <Table striped={true} hoverable={true}>
+      <TableHead class="select-none">
+        <TableHeadCell>Position</TableHeadCell>
+        <TableHeadCell>Name</TableHeadCell>
+        <TableHeadCell>Rating</TableHeadCell>
+        <TableHeadCell>Wins</TableHeadCell>
+        <TableHeadCell>Losses</TableHeadCell>
+        <TableHeadCell>Total Games</TableHeadCell>
+        <TableHeadCell>W/L Ratio</TableHeadCell>
+        <TableHeadCell>Winrate</TableHeadCell>
+      </TableHead>
+      <TableBody>
+        {#each ranking as user, i}
+          <TableBodyRow>
+            <TableBodyCell>#{i + 1}</TableBodyCell>
+            <TableBodyCell>
+              {@const steamid = new ID(user.steamid).get64()}
+              <A target="_blank" href="https://steamcommunity.com/profiles/{steamid}">
+                {user.name}
+              </A>
+            </TableBodyCell>
+            <TableBodyCell>{user.rating}</TableBodyCell>
+            <TableBodyCell>{user.wins}</TableBodyCell>
+            <TableBodyCell>{user.losses}</TableBodyCell>
+            <TableBodyCell>{user.totalGames}</TableBodyCell>
+            <TableBodyCell>{user.wl}</TableBodyCell>
+            <TableBodyCell>{user.winrate}%</TableBodyCell>
+          </TableBodyRow>
+        {/each}
+      </TableBody>
+    </Table>
+  {/if}
 </div>

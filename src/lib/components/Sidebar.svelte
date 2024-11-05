@@ -87,7 +87,7 @@
     };
 
     let items = $derived(derived(steamStore, ($steamStore) => {
-        const baseItems = [$mgeItem, pickupItem];
+        const baseItems = [$mgeItem];
         if ($steamStore && ($steamStore.role === 'admin' || $steamStore.role === 'owner')) {
             return [...baseItems, whoisItem];
         }
