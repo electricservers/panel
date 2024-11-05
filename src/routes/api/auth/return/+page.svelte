@@ -4,7 +4,11 @@
     import { steamStore } from '$lib/stores/steamStore';
     import type { SteamProfile } from '$lib/steam/config';
 
-    export let data: { user?: string; error?: string };
+    interface Props {
+        data: { user?: string; error?: string };
+    }
+
+    let { data }: Props = $props();
 
     onMount(() => {
         if (data.user) {

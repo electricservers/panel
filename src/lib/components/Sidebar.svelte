@@ -20,7 +20,11 @@
     import { steamStore } from '$lib/stores/steamStore';
     import { derived } from 'svelte/store';
 
-    export let drawerHidden: boolean = false;
+    interface Props {
+        drawerHidden?: boolean;
+    }
+
+    let { drawerHidden = $bindable(false) }: Props = $props();
 
     const closeDrawer = () => {
         drawerHidden = true;
@@ -32,8 +36,8 @@
         'flex items-center p-2 text-base text-gray-900 transition duration-75 rounded-lg hover:bg-gray-100 group dark:text-gray-200 dark:hover:bg-gray-700';
     let groupClass = 'pt-2 space-y-2';
 
-    $: mainSidebarUrl = $page.url.pathname;
-    let activeMainSidebar: string;
+    let mainSidebarUrl = $derived($page.url.pathname);
+    let activeMainSidebar: string = $state();
 
     afterNavigate((navigation) => {
         // this fixes https://github.com/themesberg/flowbite-svelte/issues/364
@@ -82,13 +86,13 @@
         href: '/whois'
     };
 
-    $: items = derived(steamStore, ($steamStore) => {
+    let items = $derived(derived(steamStore, ($steamStore) => {
         const baseItems = [$mgeItem, pickupItem];
         if ($steamStore && ($steamStore.role === 'admin' || $steamStore.role === 'owner')) {
             return [...baseItems, whoisItem];
         }
         return baseItems;
-    });
+    }));
 </script>
 
 <Sidebar
@@ -104,9 +108,15 @@
                 {#each $items as item}
                     {#if item.children && item.children.length > 0}
                         <SidebarDropdownWrapper label={item.name} class="pr-3">
-                            <AngleDownOutline slot="arrowdown" strokeWidth="3.3" size="sm" />
-                            <AngleUpOutline slot="arrowup" strokeWidth="3.3" size="sm" />
-                            <svelte:component this={item.icon} slot="icon" class={iconClass} />
+                            {#snippet arrowdown()}
+                                                        <AngleDownOutline  strokeWidth="3.3" size="sm" />
+                                                    {/snippet}
+                            {#snippet arrowup()}
+                                                        <AngleUpOutline  strokeWidth="3.3" size="sm" />
+                                                    {/snippet}
+                            {#snippet icon()}
+                                                        <item.icon  class={iconClass} />
+                                                    {/snippet}
                             {#each item.children as child}
                                 <SidebarItem
                                     label={child.name}
@@ -124,7 +134,9 @@
                             spanClass="ml-3"
                             class={itemClass}
                             active={activeMainSidebar === item.href}>
-                            <svelte:component this={item.icon} slot="icon" class={iconClass} />
+                            {#snippet icon()}
+                                                        <item.icon  class={iconClass} />
+                                                    {/snippet}
                         </SidebarItem>
                     {/if}
                 {/each}
@@ -136,6 +148,6 @@
 <div
     hidden={drawerHidden}
     class="fixed inset-0 z-20 bg-gray-900/50 dark:bg-gray-900/60"
-    on:click={closeDrawer}
-    on:keydown={closeDrawer}
-    role="presentation" />
+    onclick={closeDrawer}
+    onkeydown={closeDrawer}
+    role="presentation"></div>

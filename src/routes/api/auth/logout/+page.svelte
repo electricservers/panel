@@ -3,7 +3,11 @@
     import { goto } from '$app/navigation';
     import { steamStore } from '$lib/stores/steamStore';
 
-    export let data;
+    interface Props {
+        data: any;
+    }
+
+    let { data }: Props = $props();
 
     onMount(() => {
         if (data.loggedOut) {

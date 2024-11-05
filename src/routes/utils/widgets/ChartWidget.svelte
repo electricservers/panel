@@ -5,9 +5,13 @@
     import LastRange from './LastRange.svelte';
     import More from './More.svelte';
 
-    export let title: string = '';
-    export let subtitle: string = '';
-    export let chartOptions: ApexOptions;
+    interface Props {
+        title?: string;
+        subtitle?: string;
+        chartOptions: ApexOptions;
+    }
+
+    let { title = '', subtitle = '', chartOptions }: Props = $props();
 </script>
 
 <Card size="xl" class="w-full max-w-none 2xl:col-span-2">

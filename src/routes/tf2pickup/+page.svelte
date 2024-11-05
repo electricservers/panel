@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { run } from 'svelte/legacy';
+
     import Title from '../../lib/components/Title.svelte';
     import { selectedSite } from '$lib/stores/selectedSite';
     import type { PageData } from './$types';
@@ -26,11 +28,11 @@
     import { getPlayerGames, type PlayerGames } from '$lib/mge/rankings';
     import { writable } from 'svelte/store';
 
-    let searchTerm = '';
-    let dropOpen = false;
-    let loading = false;
-    let error: string | null = null;
-    let games: Games;
+    let searchTerm = $state('');
+    let dropOpen = $state(false);
+    let loading = $state(false);
+    let error: string | null = $state(null);
+    let games: Games = $state();
     let playerGames: PlayerGames[] = [];
     let apiVersion = writable('');
 
@@ -50,13 +52,15 @@
         $apiVersion = body.version;
     };
 
-    $: filteredSites = pickupSites.filter(
+    let filteredSites = $derived(pickupSites.filter(
         (person) => person.name.toLowerCase().indexOf(searchTerm?.toLowerCase()) !== -1
-    );
+    ));
 
-    $: selectedSite.set({
-        name: 'Select a site...',
-        icon: ''
+    run(() => {
+        selectedSite.set({
+            name: 'Select a site...',
+            icon: ''
+        });
     });
 
     async function fetchApiData() {
@@ -88,12 +92,12 @@
         return Date.now() - days * MILLISECONDS_IN_DAY;
     };
 
-    let startDate = getDateFromToday(29);
-    let endDate = today;
+    let startDate = $state(getDateFromToday(29));
+    let endDate = $state(today);
     let dateFormat = 'yyyy-MM-dd';
-    let isOpen = false;
+    let isOpen = $state(false);
 
-    let formattedStartDate = '';
+    let formattedStartDate = $state('');
 
     const onClearDates = () => {
         startDate = '';
@@ -104,8 +108,10 @@
     const formatDate = (dateString: any) =>
         (dateString && format(new Date(dateString), dateFormat)) || '';
 
-    $: formattedStartDate = formatDate(startDate);
-    $: formattedEndDate = formatDate(endDate);
+    run(() => {
+        formattedStartDate = formatDate(startDate);
+    });
+    let formattedEndDate = $derived(formatDate(endDate));
 
     const sortKey = writable('id'); // default sort key
     const sortDirection = writable(1); // default sort direction (ascending)
@@ -122,7 +128,7 @@
         }
     };
 
-    $: {
+    run(() => {
         const key = $sortKey;
         const direction = $sortDirection;
         const sorted = [...$sortItems].sort((a, b) => {
@@ -136,8 +142,12 @@
             return 0;
         });
         sortItems.set(sorted);
+    });
+    interface Props {
+        data: PageData;
     }
-    export let data: PageData;
+
+    let { data }: Props = $props();
 </script>
 
 <div class="h-[90vh] p-4">
@@ -145,7 +155,7 @@
     <div class="inline-flex">
         <Button class="mb-3">
             {#if $selectedSite?.icon !== ''}
-                <span class="fi fi-{$selectedSite?.icon} mr-2" />
+                <span class="fi fi-{$selectedSite?.icon} mr-2"></span>
             {/if}
             {$selectedSite?.name}
             <ChevronDownOutline class="ms-2 h-6 w-6 text-white dark:text-white" />
@@ -159,9 +169,11 @@
         {/if}
     </div>
     <Dropdown bind:open={dropOpen} class="h-72 overflow-y-auto px-3 pb-3 text-sm">
-        <div slot="header" class="p-3">
-            <Search size="md" bind:value={searchTerm} />
-        </div>
+        {#snippet header()}
+                <div  class="p-3">
+                <Search size="md" bind:value={searchTerm} />
+            </div>
+            {/snippet}
         {#each filteredSites as site (site.name)}
             <DropdownItem
                 on:click={clicked}
@@ -178,10 +190,10 @@
             bind:startDate
             bind:endDate
             isRange>
-            <!-- svelte-ignore a11y-click-events-have-key-events -->
-            <!-- svelte-ignore a11y-no-static-element-interactions -->
-            <div class="date-field" on:click={toggleDatePicker} class:open={isOpen}>
-                <i class="icon-calendar" />
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div class="date-field" onclick={toggleDatePicker} class:open={isOpen}>
+                <i class="icon-calendar"></i>
                 <div class="date">
                     {#if startDate}
                         {formattedStartDate} - {formattedEndDate}
@@ -190,8 +202,8 @@
                     {/if}
                 </div>
                 {#if startDate}
-                    <span on:click={onClearDates}>
-                        <i class="os-icon-x" />
+                    <span onclick={onClearDates}>
+                        <i class="os-icon-x"></i>
                     </span>
                 {/if}
             </div>

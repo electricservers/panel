@@ -23,8 +23,10 @@
     const description: string = `${index} - Flowbite Svelte Admin Dashboard`;
     const title: string = `Flowbite Svelte Admin Dashboard - ${index} page`;
     const subtitle: string = `${index} page`;
+
+    const SvelteComponent = $derived(component);
 </script>
 
 <MetaTag {path} {description} {title} {subtitle} />
 
-<svelte:component this={component}></svelte:component>
+<SvelteComponent></SvelteComponent>

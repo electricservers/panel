@@ -6,8 +6,12 @@
     import { onMount } from 'svelte';
     import Card from '../../../utils/widgets/Card.svelte';
 
-    export let data: PageData;
-    let loading = true;
+    interface Props {
+        data: PageData;
+    }
+
+    let { data }: Props = $props();
+    let loading = $state(true);
 
     onMount(() => {
         const unsubscribe = steamStore.subscribe((value) => {
@@ -32,7 +36,7 @@
             </div>
             <div>
                 {#if loading}
-                    <div class="pulse h-6 w-36 rounded-xl bg-gray-200 dark:bg-gray-700" />
+                    <div class="pulse h-6 w-36 rounded-xl bg-gray-200 dark:bg-gray-700"></div>
                 {:else}
                     <Title>{$steamStore?.personaname}</Title>
                 {/if}

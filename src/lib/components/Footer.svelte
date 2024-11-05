@@ -44,10 +44,11 @@
     </ul>
     <div class="flex space-x-6 sm:justify-center">
         {#each brands as [component, href]}
+            {@const SvelteComponent = component}
             <a
                 {href}
                 class="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
-                <svelte:component this={component} size="md" />
+                <SvelteComponent size="md" />
             </a>
         {/each}
     </div>

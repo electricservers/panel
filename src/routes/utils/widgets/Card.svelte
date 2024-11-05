@@ -1,10 +1,20 @@
 <script lang="ts">
     import { Card, Heading } from 'flowbite-svelte';
-    export let title: string;
-    export let subtitle: string = '';
 
-    let clazz: string = '';
-    export { clazz as class };
+    interface Props {
+        title: string;
+        subtitle?: string;
+        class?: string;
+        children?: import('svelte').Snippet;
+    }
+
+    let {
+        title,
+        subtitle = '',
+        class: clazz = '',
+        children
+    }: Props = $props();
+    
 </script>
 
 <Card size="xl" class="shadow-sm {clazz}">
@@ -18,5 +28,5 @@
             </span>
         {/if}
     </div>
-    <slot />
+    {@render children?.()}
 </Card>

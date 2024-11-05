@@ -3,11 +3,12 @@
     import '/node_modules/flag-icons/css/flag-icons.min.css';
     import Navbar from '../lib/components/Navbar.svelte';
     import Sidebar from '../lib/components/Sidebar.svelte';
-    let drawerHidden = false;
+    let drawerHidden = $state(false);
     import { onMount } from 'svelte';
     import { steamStore } from '$lib/stores/steamStore';
 
-    export let data;
+    /** @type {{data: any, children?: import('svelte').Snippet}} */
+    let { data, children } = $props();
 
     onMount(() => {
         if (data.user) {
@@ -23,6 +24,6 @@
 <div class="overflow-hidden lg:flex">
     <Sidebar bind:drawerHidden />
     <div class="relative h-full w-full overflow-y-auto pt-[70px] lg:ml-64">
-        <slot />
+        {@render children?.()}
     </div>
 </div>

@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { run } from 'svelte/legacy';
+
     import type { PageData } from '../$types';
     import { ID } from '@node-steam/id';
     import type { mgemod_stats } from '@prisma/client';
@@ -18,7 +20,11 @@
     import { ChevronDownOutline } from 'flowbite-svelte-icons';
     import { writable } from 'svelte/store';
     import Title from '$lib/components/Title.svelte';
-    export let data: PageData;
+    interface Props {
+        data: PageData;
+    }
+
+    let { data }: Props = $props();
 
     const sortKey = writable('id'); // default sort key
     const sortDirection = writable(1); // default sort direction (ascending)
@@ -37,7 +43,7 @@
         }
     };
 
-    $: {
+    run(() => {
         const key = $sortKey;
         const direction = $sortDirection;
         const sorted = [...$sortItems].sort((a, b) => {
@@ -58,11 +64,11 @@
             return 0;
         });
         sortItems.set(sorted);
-    }
+    });
 
-    let dropOpen: boolean;
-    let serverChosen: string = 'Electric #1';
-    let flagChosen: string = 'ar';
+    let dropOpen: boolean = $state();
+    let serverChosen: string = $state('Electric #1');
+    let flagChosen: string = $state('ar');
 
     const clicked = async (arg: string) => {
         dropOpen = false;
@@ -96,7 +102,7 @@
 <div class="h-[90vh] p-4">
     <Title>MGE Stats</Title>
     <Button class="mb-3">
-        <span class="fi fi-{flagChosen} mr-2" />
+        <span class="fi fi-{flagChosen} mr-2"></span>
         {serverChosen}
         <ChevronDownOutline class="ms-2 h-6 w-6 text-white dark:text-white" />
     </Button>
@@ -104,13 +110,13 @@
         <DropdownItem
             on:click={() => clicked('ar')}
             class="flex items-center gap-2 text-base font-semibold">
-            <span class="fi fi-ar" />
+            <span class="fi fi-ar"></span>
             Electric #1
         </DropdownItem>
         <DropdownItem
             on:click={() => clicked('br')}
             class="flex items-center gap-2 text-base font-semibold">
-            <span class="fi fi-br" />
+            <span class="fi fi-br"></span>
             Electric #5
         </DropdownItem>
     </Dropdown>

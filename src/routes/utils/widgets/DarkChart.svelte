@@ -5,13 +5,18 @@
     import { onMount } from 'svelte';
 
     type ConfigFunc = (dark: boolean) => ApexOptions;
+props.
+    interface Props {
+        configFunc: ConfigFunc;
+        [key: string]: any
+    }
 
-    export let configFunc: ConfigFunc;
+    let { ...props }: Props = $props();
 
-    let dark = browser ? document.documentElement.classList.contains('dark') : false;
+    let dark = $state(browser ? document.documentElement.classList.contains('dark') : false);
 
-    let options: ApexOptions;
-    $: options = configFunc(dark);
+    let options: ApexOptions = $derived(configFunc(dark));
+    
 
     function handler(ev: Event) {
         if ('detail' in ev) {
@@ -25,4 +30,4 @@
     });
 </script>
 
-<Chart {options} class={$$props.class} />
+<Chart {options} class={props.class} />
