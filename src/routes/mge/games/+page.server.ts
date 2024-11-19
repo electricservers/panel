@@ -1,4 +1,4 @@
-import type { mgemod_duels } from '@prisma/client';
+import type { mgemod_duels } from '@prisma-arg/client';
 import type { PageServerLoad } from './$types';
 
 export const load = (async (event: any) => {

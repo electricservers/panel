@@ -2,7 +2,7 @@ import type { RequestHandler } from './$types';
 import prismaArg from '$lib/prisma/prismaArg';
 import prismaBr from '$lib/prisma/prismaBr';
 import { error, json } from '@sveltejs/kit';
-import type { mgemod_stats, Prisma } from '@prisma/client';
+import type { mgemod_stats, Prisma } from '@prisma-arg/client';
 
 export const GET: RequestHandler = async (event) => {
     const query = event.url.searchParams;

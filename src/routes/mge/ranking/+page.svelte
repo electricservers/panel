@@ -1,6 +1,6 @@
 <script lang="ts">
   import { ID } from '@node-steam/id';
-  import type { mgemod_stats } from '@prisma/client';
+  import type { mgemod_stats } from '@prisma-arg/client';
   import { A, P, Button, Dropdown, DropdownItem, Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell } from 'flowbite-svelte';
   import { ChevronDownOutline } from 'flowbite-svelte-icons';
   import Title from '$lib/components/Title.svelte';
