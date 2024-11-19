@@ -1,103 +1,103 @@
 {
-    "name": "flowbite-svelte-admin-dashboard",
-    "version": "0.1.2",
-    "description": "Flowbite Admin Dashboard components for Svelte",
-    "homepage": "https://flowbite-svelte-admin-dashboard.vercel.app/",
-    "private": false,
-    "license": "MIT",
-    "scripts": {
-        "dev": "vite dev",
-        "build": "prisma generate --schema prisma/schema_br.prisma && prisma generate --schema prisma/schema_arg.prisma && vite build",
-        "preview": "vite preview",
-        "test": "npm run test:integration && npm run test:unit",
-        "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-        "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-        "lint": "prettier --check . && eslint .",
-        "format": "prettier --write .",
-        "test:integration": "playwright test",
-        "test:unit": "vitest",
-        "gen:exports": "svelte-lib-helpers exports",
-        "gen:docs": "svelte-lib-helpers docs",
-        "gen:compo-data": "svelte-lib-helpers compo-data",
-        "copy:package": "svelte-lib-helpers package",
-        "lib-helpers": "npm run gen:docs && npm run gen:compo-data && npm run build && npm run gen:exports && npm run copy:package",
-        "package:publish": "standard-version && git push --follow-tags origin main && npm publish"
-    },
-    "devDependencies": {
-        "@playwright/test": "^1.49.0",
-        "@sveltejs/adapter-auto": "^3.3.1",
-        "@sveltejs/kit": "^2.8.1",
-        "@sveltejs/vite-plugin-svelte": "^4.0.1",
-        "@types/eslint": "9.6.0",
-        "@typescript-eslint/eslint-plugin": "^8.15.0",
-        "@typescript-eslint/parser": "^8.15.0",
-        "autoprefixer": "^10.4.20",
-        "dayjs": "^1.11.13",
-        "eslint": "^9.15.0",
-        "eslint-config-prettier": "^9.1.0",
-        "eslint-plugin-svelte": "^2.46.0",
-        "postcss": "^8.4.49",
-        "postcss-load-config": "^6.0.1",
-        "prettier": "^3.3.3",
-        "prettier-plugin-svelte": "^3.2.8",
-        "prettier-plugin-tailwindcss": "^0.6.9",
-        "svelte": "^5.2.3",
-        "svelte-check": "^4.0.9",
-        "svelte-lib-helpers": "^0.4.16",
-        "svelte-meta-tags": "^3.1.4",
-        "tailwindcss": "^3.4.15",
-        "tslib": "^2.8.1",
-        "typescript": "^5.6.3",
-        "vite": "^5.4.11",
-        "vitest": "^2.1.5"
-    },
-    "type": "module",
-    "peerDependencies": {
-        "svelte": "^4.0.0"
-    },
-    "dependencies": {
-        "@node-steam/id": "^1.2.0",
-        "@prisma/client": "5.18.0",
-        "@svelte-plugins/datepicker": "^1.0.9",
-        "@types/node-steam-openid": "^1.0.3",
-        "date-fns": "^3.6.0",
-        "express-session": "^1.18.1",
-        "fastify": "^4.28.1",
-        "flag-icons": "^7.2.3",
-        "flowbite": "^2.5.2",
-        "flowbite-svelte": "^0.46.23",
-        "flowbite-svelte-icons": "^1.6.2",
-        "mongodb": "^6.10.0",
-        "mongoose": "^8.8.2",
-        "node-steam-openid": "^1.2.3",
-        "passport": "^0.7.0",
-        "passport-steam": "^1.0.18",
-        "tailwind-merge": "^2.5.4"
-    },
-    "keywords": [
-        "svelte",
-        "sveltekit",
-        "tailwindcss",
-        "flowbite",
-        "ui",
-        "admin dashboard",
-        "signup"
-    ],
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/themesberg/flowbite-svelte-admin-dashboard"
-    },
-    "files": [
-        "dist",
-        "!dist/**/*.test.*",
-        "!dist/**/*.spec.*"
-    ],
-    "svelte": "./dist/index.js",
-    "types": "./dist/index.d.ts",
-    "exports": {
-        ".": {
-            "types": "./dist/index.d.ts",
-            "svelte": "./dist/index.js"
-        }
+  "name": "flowbite-svelte-admin-dashboard",
+  "version": "0.1.2",
+  "description": "Flowbite Admin Dashboard components for Svelte",
+  "homepage": "https://flowbite-svelte-admin-dashboard.vercel.app/",
+  "private": false,
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "prisma generate --schema prisma/schema_br.prisma && prisma generate --schema prisma/schema_arg.prisma && vite build",
+    "preview": "vite preview",
+    "test": "npm run test:integration && npm run test:unit",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+    "lint": "prettier --check . && eslint .",
+    "format": "prettier --write .",
+    "test:integration": "playwright test",
+    "test:unit": "vitest",
+    "gen:exports": "svelte-lib-helpers exports",
+    "gen:docs": "svelte-lib-helpers docs",
+    "gen:compo-data": "svelte-lib-helpers compo-data",
+    "copy:package": "svelte-lib-helpers package",
+    "lib-helpers": "npm run gen:docs && npm run gen:compo-data && npm run build && npm run gen:exports && npm run copy:package",
+    "package:publish": "standard-version && git push --follow-tags origin main && npm publish"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "@sveltejs/adapter-auto": "^3.3.1",
+    "@sveltejs/kit": "^2.8.1",
+    "@sveltejs/vite-plugin-svelte": "^4.0.1",
+    "@types/eslint": "9.6.0",
+    "@typescript-eslint/eslint-plugin": "^8.15.0",
+    "@typescript-eslint/parser": "^8.15.0",
+    "autoprefixer": "^10.4.20",
+    "dayjs": "^1.11.13",
+    "eslint": "^9.15.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-svelte": "^2.46.0",
+    "postcss": "^8.4.49",
+    "postcss-load-config": "^6.0.1",
+    "prettier": "^3.3.3",
+    "prettier-plugin-svelte": "^3.2.8",
+    "prettier-plugin-tailwindcss": "^0.6.9",
+    "svelte": "^5.2.3",
+    "svelte-check": "^4.0.9",
+    "svelte-lib-helpers": "^0.4.16",
+    "svelte-meta-tags": "^3.1.4",
+    "tailwindcss": "^3.4.15",
+    "tslib": "^2.8.1",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11",
+    "vitest": "^2.1.5"
+  },
+  "type": "module",
+  "peerDependencies": {
+    "svelte": "^4.0.0"
+  },
+  "dependencies": {
+    "@node-steam/id": "^1.2.0",
+    "@prisma/client": "5.18.0",
+    "@svelte-plugins/datepicker": "^1.0.9",
+    "@types/node-steam-openid": "^1.0.3",
+    "date-fns": "^3.6.0",
+    "express-session": "^1.18.1",
+    "fastify": "^4.28.1",
+    "flag-icons": "^7.2.3",
+    "flowbite": "^2.5.2",
+    "flowbite-svelte": "^0.46.23",
+    "flowbite-svelte-icons": "^1.6.2",
+    "mongodb": "^6.10.0",
+    "mongoose": "^8.8.2",
+    "node-steam-openid": "^1.2.3",
+    "passport": "^0.7.0",
+    "passport-steam": "^1.0.18",
+    "tailwind-merge": "^2.5.4"
+  },
+  "keywords": [
+    "svelte",
+    "sveltekit",
+    "tailwindcss",
+    "flowbite",
+    "ui",
+    "admin dashboard",
+    "signup"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/themesberg/flowbite-svelte-admin-dashboard"
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.test.*",
+    "!dist/**/*.spec.*"
+  ],
+  "svelte": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "svelte": "./dist/index.js"
     }
+  }
 }

@@ -121,8 +121,8 @@
             <TableBody tableBodyClass="divide-y">
               {#each games as game, i}
                 <TableBodyRow color={game.winner === id ? 'green' : 'red'}>
-                    {@const winner = game.winner === id ? $steamStore?.personaname : game.winner}
-                    {@const loser = game.loser === id ? $steamStore?.personaname : game.loser}
+                  {@const winner = game.winner === id ? $steamStore?.personaname : game.winner}
+                  {@const loser = game.loser === id ? $steamStore?.personaname : game.loser}
                   <TableBodyCell>{winner} ({game.winnerscore})</TableBodyCell>
                   <TableBodyCell>{loser} ({game.loserscore})</TableBodyCell>
                   <TableBodyCell>{formatDate(game.gametime)}</TableBodyCell>

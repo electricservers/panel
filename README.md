@@ -25,20 +25,20 @@ If you want to use this project we recommend to also [study the component librar
 
 ## Table of Contents
 
--   [Flowbite Admin Dashboard ](#flowbite-admin-dashboard-)
-    -   [🌀 Built with Flowbite](#-built-with-flowbite)
-    -   [💨 Tailwind CSS utility classes](#-tailwind-css-utility-classes)
-    -   [📚 Flowbite documentation](#-flowbite-documentation)
-    -   [Table of Contents](#table-of-contents)
-    -   [Demo pages](#demo-pages)
-    -   [Quick start](#quick-start)
-    -   [Browser Support](#browser-support)
-    -   [Resources](#resources)
-    -   [Reporting Issues](#reporting-issues)
-    -   [Technical Support or Questions](#technical-support-or-questions)
-    -   [Licensing](#licensing)
-    -   [Useful Links](#useful-links)
-    -   [Authors](#authors)
+- [Flowbite Admin Dashboard ](#flowbite-admin-dashboard-)
+  - [🌀 Built with Flowbite](#-built-with-flowbite)
+  - [💨 Tailwind CSS utility classes](#-tailwind-css-utility-classes)
+  - [📚 Flowbite documentation](#-flowbite-documentation)
+  - [Table of Contents](#table-of-contents)
+  - [Demo pages](#demo-pages)
+  - [Quick start](#quick-start)
+  - [Browser Support](#browser-support)
+  - [Resources](#resources)
+  - [Reporting Issues](#reporting-issues)
+  - [Technical Support or Questions](#technical-support-or-questions)
+  - [Licensing](#licensing)
+  - [Useful Links](#useful-links)
+  - [Authors](#authors)
 
 ## Demo pages
 
@@ -62,7 +62,7 @@ If you want to use this project we recommend to also [study the component librar
 | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
 | [![404 not found](https://flowbite.s3.amazonaws.com/templates/flowbite-admin-dashboard/github/404.jpg)](https://flowbite-svelte-admin-dashboard.vercel.app/pages/404) | [![500 server error](https://flowbite.s3.amazonaws.com/templates/flowbite-admin-dashboard/github/500.jpg)](https://flowbite-svelte-admin-dashboard.vercel.app/pages/500) | [![Playground](https://flowbite.s3.amazonaws.com/templates/flowbite-admin-dashboard/github/playground.jpg)]() |
 
--   [Live Preview](https://flowbite-svelte-admin-dashboard.vercel.app/)
+- [Live Preview](https://flowbite-svelte-admin-dashboard.vercel.app/)
 
 ## Quick start
 
@@ -82,11 +82,11 @@ At present, we officially aim to support the last two versions of the following 
 
 ## Resources
 
--   Live preview: <https://flowbite-svelte-admin-dashboard.vercel.app/>
--   Flowbite documentation: <https://flowbite.com/docs/getting-started/introduction/>
--   Tailwind CSS documentation: <https://tailwindcss.com/>
--   License Agreement: <https://flowbite.com/docs/getting-started/license/>
--   Issues: [Github Issues Page](https://github.com/themesberg/flowbite-svelte-admin-dashboard/issues)
+- Live preview: <https://flowbite-svelte-admin-dashboard.vercel.app/>
+- Flowbite documentation: <https://flowbite.com/docs/getting-started/introduction/>
+- Tailwind CSS documentation: <https://tailwindcss.com/>
+- License Agreement: <https://flowbite.com/docs/getting-started/license/>
+- Issues: [Github Issues Page](https://github.com/themesberg/flowbite-svelte-admin-dashboard/issues)
 
 ## Reporting Issues
 
@@ -102,19 +102,19 @@ If you have questions or need help integrating the product please [contact us](h
 
 ## Licensing
 
--   Copyright 2019-2023 Bergside Inc. (https://flowbite.com)
--   Open-source under the [MIT License](https://github.com/themesberg/flowbite-admin-dashboard/blob/main/LICENSE)
+- Copyright 2019-2023 Bergside Inc. (https://flowbite.com)
+- Open-source under the [MIT License](https://github.com/themesberg/flowbite-admin-dashboard/blob/main/LICENSE)
 
 ## Useful Links
 
--   🌶 [Flowbite-Svelte](https://flowbite-svelte.com) - Open-source components for Svelte
--   📚 [Flowbite Library](https://flowbite.com/) - Open-source components built with Tailwind CSS
--   🎨 [Flowbite Figma](https://flowbite.com/figma/) - Design system built for Figma
--   🧱 [Flowbite Svelte Blocks](https://flowbite-svelte-blocks.com/blocks/) - Building sections for website and applications
--   💎 [Flowbite Pro](https://flowbite.com/pro/) - A larger collection of the open-source version of the latter three
+- 🌶 [Flowbite-Svelte](https://flowbite-svelte.com) - Open-source components for Svelte
+- 📚 [Flowbite Library](https://flowbite.com/) - Open-source components built with Tailwind CSS
+- 🎨 [Flowbite Figma](https://flowbite.com/figma/) - Design system built for Figma
+- 🧱 [Flowbite Svelte Blocks](https://flowbite-svelte-blocks.com/blocks/) - Building sections for website and applications
+- 💎 [Flowbite Pro](https://flowbite.com/pro/) - A larger collection of the open-source version of the latter three
 
 ## Authors
 
--   [Zoltán Szőgyényi](https://twitter.com/zoltanszogyenyi)
--   [Robert Tanislav](https://twitter.com/roberttanislav)
--   [Shinichi Okada](https://twitter.com/shinokada)
+- [Zoltán Szőgyényi](https://twitter.com/zoltanszogyenyi)
+- [Robert Tanislav](https://twitter.com/roberttanislav)
+- [Shinichi Okada](https://twitter.com/shinokada)

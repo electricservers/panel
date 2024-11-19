@@ -1,48 +1,43 @@
 <script lang="ts">
-    import { MetaTags } from 'svelte-meta-tags';
+  import { MetaTags } from 'svelte-meta-tags';
 
-    interface Props {
-        path?: string;
-        description?: string;
-        title?: string;
-        subtitle?: string;
-    }
+  interface Props {
+    path?: string;
+    description?: string;
+    title?: string;
+    subtitle?: string;
+  }
 
-    let {
-        path = '',
-        description = '',
-        title = '',
-        subtitle = ''
-    }: Props = $props();
+  let { path = '', description = '', title = '', subtitle = '' }: Props = $props();
 
-    let imgsrc = `https://open-graph-vercel.vercel.app/api/flowbite-svelte-admin-dashboard?title=${subtitle}`;
+  let imgsrc = `https://open-graph-vercel.vercel.app/api/flowbite-svelte-admin-dashboard?title=${subtitle}`;
 
-    let og_url: string = `https://flowbite-svelte-admin-dashboard.vercel.app${path}`;
+  let og_url: string = `https://flowbite-svelte-admin-dashboard.vercel.app${path}`;
 </script>
 
 <MetaTags
-    {title}
-    {description}
-    openGraph={{
-        type: 'website',
-        url: `${og_url}`,
-        title: `${title}`,
-        description: `${description}`,
-        images: [
-            {
-                url: imgsrc,
-                width: 1200,
-                height: 630,
-                alt: `${title}`
-            }
-        ],
-        siteName: 'Flowbite Svelte Admin Dashboard'
-    }}
-    twitter={{
-        handle: '@shinokada',
-        cardType: 'summary_large_image',
-        title: `${title}`,
-        description: `${description}`,
-        image: imgsrc,
-        imageAlt: `${title}`
-    }} />
+  {title}
+  {description}
+  openGraph={{
+    type: 'website',
+    url: `${og_url}`,
+    title: `${title}`,
+    description: `${description}`,
+    images: [
+      {
+        url: imgsrc,
+        width: 1200,
+        height: 630,
+        alt: `${title}`
+      }
+    ],
+    siteName: 'Flowbite Svelte Admin Dashboard'
+  }}
+  twitter={{
+    handle: '@shinokada',
+    cardType: 'summary_large_image',
+    title: `${title}`,
+    description: `${description}`,
+    image: imgsrc,
+    imageAlt: `${title}`
+  }} />

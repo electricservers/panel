@@ -16,7 +16,7 @@
   const fetchRankingData = async (db: string = 'ar') => {
     const rankResponse = await fetch(`/api/mge/rank?db=${db}`);
     const rank: mgemod_stats[] = await rankResponse.json();
-    
+
     let ranking = rank.map((user) => {
       const totalGames = user.wins! + user.losses!;
       const wl = user.losses !== 0 ? (user.wins! / user.losses!).toFixed(1) : 'N/A';
@@ -42,20 +42,20 @@
       server.name = 'Electric #5';
     }
     server.flag = arg;
-    console.log(arg)
+    console.log(arg);
     ranking = await fetchRankingData(arg);
     loading = false;
   };
 
   $effect(() => {
     const fetchData = async () => {
-        loading = true;
-        ranking = await fetchRankingData();
-        loading = false;
-    }
+      loading = true;
+      ranking = await fetchRankingData();
+      loading = false;
+    };
 
     fetchData();
-  })
+  });
 </script>
 
 <div class="h-[90vh] p-4">
