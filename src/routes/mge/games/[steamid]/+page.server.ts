@@ -6,7 +6,11 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     throw redirect(302, '/api/auth/login');
   }
 
-  if (locals.user.steamid !== params.steamid) {
+  if (locals.user.steamid !== params.steamid && locals.user.role !== 'owner') {
     throw error(403, 'Access denied');
+  }
+
+  return {
+    id: params.steamid
   }
 };

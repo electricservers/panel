@@ -4,11 +4,10 @@
   import Title from '$lib/components/Title.svelte';
   import { Avatar, Button, Dropdown, DropdownItem, P, Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell } from 'flowbite-svelte';
   import Card from '../../../utils/widgets/Card.svelte';
-  import { selectedSite } from '$lib/stores/selectedSite';
-  import type { mgemod_duels } from '@prisma-arg/client';
 
   import { ID } from '@node-steam/id';
   import { ChevronDownOutline } from 'flowbite-svelte-icons';
+  import type { MgeDuel } from '$lib/mge/mgeduel';
 
   interface Props {
     data: PageData;
@@ -21,11 +20,11 @@
   });
   let { data }: Props = $props();
   let loading = $state(true);
-  let games = $state<mgemod_duels[]>([]);
+  let games = $state<MgeDuel[]>([]);
   let id = $state('');
 
   const fetchData = async (flag: string) => {
-    id = new ID($steamStore?.steamid).getSteamID2();
+    id = new ID(data.id).getSteamID2();
     let result = await fetch(`/api/mge/games?db=${flag}&steamid=${id}`);
     games = await result.json();
   };
@@ -83,24 +82,8 @@
 </Dropdown>
 <div class="h-[90vh] p-4">
   <div class="flex flex-col">
-    <div class="mb-2 flex flex-row items-center">
-      <div class="mr-4">
-        {#if loading}
-          <Avatar size="xl" class="animate-pulse" />
-        {:else}
-          <Avatar size="xl" src={$steamStore?.avatarfull} />
-        {/if}
-      </div>
+    <div class="h-screen">
       <div>
-        {#if loading}
-          <div class="pulse h-6 w-36 rounded-xl bg-gray-200 dark:bg-gray-700"></div>
-        {:else}
-          <Title>{$steamStore?.personaname}</Title>
-        {/if}
-      </div>
-    </div>
-    <div class="flex h-screen">
-      <div class="w-2/3">
         <div class="flex flex-row justify-evenly">
           <div class="p-3">
             <Card title="Matches" subtitle="TODO"></Card>
@@ -116,25 +99,20 @@
                 <TableHeadCell>Winner</TableHeadCell>
                 <TableHeadCell>Loser</TableHeadCell>
                 <TableHeadCell>Date</TableHeadCell>
+                <TableHeadCell>Arena</TableHeadCell>
               </tr>
             </TableHead>
-            <TableBody tableBodyClass="divide-y">
-              {#each games as game, i}
+            <TableBody>
+              {#each games as game}
                 <TableBodyRow color={game.winner === id ? 'green' : 'red'}>
-                  {@const winner = game.winner === id ? $steamStore?.personaname : game.winner}
-                  {@const loser = game.loser === id ? $steamStore?.personaname : game.loser}
-                  <TableBodyCell>{winner} ({game.winnerscore})</TableBodyCell>
-                  <TableBodyCell>{loser} ({game.loserscore})</TableBodyCell>
+                  <TableBodyCell>{game.winnername} ({game.winnerscore})</TableBodyCell>
+                  <TableBodyCell>{game.losername} ({game.loserscore})</TableBodyCell>
                   <TableBodyCell>{formatDate(game.gametime)}</TableBodyCell>
+                  <TableBodyCell>{game.arenaname}</TableBodyCell>
                 </TableBodyRow>
               {/each}
             </TableBody>
           </Table>
-        </div>
-      </div>
-      <div class="w-1/3">
-        <div class="flex-col">
-          <!-- TODO -->
         </div>
       </div>
     </div>
