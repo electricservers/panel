@@ -38,7 +38,10 @@
   };
 
   // Navigation items
-  const baseMgeChildren: NavItem[] = [{ name: 'Leaderboard', href: '/mge/ranking', icon: ChartOutline }];
+  const baseMgeChildren: NavItem[] = [
+    { name: 'Leaderboard', href: '/mge/ranking', icon: ChartOutline },
+    { name: 'Games', href: '/mge/games', icon: ChartOutline },
+  ];
 
   const whoisItem: NavItem = {
     name: 'Whois',
