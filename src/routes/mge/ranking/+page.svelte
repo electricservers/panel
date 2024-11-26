@@ -42,7 +42,6 @@
       server.name = 'Electric #5';
     }
     server.flag = arg;
-    console.log(arg);
     ranking = await fetchRankingData(arg);
     loading = false;
   };
