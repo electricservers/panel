@@ -7,7 +7,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "vite dev",
-    "build": "prisma generate --schema prisma/schema_br.prisma && prisma generate --schema prisma/schema_arg.prisma && vite build",
+    "build": "npx prisma generate --schema prisma/schema_br.prisma && npx prisma generate --schema prisma/schema_arg.prisma && vite build",
     "preview": "vite preview",
     "test": "npm run test:integration && npm run test:unit",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
@@ -41,6 +41,7 @@
     "prettier": "^3.3.3",
     "prettier-plugin-svelte": "^3.2.8",
     "prettier-plugin-tailwindcss": "^0.6.9",
+    "prisma": "5.18.0",
     "svelte": "^5.2.3",
     "svelte-check": "^4.0.9",
     "svelte-lib-helpers": "^0.4.16",
