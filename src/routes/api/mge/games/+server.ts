@@ -18,17 +18,17 @@ export const GET: RequestHandler = async (event) => {
         }
       : {}
   } satisfies Prisma.mgemod_duelsFindManyArgs;
-  let games: MgeDuel[];
+  let gamesRaw: mgemod_duels[];
   let total = 0;
   switch (query.get('db')) {
     case 'ar':
-      games = await prismaArg.mgemod_duels.findMany(findManyParams);
+      gamesRaw = await prismaArg.mgemod_duels.findMany(findManyParams);
       if (query.has('withTotal')) {
         total = await prismaArg.mgemod_duels.count({ where: findManyParams.where });
       }
       break;
     case 'br':
-      games = await prismaBr.mgemod_duels.findMany(findManyParams);
+      gamesRaw = await prismaBr.mgemod_duels.findMany(findManyParams);
       if (query.has('withTotal')) {
         total = await prismaBr.mgemod_duels.count({ where: findManyParams.where });
       }
@@ -38,20 +38,32 @@ export const GET: RequestHandler = async (event) => {
   }
 
   const steamIDs = Array.from(
-    new Set(games.flatMap((game) => [game.winner, game.loser]))
+    new Set(
+      gamesRaw
+        .flatMap((game) => [game.winner, game.loser])
+        .filter((id): id is string => Boolean(id))
+    )
   );
 
-  const players = await prismaArg.mgemod_stats.findMany({
-    where: { steamid: { in: steamIDs } },
-    select: { steamid: true, name: true },
-  });
+  let players: { steamid: string; name: string | null }[] = [];
+  if (query.get('db') === 'br') {
+    players = await prismaBr.mgemod_stats.findMany({
+      where: { steamid: { in: steamIDs } },
+      select: { steamid: true, name: true },
+    });
+  } else {
+    players = await prismaArg.mgemod_stats.findMany({
+      where: { steamid: { in: steamIDs } },
+      select: { steamid: true, name: true },
+    });
+  }
 
   const playerMap = Object.fromEntries(players.map((p) => [p.steamid, p.name]));
 
-  games = games.map((game) => ({
+  const games: MgeDuel[] = gamesRaw.map((game) => ({
     ...game,
-    winnername: playerMap[game.winner] || `Unknown (${game.winner})`,
-    losername: playerMap[game.loser] || `Unknown (${game.loser}`,
+    winnername: game.winner ? playerMap[game.winner] || `Unknown (${game.winner})` : 'Unknown',
+    losername: game.loser ? playerMap[game.loser] || `Unknown (${game.loser})` : 'Unknown',
   }));
 
   if (query.has('withTotal')) {

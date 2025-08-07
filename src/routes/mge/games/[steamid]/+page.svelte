@@ -1,13 +1,13 @@
 <script lang="ts">
   import type { PageData } from './$types';
   import { steamStore } from '$lib/stores/steamStore';
-  import Title from '$lib/components/Title.svelte';
-  import { Avatar, Button, Dropdown, DropdownItem, P, Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell } from 'flowbite-svelte';
+  import { Avatar, Button, Dropdown, DropdownItem, Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell } from 'flowbite-svelte';
   import Card from '../../../utils/widgets/Card.svelte';
 
   import { ID } from '@node-steam/id';
   import { ChevronDownOutline } from 'flowbite-svelte-icons';
   import type { MgeDuel } from '$lib/mge/mgeduel';
+  import { get } from 'svelte/store';
 
   interface Props {
     data: PageData;
@@ -21,12 +21,64 @@
   let { data }: Props = $props();
   let loading = $state(true);
   let games = $state<MgeDuel[]>([]);
-  let id = $state('');
+  let id = $state(''); // Steam2 format used by DB queries
 
-  const fetchData = async (flag: string) => {
+  // Pagination
+  const pageSize = 25;
+  let currentPage = $state(1);
+  let totalItems = $state(0);
+  const totalPages = $derived(Math.max(1, Math.ceil(totalItems / pageSize)));
+
+  // Player summary
+  let playerName = $state('');
+  let wins = $state(0);
+  let losses = $state(0);
+  const totalMatches = $derived(wins + losses);
+  const winrateNum = $derived(totalMatches ? (wins / totalMatches) * 100 : 0);
+  const winrate = $derived(winrateNum.toFixed(1));
+  let avatarUrl = $state<string | undefined>(undefined);
+
+  const fetchPlayerSummary = async (db: string) => {
+    // Load wins/losses and name
+    const params = new URLSearchParams({ db, steamid: id, take: '1' });
+    const resp = await fetch(`/api/mge/rank?${params.toString()}`);
+    const arr = await resp.json();
+    const player = Array.isArray(arr) && arr.length > 0 ? arr[0] : null;
+    if (player) {
+      playerName = player.name ?? '';
+      wins = player.wins ?? 0;
+      losses = player.losses ?? 0;
+    } else {
+      playerName = '';
+      wins = 0;
+      losses = 0;
+    }
+
+    // Prefer the logged-in user's avatar if same profile; otherwise leave undefined
+    const u = get(steamStore);
+    if (u && u.steamid === String(data.id)) {
+      avatarUrl = u.avatarfull || u.avatarmedium || u.avatar;
+    }
+  };
+
+  const fetchGames = async (db: string, page = 1, withTotal = false) => {
+    const skip = (page - 1) * pageSize;
+    const params = new URLSearchParams({ db, steamid: id, skip: String(skip), take: String(pageSize) });
+    if (withTotal) params.set('withTotal', '1');
+    const result = await fetch(`/api/mge/games?${params.toString()}`);
+    const payload = await result.json();
+    const items: MgeDuel[] = Array.isArray(payload) ? payload : payload.items;
+    totalItems = Array.isArray(payload) ? totalItems : (payload.total ?? totalItems);
+    games = items;
+  };
+
+  const fetchData = async (db: string) => {
     id = new ID(data.id).getSteamID2();
-    let result = await fetch(`/api/mge/games?db=${flag}&steamid=${id}`);
-    games = await result.json();
+    currentPage = 1;
+    await Promise.all([
+      fetchPlayerSummary(db),
+      fetchGames(db, 1, true)
+    ]);
   };
 
   $effect(() => {
@@ -65,33 +117,64 @@
   }
 </script>
 
-<Button class="my-3">
-  <span class="fi fi-{server.flag} mr-2"></span>
-  {server.name}
-  <ChevronDownOutline class="ms-2 h-6 w-6 text-white dark:text-white" />
-</Button>
-<Dropdown bind:open={dropOpen} class="overflow-y-auto px-3 pb-3 text-sm">
-  <DropdownItem on:click={async () => await dropClicked('ar')} class="flex items-center gap-2 text-base font-semibold">
-    <span class="fi fi-ar"></span>
-    Argentina
-  </DropdownItem>
-  <DropdownItem on:click={async () => await dropClicked('br')} class="flex items-center gap-2 text-base font-semibold">
-    <span class="fi fi-br"></span>
-    Brasil
-  </DropdownItem>
-</Dropdown>
+<div class="p-4">
+  <div class="flex items-center gap-4">
+    <Avatar size="lg" src={avatarUrl} />
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900 dark:text-white">{playerName || 'Player'}</h1>
+      <a target="_blank" class="text-sm text-blue-600 hover:underline" href={`https://steamcommunity.com/profiles/${data.id}`}>
+        View Steam profile
+      </a>
+    </div>
+  </div>
+  <div class="mt-3 flex flex-col gap-3">
+    <!-- Region selector aligned under header -->
+    <Button class="w-fit">
+      <span class="fi fi-{server.flag} mr-2"></span>
+      {server.name}
+      <ChevronDownOutline class="ms-2 h-6 w-6 text-white dark:text-white" />
+    </Button>
+    <Dropdown bind:open={dropOpen} placement="bottom-start" class="overflow-y-auto px-3 pb-3 text-sm">
+      <DropdownItem on:click={async () => await dropClicked('ar')} class="flex items-center gap-2 text-base font-semibold">
+        <span class="fi fi-ar"></span>
+        Argentina
+      </DropdownItem>
+      <DropdownItem on:click={async () => await dropClicked('br')} class="flex items-center gap-2 text-base font-semibold">
+        <span class="fi fi-br"></span>
+        Brasil
+      </DropdownItem>
+    </Dropdown>
+    <!-- Compact stat strip -->
+    <div class="flex flex-wrap items-end justify-start gap-x-8 gap-y-2">
+      <div>
+        <div class="text-xs uppercase tracking-wide text-gray-500">Matches</div>
+        <div class="text-2xl font-semibold">{totalMatches.toLocaleString()}</div>
+      </div>
+      <div>
+        <div class="text-xs uppercase tracking-wide text-gray-500">Wins</div>
+        <div class="text-2xl font-semibold text-emerald-500">{wins.toLocaleString()}</div>
+      </div>
+      <div>
+        <div class="text-xs uppercase tracking-wide text-gray-500">Losses</div>
+        <div class="text-2xl font-semibold text-rose-400">{losses.toLocaleString()}</div>
+      </div>
+      <div class="min-w-[200px] flex-1 md:max-w-[420px]">
+        <div class="flex items-center justify-between text-xs text-gray-500">
+          <span>Winrate</span>
+          <span>{winrate}%</span>
+        </div>
+        <div class="mt-1 h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
+          <div class="h-2 rounded-full bg-emerald-500" style={`width: ${winrateNum}%`}></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 <div class="h-[90vh] p-4">
   <div class="flex flex-col">
     <div class="h-screen">
       <div>
-        <div class="flex flex-row justify-evenly">
-          <div class="p-3">
-            <Card title="Matches" subtitle="TODO"></Card>
-          </div>
-          <div class="p-3">
-            <Card title="Winrate" subtitle="TODO"></Card>
-          </div>
-        </div>
+        <!-- Removed heavy cards; stats are now shown in the compact strip above -->
         <div>
           <Table hoverable={true}>
             <TableHead defaultRow={false}>
@@ -113,6 +196,14 @@
               {/each}
             </TableBody>
           </Table>
+          <div class="mt-4 flex flex-col items-center gap-2">
+            <div class="text-sm text-gray-500">Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalItems)} of {totalItems} Entries</div>
+            <div class="flex items-center gap-2">
+              <Button color="light" on:click={async () => { if (currentPage > 1) { currentPage -= 1; await fetchGames(server.flag, currentPage); } }} disabled={currentPage <= 1}>Previous</Button>
+              <span class="text-sm">Page {currentPage} of {totalPages}</span>
+              <Button color="light" on:click={async () => { if (currentPage < totalPages) { currentPage += 1; await fetchGames(server.flag, currentPage); } }} disabled={currentPage >= totalPages}>Next</Button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
