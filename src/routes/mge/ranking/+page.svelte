@@ -178,7 +178,7 @@
       </TableBody>
     </Table>
     <div class="mt-4 flex flex-col items-center gap-2">
-      <div class="text-sm text-gray-500">Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalItems)} of {totalItems} Entries</div>
+      <div class="text-sm text-gray-500 dark:text-gray-400">Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalItems)} of {totalItems} Entries</div>
       <div class="flex items-center gap-2">
         <Button color="light" on:click={() => goToPage(currentPage - 1)} disabled={currentPage <= 1}>Previous</Button>
         <span class="text-sm">Page {currentPage} of {totalPages}</span>

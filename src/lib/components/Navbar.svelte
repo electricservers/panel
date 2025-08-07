@@ -21,7 +21,7 @@
   });
 </script>
 
-<Navbar {fluid} class="text-black" color="default">
+<Navbar {fluid} color="default">
   {#snippet children({ NavContainer })}
     <NavContainer class="mb-px mt-px px-1" {fluid}>
       <NavHamburger onClick={() => (drawerHidden = !drawerHidden)} class="m-0 me-3 md:block lg:hidden" />

@@ -147,19 +147,19 @@
     <!-- Compact stat strip -->
     <div class="flex flex-wrap items-end justify-start gap-x-8 gap-y-2">
       <div>
-        <div class="text-xs uppercase tracking-wide text-gray-500">Matches</div>
+        <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Matches</div>
         <div class="text-2xl font-semibold">{totalMatches.toLocaleString()}</div>
       </div>
       <div>
-        <div class="text-xs uppercase tracking-wide text-gray-500">Wins</div>
+        <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Wins</div>
         <div class="text-2xl font-semibold text-emerald-500">{wins.toLocaleString()}</div>
       </div>
       <div>
-        <div class="text-xs uppercase tracking-wide text-gray-500">Losses</div>
+        <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Losses</div>
         <div class="text-2xl font-semibold text-rose-400">{losses.toLocaleString()}</div>
       </div>
       <div class="min-w-[200px] flex-1 md:max-w-[420px]">
-        <div class="flex items-center justify-between text-xs text-gray-500">
+        <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
           <span>Winrate</span>
           <span>{winrate}%</span>
         </div>
@@ -197,7 +197,7 @@
             </TableBody>
           </Table>
           <div class="mt-4 flex flex-col items-center gap-2">
-            <div class="text-sm text-gray-500">Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalItems)} of {totalItems} Entries</div>
+            <div class="text-sm text-gray-500 dark:text-gray-400">Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalItems)} of {totalItems} Entries</div>
             <div class="flex items-center gap-2">
               <Button color="light" on:click={async () => { if (currentPage > 1) { currentPage -= 1; await fetchGames(server.flag, currentPage); } }} disabled={currentPage <= 1}>Previous</Button>
               <span class="text-sm">Page {currentPage} of {totalPages}</span>
