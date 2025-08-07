@@ -6,7 +6,7 @@
   import Card from '../../utils/widgets/Card.svelte';
 
   import { ID } from '@node-steam/id';
-  import { ChevronDownOutline } from 'flowbite-svelte-icons';
+  import { ChevronDownOutline, ChevronLeftOutline, ChevronRightOutline } from 'flowbite-svelte-icons';
   import type { MgeDuel } from '$lib/mge/mgeduel';
 
   interface Props {
@@ -131,14 +131,17 @@
             {/each}
           </TableBody>
         </Table>
-          <div class="mt-4 flex flex-col items-center gap-2">
-          <div class="text-sm text-gray-500 dark:text-gray-400">Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalItems)} of {totalItems} Entries</div>
-          <div class="flex items-center gap-2">
-            <Button color="light" on:click={() => goToPage(currentPage - 1)} disabled={currentPage <= 1}>Previous</Button>
-            <span class="text-sm">Page {currentPage} of {totalPages}</span>
-            <Button color="light" on:click={() => goToPage(currentPage + 1)} disabled={currentPage >= totalPages}>Next</Button>
+          <div class="mt-4 flex justify-center">
+            <div class="flex items-center gap-2">
+              <Button color="light" aria-label="Previous page" title="Previous" on:click={() => goToPage(currentPage - 1)} disabled={currentPage <= 1}>
+                <ChevronLeftOutline class="h-5 w-5" />
+              </Button>
+              <span class="text-sm">{currentPage} / {totalPages}</span>
+              <Button color="light" aria-label="Next page" title="Next" on:click={() => goToPage(currentPage + 1)} disabled={currentPage >= totalPages}>
+                <ChevronRightOutline class="h-5 w-5" />
+              </Button>
+            </div>
           </div>
-        </div>
       </div>
     </div>
   </div>
