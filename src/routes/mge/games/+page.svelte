@@ -15,7 +15,7 @@
 
   let dropOpen: boolean = $state(false);
   let server = $state({
-    name: 'Electric #1',
+    name: 'Argentina',
     flag: 'ar'
   });
   let { data }: Props = $props();
@@ -41,9 +41,9 @@
   const dropClicked = async (arg: string) => {
     dropOpen = false;
     if (arg === 'ar') {
-      server.name = 'Electric #1';
+      server.name = 'Argentina';
     } else {
-      server.name = 'Electric #5';
+      server.name = 'Brasil';
     }
     server.flag = arg;
     await fetchData(arg);
@@ -74,11 +74,11 @@
   <Dropdown bind:open={dropOpen} class="overflow-y-auto px-3 pb-3 text-sm">
     <DropdownItem on:click={async () => await dropClicked('ar')} class="flex items-center gap-2 text-base font-semibold">
       <span class="fi fi-ar"></span>
-      Electric #1
+      Argentina
     </DropdownItem>
     <DropdownItem on:click={async () => await dropClicked('br')} class="flex items-center gap-2 text-base font-semibold">
       <span class="fi fi-br"></span>
-      Electric #5
+      Brasil
     </DropdownItem>
   </Dropdown>
   <div class="flex flex-col">
