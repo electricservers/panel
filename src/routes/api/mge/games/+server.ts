@@ -6,9 +6,12 @@ import { error, json, type RequestHandler } from '@sveltejs/kit';
 
 export const GET: RequestHandler = async (event) => {
   const query = event.url.searchParams;
+  const take = Number(query.get('take') ?? query.get('limit')) || 500;
+  const skip = Number(query.get('skip')) || 0;
   const findManyParams = {
     orderBy: [{ id: 'desc' }],
-    take: Number(query.get('limit')) || 500,
+    take,
+    skip,
     where: query.has('steamid')
       ? {
           OR: [{ winner: query.get('steamid') }, { loser: query.get('steamid') }]
@@ -16,12 +19,19 @@ export const GET: RequestHandler = async (event) => {
       : {}
   } satisfies Prisma.mgemod_duelsFindManyArgs;
   let games: MgeDuel[];
+  let total = 0;
   switch (query.get('db')) {
     case 'ar':
       games = await prismaArg.mgemod_duels.findMany(findManyParams);
+      if (query.has('withTotal')) {
+        total = await prismaArg.mgemod_duels.count({ where: findManyParams.where });
+      }
       break;
     case 'br':
       games = await prismaBr.mgemod_duels.findMany(findManyParams);
+      if (query.has('withTotal')) {
+        total = await prismaBr.mgemod_duels.count({ where: findManyParams.where });
+      }
       break;
     default:
       return error(400, "wrong db supplied (only 'ar' or 'br' accepted)");
@@ -44,5 +54,8 @@ export const GET: RequestHandler = async (event) => {
     losername: playerMap[game.loser] || `Unknown (${game.loser}`,
   }));
 
+  if (query.has('withTotal')) {
+    return json({ items: games, total });
+  }
   return json(games);
 };

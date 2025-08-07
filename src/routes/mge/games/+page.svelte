@@ -22,10 +22,35 @@
   let loading = $state(true);
   let games = $state<MgeDuel[]>([]);
   let id = $state('');
+  const pageSize = 25;
+  let currentPage = $state(1);
+  let totalItems = $state(0);
+  const totalPages = $derived(Math.max(1, Math.ceil(totalItems / pageSize)));
 
-  const fetchData = async (flag: string) => {
-    let result = await fetch(`/api/mge/games?db=${flag}`);
-    games = await result.json();
+  const goToPage = async (p: number) => {
+    const clamped = Math.max(1, Math.min(totalPages, p));
+    currentPage = clamped;
+    const start = (clamped - 1) * pageSize;
+    games = await fetchData(server.flag, start, pageSize);
+  };
+
+  const fetchData = async (flag: string, skip = 0, take = pageSize, withTotal = false) => {
+    const params = new URLSearchParams({ db: flag, skip: String(skip), take: String(take) });
+    if (withTotal) params.set('withTotal', '1');
+    const res = await fetch(`/api/mge/games?${params.toString()}`);
+    const payload = await res.json();
+    const items: MgeDuel[] = Array.isArray(payload) ? payload : payload.items;
+    totalItems = Array.isArray(payload) ? totalItems : (payload.total ?? totalItems);
+    return items;
+  };
+
+  const resetAndLoad = async (flag: string) => {
+    loading = true;
+    games = [];
+    currentPage = 1;
+    const first = await fetchData(flag, 0, pageSize, true);
+    games = first;
+    loading = false;
   };
 
   $effect(() => {
@@ -34,7 +59,7 @@
         loading = false;
       }
     });
-    fetchData('ar');
+    resetAndLoad('ar');
     return unsubscribe;
   });
 
@@ -46,7 +71,7 @@
       server.name = 'Brasil';
     }
     server.flag = arg;
-    await fetchData(arg);
+    await resetAndLoad(arg);
   };
 
   function formatDate(unixEpoch: string | null): string {
@@ -62,6 +87,8 @@
 
     return `${month} ${day}, ${year} ${hours}:${minutes}:${seconds}`;
   }
+
+  $effect(() => {});
 </script>
 
 <div class="h-[90vh] p-4">
@@ -104,6 +131,14 @@
             {/each}
           </TableBody>
         </Table>
+        <div class="mt-4 flex flex-col items-center gap-2">
+          <div class="text-sm text-gray-500">Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalItems)} of {totalItems} Entries</div>
+          <div class="flex items-center gap-2">
+            <Button color="light" on:click={() => goToPage(currentPage - 1)} disabled={currentPage <= 1}>Previous</Button>
+            <span class="text-sm">Page {currentPage} of {totalPages}</span>
+            <Button color="light" on:click={() => goToPage(currentPage + 1)} disabled={currentPage >= totalPages}>Next</Button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
