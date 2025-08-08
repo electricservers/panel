@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Button } from 'flowbite-svelte';
+  import Card from '../../../routes/utils/widgets/Card.svelte';
   import { steamStore } from '$lib/stores/steamStore';
   import { goto } from '$app/navigation';
   let steamInput = '';
@@ -41,28 +42,13 @@
   }
 </script>
 
-<section class="relative overflow-hidden rounded-lg bg-gradient-to-br from-slate-800 to-slate-900 p-8 text-white">
-  <div class="relative z-10 max-w-3xl">
-    <h1 class="text-3xl font-extrabold tracking-tight md:text-4xl">MGE Stats</h1>
-
-    <div class="mt-6 flex flex-wrap gap-3">
-      {#if $steamStore}
-        <a href={`/mge/games/${$steamStore.steamid}`}>
-          <Button>View my profile</Button>
-        </a>
-      {:else}
-        <a href="/api/auth/login">
-          <Button color="blue">Sign in with Steam</Button>
-        </a>
-      {/if}
-    </div>
-
-    <div class="mt-4 flex max-w-lg gap-2">
-      <input class="w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm placeholder-slate-500 focus:outline-none" placeholder="Paste Steam profile URL or 17-digit SteamID64" bind:value={steamInput} on:keydown={(e) => { if (e.key === 'Enter') goToProfile(); }} />
-      <Button color="light" on:click={goToProfile}>Go</Button>
+<Card title="Find a profile" class="w-full !max-w-none">
+  <div>
+    <div class="mt-3 flex max-w-lg gap-2">
+      <input class="w-full rounded-md border border-gray-200 bg-white px-3 text-sm placeholder:text-gray-400 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" placeholder="Paste Steam profile URL or 17-digit SteamID64" bind:value={steamInput} on:keydown={(e) => { if (e.key === 'Enter') goToProfile(); }} />
+      <Button color="light" size="sm" on:click={goToProfile}>Go</Button>
     </div>
   </div>
-  <div class="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-emerald-500/20 blur-3xl"></div>
-</section>
+</Card>
 
 
