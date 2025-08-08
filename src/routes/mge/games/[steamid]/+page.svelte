@@ -3,7 +3,7 @@
   import { steamStore } from '$lib/stores/steamStore';
   import { Avatar } from 'flowbite-svelte';
   import MostPlayedArenasPlaceholder from '$lib/components/mge/MostPlayedArenasPlaceholder.svelte';
-  import ActivityPlaceholder from '$lib/components/mge/ActivityPlaceholder.svelte';
+  import ActivityCard from '$lib/components/mge/ActivityCard.svelte';
   import TopFoesPlaceholder from '$lib/components/mge/TopFoesPlaceholder.svelte';
 
   import { ID } from '@node-steam/id';
@@ -49,6 +49,9 @@
   let avatarUrl = $state<string | undefined>(undefined);
   let rating = $state<number | null>(null);
   let rankPosition = $state<number | null>(null);
+  let activityLoading = $state(false);
+  let activityTimes = $state<string[]>([]);
+  let activityDays = $state(30);
 
   const fetchPlayerSummary = async (db: Region) => {
     // Reset avatar to ensure fresh fetch on profile changes
@@ -114,9 +117,28 @@
     currentPage = 1;
     await Promise.all([
       fetchPlayerSummary(db),
-      fetchGames(db, 1, true)
+      fetchGames(db, 1, true),
+      fetchActivity(db)
     ]);
     loading = false;
+  };
+
+  const fetchActivity = async (db: Region) => {
+    activityLoading = true;
+    try {
+      const params = new URLSearchParams({ db, steamid: id, take: '2000', days: String(activityDays) });
+      const resp = await fetch(`/api/mge/activity?${params.toString()}`);
+      if (resp.ok) {
+        const payload = await resp.json();
+        activityTimes = Array.isArray(payload?.gametimes) ? payload.gametimes : [];
+      } else {
+        activityTimes = [];
+      }
+    } catch {
+      activityTimes = [];
+    } finally {
+      activityLoading = false;
+    }
   };
 
   $effect(() => {
@@ -287,7 +309,7 @@
     <div class="flex flex-col gap-4 lg:col-span-4">
       <!-- Sidebar placeholders for future features -->
       <MostPlayedArenasPlaceholder />
-      <ActivityPlaceholder />
+      <ActivityCard gametimes={activityTimes} loading={activityLoading} days={activityDays} onDaysChange={async (d: number) => { activityDays = d; await fetchActivity(currentRegion); }} />
       <TopFoesPlaceholder />
     </div>
   </div>

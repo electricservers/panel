@@ -15,7 +15,7 @@
   const isPlayerRight = $derived(game.loser === subjectId2);
 </script>
 
-<div class={`group relative overflow-hidden rounded-xl border border-gray-200 p-4 shadow-sm transition-colors hover:bg-white/70 dark:border-gray-800 dark:hover:bg-gray-800 ${win ? 'bg-emerald-50/30 dark:bg-emerald-500/10' : 'bg-rose-50/30 dark:bg-rose-500/10'}`}>
+<div class={`group relative overflow-hidden rounded-xl border border-gray-200 p-4 shadow-sm transition-colors hover:bg-white/70 dark:border-gray-800 dark:hover:bg-gray-800 ${win ? 'bg-emerald-100/60 dark:bg-emerald-500/10' : 'bg-rose-100/60 dark:bg-rose-500/10'}`}>
   <div class="pointer-events-none absolute inset-y-0 left-0 w-1" class:bg-emerald-300={win} class:bg-rose-300={!win} aria-hidden="true"></div>
 
   <div class="grid grid-cols-[1fr_auto_1fr] grid-rows-[auto_auto] items-center gap-x-3 gap-y-2 md:gap-x-6">
