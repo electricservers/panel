@@ -8,15 +8,26 @@ export const GET: RequestHandler = async (event) => {
   const query = event.url.searchParams;
   const take = Number(query.get('take') ?? query.get('limit')) || 500;
   const skip = Number(query.get('skip')) || 0;
+  const steamid = query.get('steamid');
+  const outcome = query.get('outcome'); // 'win' | 'loss'
+
+  // Build where clause with optional outcome filter relative to the provided steamid
+  let where: Prisma.mgemod_duelsWhereInput = {};
+  if (steamid) {
+    if (outcome === 'win') {
+      where = { winner: steamid };
+    } else if (outcome === 'loss') {
+      where = { loser: steamid };
+    } else {
+      where = { OR: [{ winner: steamid }, { loser: steamid }] };
+    }
+  }
+
   const findManyParams = {
     orderBy: [{ id: 'desc' }],
     take,
     skip,
-    where: query.has('steamid')
-      ? {
-          OR: [{ winner: query.get('steamid') }, { loser: query.get('steamid') }]
-        }
-      : {}
+    where
   } satisfies Prisma.mgemod_duelsFindManyArgs;
   let gamesRaw: mgemod_duels[];
   let total = 0;

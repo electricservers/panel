@@ -25,6 +25,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
   }
 
   return {
+    // Always pass a fresh id to force client updates when navigating profiles
     id: params.steamid,
     existsInAr,
     existsInBr

@@ -1,8 +1,8 @@
 <script lang="ts">
   import { ID } from '@node-steam/id';
   import type { mgemod_stats } from '@prisma-arg/client';
-  import { A, P, Button, Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell } from 'flowbite-svelte';
-  import { ChevronLeftOutline, ChevronRightOutline } from 'flowbite-svelte-icons';
+  import { A, P } from 'flowbite-svelte';
+  import DataTable, { type Column, type SortDirection } from '$lib/components/DataTable.svelte';
   import Title from '$lib/components/Title.svelte';
   import { regionStore, type Region } from '$lib/stores/regionStore';
 
@@ -39,15 +39,16 @@
   let sortKey: SortKey = $state('rating');
   let sortDir: 'asc' | 'desc' = $state('desc');
 
-  const setSort = (key: SortKey) => {
-    if (sortKey === key) {
+  const setSort = (key: SortKey, dir?: SortDirection) => {
+    if (dir) {
+      sortKey = key;
+      sortDir = dir;
+    } else if (sortKey === key) {
       sortDir = sortDir === 'asc' ? 'desc' : 'asc';
     } else {
       sortKey = key;
-      // Default directions: name asc, numbers desc
       sortDir = key === 'name' ? 'asc' : 'desc';
     }
-    // Reload from server with new sort across all pages
     resetAndLoad(currentRegion);
   };
 
@@ -109,7 +110,17 @@
     return () => unreg();
   });
 
-  $effect(() => {});
+  // Columns for the reusable DataTable
+  const columns: Column[] = [
+    { id: 'position', title: 'Position', sortable: true, sortKey: 'rating', defaultSortDir: 'desc', widthClass: 'w-[100px]' },
+    { id: 'name', title: 'Name', accessor: 'name', sortable: true, defaultSortDir: 'asc' },
+    { id: 'rating', title: 'Rating', accessor: 'rating', sortable: true, defaultSortDir: 'desc', widthClass: 'w-[120px] text-right', headerClass: 'text-right', cellClass: 'text-right' },
+    { id: 'wins', title: 'Wins', accessor: 'wins', sortable: true, defaultSortDir: 'desc', widthClass: 'w-[100px] text-right', headerClass: 'text-right', cellClass: 'text-right' },
+    { id: 'losses', title: 'Losses', accessor: 'losses', sortable: true, defaultSortDir: 'desc', widthClass: 'w-[100px] text-right', headerClass: 'text-right', cellClass: 'text-right' },
+    { id: 'totalGames', title: 'Total Games', accessor: 'totalGames', sortable: true, defaultSortDir: 'desc', widthClass: 'w-[130px] text-right', headerClass: 'text-right', cellClass: 'text-right' },
+    { id: 'wl', title: 'W/L Ratio', accessor: (row) => row.wl, sortable: true, sortKey: 'wlValue', defaultSortDir: 'desc', widthClass: 'w-[120px] text-right', headerClass: 'text-right', cellClass: 'text-right' },
+    { id: 'winrate', title: 'Winrate', accessor: (row) => row.winrate, sortable: true, sortKey: 'winrateValue', defaultSortDir: 'desc', widthClass: 'w-[120px] text-right', headerClass: 'text-right', cellClass: 'text-right' }
+  ];
 </script>
 
 <div class="h-[90vh] p-4">
@@ -118,63 +129,31 @@
   {#if loading}
     <P>Loading ranking...</P>
   {:else}
-    <Table striped={true} hoverable={true}>
-      <TableHead class="select-none">
-        <TableHeadCell class="cursor-pointer" on:click={() => { sortKey='rating'; sortDir='desc'; }}>
-          Position
-        </TableHeadCell>
-        <TableHeadCell class="cursor-pointer" on:click={() => setSort('name')}>
-          Name {sortKey === 'name' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
-        </TableHeadCell>
-        <TableHeadCell class="cursor-pointer" on:click={() => setSort('rating')}>
-          Rating {sortKey === 'rating' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
-        </TableHeadCell>
-        <TableHeadCell class="cursor-pointer" on:click={() => setSort('wins')}>
-          Wins {sortKey === 'wins' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
-        </TableHeadCell>
-        <TableHeadCell class="cursor-pointer" on:click={() => setSort('losses')}>
-          Losses {sortKey === 'losses' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
-        </TableHeadCell>
-        <TableHeadCell class="cursor-pointer" on:click={() => setSort('totalGames')}>
-          Total Games {sortKey === 'totalGames' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
-        </TableHeadCell>
-        <TableHeadCell class="cursor-pointer" on:click={() => setSort('wlValue')}>
-          W/L Ratio {sortKey === 'wlValue' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
-        </TableHeadCell>
-        <TableHeadCell class="cursor-pointer" on:click={() => setSort('winrateValue')}>
-          Winrate {sortKey === 'winrateValue' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
-        </TableHeadCell>
-      </TableHead>
-      <TableBody>
-        {#each ranking as user, i}
-          <TableBodyRow>
-            <TableBodyCell>#{(currentPage - 1) * pageSize + i + 1}</TableBodyCell>
-            <TableBodyCell>
-              {@const steamid = new ID(user.steamid).get64()}
-              <A target="_blank" href="https://steamcommunity.com/profiles/{steamid}">
-                {user.name}
-              </A>
-            </TableBodyCell>
-            <TableBodyCell>{user.rating}</TableBodyCell>
-            <TableBodyCell>{user.wins}</TableBodyCell>
-            <TableBodyCell>{user.losses}</TableBodyCell>
-            <TableBodyCell>{user.totalGames}</TableBodyCell>
-            <TableBodyCell>{user.wl}</TableBodyCell>
-            <TableBodyCell>{user.winrate}%</TableBodyCell>
-          </TableBodyRow>
-        {/each}
-      </TableBody>
-    </Table>
-    <div class="mt-4 flex justify-center">
-      <div class="flex items-center gap-2">
-        <Button color="light" aria-label="Previous page" title="Previous" on:click={() => goToPage(currentPage - 1)} disabled={currentPage <= 1}>
-          <ChevronLeftOutline class="h-5 w-5" />
-        </Button>
-        <span class="text-sm">{currentPage} / {totalPages}</span>
-        <Button color="light" aria-label="Next page" title="Next" on:click={() => goToPage(currentPage + 1)} disabled={currentPage >= totalPages}>
-          <ChevronRightOutline class="h-5 w-5" />
-        </Button>
-      </div>
-    </div>
+    <DataTable
+      columns={columns}
+      rows={ranking}
+      currentPage={currentPage}
+      totalPages={totalPages}
+      onPageChange={(p) => goToPage(p)}
+      sortKey={sortKey}
+      sortDir={sortDir}
+      onSortChange={(key, dir) => setSort(key as SortKey, dir)}
+      emptyText="No players found."
+    >
+      <svelte:fragment slot="cell" let:row let:index let:col let:value>
+        {#if col.id === 'position'}
+          #{(currentPage - 1) * pageSize + index + 1}
+        {:else if col.id === 'name'}
+          {@const steamid = new ID(row.steamid).get64()}
+          <A target="_blank" href={`https://steamcommunity.com/profiles/${steamid}`}>
+            {row.name}
+          </A>
+        {:else if col.id === 'winrate'}
+          {row.winrate}%
+        {:else}
+          {value}
+        {/if}
+      </svelte:fragment>
+    </DataTable>
   {/if}
 </div>

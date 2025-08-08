@@ -1,15 +1,15 @@
 <script lang="ts">
   import type { PageData } from './$types';
   import { steamStore } from '$lib/stores/steamStore';
-  import { Avatar, Button, Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell } from 'flowbite-svelte';
+  import { Avatar } from 'flowbite-svelte';
   import MostPlayedArenasPlaceholder from '$lib/components/mge/MostPlayedArenasPlaceholder.svelte';
   import ActivityPlaceholder from '$lib/components/mge/ActivityPlaceholder.svelte';
   import TopFoesPlaceholder from '$lib/components/mge/TopFoesPlaceholder.svelte';
 
   import { ID } from '@node-steam/id';
-  import { ChevronLeftOutline, ChevronRightOutline } from 'flowbite-svelte-icons';
   import type { MgeDuel } from '$lib/mge/mgeduel';
   import { get } from 'svelte/store';
+  import MatchList from '$lib/components/mge/MatchList.svelte';
 
   interface Props {
     data: PageData;
@@ -31,10 +31,13 @@
   const existsInOther = $derived(otherRegion === 'ar' ? existsInAr : existsInBr);
 
   // Pagination
-  const pageSize = 25;
+  const pageSize = 5;
   let currentPage = $state(1);
   let totalItems = $state(0);
   const totalPages = $derived(Math.max(1, Math.ceil(totalItems / pageSize)));
+
+  // Outcome filter: 'all' | 'win' | 'loss'
+  let outcome = $state<'all' | 'win' | 'loss'>('all');
 
   // Player summary
   let playerName = $state('');
@@ -44,21 +47,30 @@
   const winrateNum = $derived(totalMatches ? (wins / totalMatches) * 100 : 0);
   const winrate = $derived(winrateNum.toFixed(1));
   let avatarUrl = $state<string | undefined>(undefined);
+  let rating = $state<number | null>(null);
+  let rankPosition = $state<number | null>(null);
 
   const fetchPlayerSummary = async (db: Region) => {
+    // Reset avatar to ensure fresh fetch on profile changes
+    avatarUrl = undefined;
     // Load wins/losses and name
-    const params = new URLSearchParams({ db, steamid: id, take: '1' });
+    const params = new URLSearchParams({ db, steamid: id, take: '1', withRankPosition: '1' });
     const resp = await fetch(`/api/mge/rank?${params.toString()}`);
     const arr = await resp.json();
-    const player = Array.isArray(arr) && arr.length > 0 ? arr[0] : null;
+    const payload = Array.isArray(arr) ? { items: arr, position: null } : arr;
+    const player = Array.isArray(payload.items) && payload.items.length > 0 ? payload.items[0] : null;
     if (player) {
       playerName = player.name ?? '';
       wins = player.wins ?? 0;
       losses = player.losses ?? 0;
+      rating = player.rating ?? null;
+      rankPosition = (payload.position as number | null) ?? null;
     } else {
       playerName = '';
       wins = 0;
       losses = 0;
+      rating = null;
+      rankPosition = null;
     }
 
     // Prefer the logged-in user's avatar if same profile; otherwise leave undefined
@@ -87,6 +99,7 @@
   const fetchGames = async (db: Region, page = 1, withTotal = false) => {
     const skip = (page - 1) * pageSize;
     const params = new URLSearchParams({ db, steamid: id, skip: String(skip), take: String(pageSize) });
+    if (outcome !== 'all') params.set('outcome', outcome);
     if (withTotal) params.set('withTotal', '1');
     const result = await fetch(`/api/mge/games?${params.toString()}`);
     const payload = await result.json();
@@ -96,12 +109,14 @@
   };
 
   const fetchData = async (db: Region) => {
+    loading = true;
     id = new ID(data.id).getSteamID2();
     currentPage = 1;
     await Promise.all([
       fetchPlayerSummary(db),
       fetchGames(db, 1, true)
     ]);
+    loading = false;
   };
 
   $effect(() => {
@@ -116,6 +131,20 @@
     });
     fetchData(currentRegion);
     return () => { unsubscribe(); unreg(); };
+  });
+
+  // Re-fetch on outcome change
+  $effect(() => {
+    outcome;
+    currentPage = 1;
+    fetchGames(currentRegion, 1, true);
+  });
+
+  // Re-fetch when navigating between different profile ids
+  $effect(() => {
+    data.id;
+    avatarUrl = undefined;
+    fetchData(currentRegion);
   });
 
   // Region is controlled globally via navbar
@@ -133,13 +162,28 @@
 
     return `${month} ${day}, ${year} ${hours}:${minutes}:${seconds}`;
   }
+
+  // using MatchList for a more modern layout instead of a table
 </script>
 
 <div class="p-4">
   <div class="flex items-center gap-4">
-    <Avatar size="lg" src={avatarUrl} />
+    {#key data.id}
+      <Avatar size="lg" src={avatarUrl} />
+    {/key}
     <div>
       <h1 class="text-3xl font-bold text-gray-900 dark:text-white">{playerName || 'Player'}</h1>
+      <div class="mt-1 flex flex-wrap items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+        {#if rating !== null}
+          <span class="font-semibold text-gray-900 dark:text-gray-100">{rating}</span>
+        {/if}
+        {#if rankPosition !== null}
+          <span class="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+            <span class="fi fi-{currentRegion}"></span>
+            <span>#{rankPosition}</span>
+          </span>
+        {/if}
+      </div>
       <a target="_blank" class="text-sm text-blue-600 hover:underline" href={`https://steamcommunity.com/profiles/${data.id}`}>
         View Steam profile
       </a>
@@ -190,44 +234,36 @@
 <div class="h-[90vh] p-4">
   <div class="grid grid-cols-1 gap-4 lg:grid-cols-12">
     <div class="lg:col-span-8">
-      <!-- Matches table -->
+      <!-- Filters -->
+      <div class="mb-3 flex flex-wrap items-center gap-2">
+        <div class="text-xs text-gray-500 dark:text-gray-400">Outcome:</div>
+        <button class={`rounded-md px-2 py-1 text-sm ${outcome === 'all' ? 'bg-gray-200 text-gray-900 dark:bg-gray-800 dark:text-gray-100' : 'bg-transparent text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'}`} onclick={() => { outcome = 'all'; }}>
+          All
+        </button>
+        <button class={`rounded-md px-2 py-1 text-sm ${outcome === 'win' ? 'bg-gray-200 text-gray-900 dark:bg-gray-800 dark:text-gray-100' : 'bg-transparent text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'}`} onclick={() => { outcome = 'win'; }}>
+          Wins
+        </button>
+        <button class={`rounded-md px-2 py-1 text-sm ${outcome === 'loss' ? 'bg-gray-200 text-gray-900 dark:bg-gray-800 dark:text-gray-100' : 'bg-transparent text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'}`} onclick={() => { outcome = 'loss'; }}>
+          Losses
+        </button>
+      </div>
+
+      <!-- Matches list -->
       {#if existsInCurrent}
-      <Table hoverable={true}>
-        <TableHead defaultRow={false}>
-          <tr>
-            <TableHeadCell>Winner</TableHeadCell>
-            <TableHeadCell>Loser</TableHeadCell>
-            <TableHeadCell>Date</TableHeadCell>
-            <TableHeadCell>Arena</TableHeadCell>
-          </tr>
-        </TableHead>
-        <TableBody>
-          {#each games as game}
-            <TableBodyRow color={game.winner === id ? 'green' : 'red'}>
-              <TableBodyCell>{game.winnername} ({game.winnerscore})</TableBodyCell>
-              <TableBodyCell>{game.losername} ({game.loserscore})</TableBodyCell>
-              <TableBodyCell>{formatDate(game.gametime)}</TableBodyCell>
-              <TableBodyCell>{game.arenaname}</TableBodyCell>
-            </TableBodyRow>
-          {/each}
-        </TableBody>
-      </Table>
+      <MatchList
+        items={games}
+        subjectId2={id}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={async (p: number) => { currentPage = p; await fetchGames(currentRegion, currentPage, false); }}
+        emptyText="No matches in this region."
+      />
       {:else}
       <div class="rounded-md border border-amber-300 bg-amber-50 p-3 text-amber-900 dark:border-amber-900/50 dark:bg-amber-950 dark:text-amber-100">
         No matches in this region.
       </div>
       {/if}
-      <div class="mt-4 flex justify-center">
-        <div class="flex items-center gap-2">
-          <Button color="light" aria-label="Previous page" title="Previous" on:click={async () => { if (currentPage > 1) { currentPage -= 1; await fetchGames(currentRegion, currentPage); } }} disabled={currentPage <= 1}>
-            <ChevronLeftOutline class="h-5 w-5" />
-          </Button>
-          <span class="text-sm">{currentPage} / {totalPages}</span>
-          <Button color="light" aria-label="Next page" title="Next" on:click={async () => { if (currentPage < totalPages) { currentPage += 1; await fetchGames(currentRegion, currentPage); } }} disabled={currentPage >= totalPages}>
-            <ChevronRightOutline class="h-5 w-5" />
-          </Button>
-        </div>
-      </div>
+      <!-- Pagination moved inside DataTable -->
     </div>
     <div class="flex flex-col gap-4 lg:col-span-4">
       <!-- Sidebar placeholders for future features -->

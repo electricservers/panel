@@ -2,7 +2,7 @@ import type { RequestHandler } from './$types';
 import prismaArg from '$lib/prisma/prismaArg';
 import prismaBr from '$lib/prisma/prismaBr';
 import { error, json } from '@sveltejs/kit';
-import type { mgemod_stats, Prisma } from '@prisma-arg/client';
+import type { Prisma } from '@prisma-arg/client';
 
 export const GET: RequestHandler = async (event) => {
   const query = event.url.searchParams;
@@ -10,6 +10,7 @@ export const GET: RequestHandler = async (event) => {
   const skip = Number(query.get('skip')) || 0;
   const sortKey = (query.get('sortKey') ?? 'rating') as 'rating' | 'wins' | 'losses' | 'name';
   const sortDir = (query.get('sortDir') ?? 'desc') as 'asc' | 'desc';
+  const includeRankPosition = query.has('withRankPosition');
   const orderBy: Prisma.mgemod_statsOrderByWithRelationInput[] = [];
   switch (sortKey) {
     case 'name':
@@ -32,13 +33,19 @@ export const GET: RequestHandler = async (event) => {
     skip,
     where: query.has('steamid') ? { steamid: query.get('steamid')! } : {}
   } satisfies Prisma.mgemod_statsFindManyArgs;
-  let ranking: mgemod_stats[];
+  let ranking: any[];
   let total = 0;
+  let position: number | undefined = undefined;
   switch (query.get('db')) {
     case 'ar':
       ranking = await prismaArg.mgemod_stats.findMany(statsQuery);
       if (query.has('withTotal')) {
         total = await prismaArg.mgemod_stats.count({ where: statsQuery.where });
+      }
+      if (includeRankPosition && query.has('steamid') && ranking.length > 0) {
+        const player = ranking[0];
+        const higher = await prismaArg.mgemod_stats.count({ where: { rating: { gt: player.rating ?? 0 } } });
+        position = higher + 1;
       }
       break;
     case 'br':
@@ -46,12 +53,20 @@ export const GET: RequestHandler = async (event) => {
       if (query.has('withTotal')) {
         total = await prismaBr.mgemod_stats.count({ where: statsQuery.where });
       }
+      if (includeRankPosition && query.has('steamid') && ranking.length > 0) {
+        const player = ranking[0];
+        const higher = await prismaBr.mgemod_stats.count({ where: { rating: { gt: player.rating ?? 0 } } });
+        position = higher + 1;
+      }
       break;
     default:
       return error(400, "wrong db supplied (only 'ar' or 'br' accepted)");
   }
-  if (query.has('withTotal')) {
-    return json({ items: ranking, total });
+  if (query.has('withTotal') || includeRankPosition) {
+    const payload: any = { items: ranking } as { items: any[]; total?: number; position?: number | null };
+    if (query.has('withTotal')) payload.total = total;
+    if (includeRankPosition) payload.position = position ?? null;
+    return json(payload);
   }
   return json(ranking);
 };
