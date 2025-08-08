@@ -31,7 +31,7 @@
   const existsInOther = $derived(otherRegion === 'ar' ? existsInAr : existsInBr);
 
   // Pagination
-  const pageSize = 5;
+  let pageSize = $state(5);
   let currentPage = $state(1);
   let totalItems = $state(0);
   const totalPages = $derived(Math.max(1, Math.ceil(totalItems / pageSize)));
@@ -140,6 +140,13 @@
     fetchGames(currentRegion, 1, true);
   });
 
+  // Re-fetch on page size change
+  $effect(() => {
+    pageSize;
+    currentPage = 1;
+    fetchGames(currentRegion, 1, true);
+  });
+
   // Re-fetch when navigating between different profile ids
   $effect(() => {
     data.id;
@@ -235,7 +242,7 @@
   <div class="grid grid-cols-1 gap-4 lg:grid-cols-12">
     <div class="lg:col-span-8">
       <!-- Filters -->
-      <div class="mb-3 flex flex-wrap items-center gap-2">
+      <div class="mb-3 flex flex-wrap items-center gap-3">
         <div class="text-xs text-gray-500 dark:text-gray-400">Outcome:</div>
         <button class={`rounded-md px-2 py-1 text-sm ${outcome === 'all' ? 'bg-gray-200 text-gray-900 dark:bg-gray-800 dark:text-gray-100' : 'bg-transparent text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'}`} onclick={() => { outcome = 'all'; }}>
           All
@@ -246,6 +253,18 @@
         <button class={`rounded-md px-2 py-1 text-sm ${outcome === 'loss' ? 'bg-gray-200 text-gray-900 dark:bg-gray-800 dark:text-gray-100' : 'bg-transparent text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'}`} onclick={() => { outcome = 'loss'; }}>
           Losses
         </button>
+
+        <div class="ml-auto flex items-center gap-2">
+          <div class="text-xs text-gray-500 dark:text-gray-400">Per page:</div>
+          <select class="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+                  value={String(pageSize)}
+                  onchange={(e) => { const v = Number((e.target as HTMLSelectElement).value); pageSize = v; }}>
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="15">15</option>
+            <option value="25">25</option>
+          </select>
+        </div>
       </div>
 
       <!-- Matches list -->
