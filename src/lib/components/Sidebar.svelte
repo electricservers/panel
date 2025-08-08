@@ -3,6 +3,7 @@
   import { page } from '$app/stores';
   import { Sidebar, SidebarDropdownWrapper, SidebarGroup, SidebarItem, SidebarWrapper } from 'flowbite-svelte';
   import { AngleDownOutline, AngleUpOutline, ChartOutline, UsersGroupOutline } from 'flowbite-svelte-icons';
+  import TrophyOutline from '$lib/components/icons/TrophyOutline.svelte';
   import { steamStore } from '$lib/stores/steamStore';
 
   // Types
@@ -39,8 +40,8 @@
 
   // Navigation items
   const baseMgeChildren: NavItem[] = [
-    { name: 'Leaderboard', href: '/mge/ranking', icon: ChartOutline },
-    { name: 'Games', href: '/mge/games', icon: ChartOutline },
+    { name: 'Leaderboard', href: '/mge/ranking', icon: TrophyOutline },
+    { name: 'Games', href: '/mge/games', icon: ChartOutline }
   ];
 
   const whoisItem: NavItem = {
@@ -59,7 +60,7 @@
           {
             name: 'My stats',
             href: `/mge/games/${$steamStore.steamid}`,
-            icon: ChartOutline
+            icon: UsersGroupOutline
           }
         ]
       : baseMgeChildren
@@ -89,7 +90,11 @@
                 <item.icon class={styles.icon} />
               {/snippet}
               {#each item.children as child}
-                <SidebarItem label={child.name} href={child.href} spanClass="ml-12" class={styles.item} active={activeMainSidebar === child.href} />
+                <SidebarItem label={child.name} href={child.href} spanClass="ml-3" class={`${styles.item} pl-9`} active={activeMainSidebar === child.href}>
+                  {#snippet icon()}
+                    <child.icon class={styles.icon} />
+                  {/snippet}
+                </SidebarItem>
               {/each}
             </SidebarDropdownWrapper>
           {:else}
