@@ -3,20 +3,21 @@
 
   export interface Props {
     game: MgeDuel;
-    subjectId2: string;
+    subjectId2?: string;
     to64: (id?: string | null) => string | null;
     formatDate: (unixEpoch: string | null) => string;
   }
 
   let { game, subjectId2, to64, formatDate }: Props = $props();
 
-  const win = $derived(game.winner === subjectId2);
-  const isPlayerLeft = $derived(game.winner === subjectId2);
-  const isPlayerRight = $derived(game.loser === subjectId2);
+  const hasSubject = $derived(Boolean(subjectId2));
+  const win: boolean | null = $derived(hasSubject ? game.winner === subjectId2 : null);
+  const isPlayerLeft = $derived(hasSubject && game.winner === subjectId2);
+  const isPlayerRight = $derived(hasSubject && game.loser === subjectId2);
 </script>
 
-<div class={`group relative overflow-hidden rounded-xl border border-gray-200 p-4 shadow-sm transition-colors hover:bg-white/70 dark:border-gray-800 dark:hover:bg-gray-800 ${win ? 'bg-emerald-100/60 dark:bg-emerald-500/10' : 'bg-rose-100/60 dark:bg-rose-500/10'}`}>
-  <div class="pointer-events-none absolute inset-y-0 left-0 w-1" class:bg-emerald-300={win} class:bg-rose-300={!win} aria-hidden="true"></div>
+<div class={`group relative overflow-hidden rounded-xl border border-gray-200 p-4 shadow-sm transition-colors hover:bg-white/70 dark:border-gray-800 dark:hover:bg-gray-800 ${win === true ? 'bg-emerald-100/60 dark:bg-emerald-500/10' : win === false ? 'bg-rose-100/60 dark:bg-rose-500/10' : 'bg-gray-50 dark:bg-gray-900/30'}`}>
+  <div class="pointer-events-none absolute inset-y-0 left-0 w-1" class:bg-emerald-300={win === true} class:bg-rose-300={win === false} class:bg-gray-300={!hasSubject} aria-hidden="true"></div>
 
   <div class="grid grid-cols-[1fr_auto_1fr] grid-rows-[auto_auto] items-center gap-x-3 gap-y-2 md:gap-x-6">
     <!-- Left name (winner) -->
@@ -52,7 +53,9 @@
     <div class="col-start-1 col-span-3 row-start-2 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500 md:text-sm dark:text-gray-400">
       <span class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-gray-700 dark:bg-gray-800 dark:text-gray-300">{game.arenaname}</span>
       <div class="inline-flex items-center gap-2">
-        <span class="rounded-full bg-gray-100 px-2 py-0.5 text-gray-700 dark:bg-gray-800 dark:text-gray-300">{win ? 'Win' : 'Loss'}</span>
+        {#if hasSubject}
+          <span class="rounded-full bg-gray-100 px-2 py-0.5 text-gray-700 dark:bg-gray-800 dark:text-gray-300">{win ? 'Win' : 'Loss'}</span>
+        {/if}
         <span>{formatDate(game.gametime)}</span>
       </div>
     </div>

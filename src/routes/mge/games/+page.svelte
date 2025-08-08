@@ -1,127 +1,170 @@
 <script lang="ts">
-  import type { PageData } from './$types';
-  import { steamStore } from '$lib/stores/steamStore';
   import Title from '$lib/components/Title.svelte';
-  import { Button, P, Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell } from 'flowbite-svelte';
-  import Card from '../../utils/widgets/Card.svelte';
-
-  import { ID } from '@node-steam/id';
-  import { ChevronLeftOutline, ChevronRightOutline } from 'flowbite-svelte-icons';
+  import MatchList from '$lib/components/mge/MatchList.svelte';
   import type { MgeDuel } from '$lib/mge/mgeduel';
   import { regionStore, type Region } from '$lib/stores/regionStore';
-
-  interface Props {
-    data: PageData;
-  }
-
+  import { onMount } from 'svelte';
+  import { ID } from '@node-steam/id';
+  
   let currentRegion: Region = $state('ar');
-  let { data }: Props = $props();
   let loading = $state(true);
   let games = $state<MgeDuel[]>([]);
-  let id = $state('');
-  const pageSize = 25;
-  let currentPage = $state(1);
   let totalItems = $state(0);
+  let pageSize = $state(25);
+  let currentPage = $state(1);
   const totalPages = $derived(Math.max(1, Math.ceil(totalItems / pageSize)));
 
-  const goToPage = async (p: number) => {
-    const clamped = Math.max(1, Math.min(totalPages, p));
-    currentPage = clamped;
-    const start = (clamped - 1) * pageSize;
-    games = await fetchData(currentRegion, start, pageSize);
-  };
+  // Filters
+  let search = $state(''); // name or steamid
+  let arena = $state('');
+  let arenas = $state<string[]>([]);
+  let outcome: 'all' | 'win' | 'loss' = $state('all');
+  let dateFrom = $state<string>(''); // yyyy-mm-dd
+  let dateTo = $state<string>('');
 
-  const fetchData = async (flag: Region, skip = 0, take = pageSize, withTotal = false) => {
-    const params = new URLSearchParams({ db: String(flag), skip: String(skip), take: String(take) });
+  // Outcome applies relative to searched subject if an id or name is provided
+  async function applyFilters() {
+    currentPage = 1;
+    await fetchGames(currentRegion, 1, true);
+  }
+
+  function toSteam2IfIdLike(value: string): string | undefined {
+    const v = value.trim();
+    if (!v) return undefined;
+    const looksLike64 = /^\d{17}$/.test(v);
+    const looksLike2 = /^STEAM_\d+:\d+:\d+$/.test(v);
+    if (!looksLike64 && !looksLike2) return undefined;
+    try {
+      return new ID(v).getSteamID2();
+    } catch {
+      return undefined;
+    }
+  }
+
+  function toUnixStart(dateStr: string): string | undefined {
+    if (!dateStr) return undefined;
+    const d = new Date(dateStr + 'T00:00:00Z');
+    return String(Math.floor(d.getTime() / 1000));
+  }
+  function toUnixEnd(dateStr: string): string | undefined {
+    if (!dateStr) return undefined;
+    const d = new Date(dateStr + 'T23:59:59Z');
+    return String(Math.floor(d.getTime() / 1000));
+  }
+
+  async function fetchArenas(db: Region) {
+    try {
+      const res = await fetch(`/api/mge/games/arenas?db=${db}`);
+      if (res.ok) {
+        arenas = await res.json();
+      }
+    } catch {}
+  }
+
+  async function fetchGames(db: Region, page = 1, withTotal = false) {
+    const skip = (page - 1) * pageSize;
+    const params = new URLSearchParams({ db: String(db), skip: String(skip), take: String(pageSize) });
+    const asSteam2 = toSteam2IfIdLike(search);
+    if (asSteam2) {
+      params.set('steamid', asSteam2);
+    } else if (search.trim()) {
+      params.set('q', search.trim());
+    }
+    if (arena) params.set('arena', arena);
+    const from = toUnixStart(dateFrom);
+    const to = toUnixEnd(dateTo);
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
+    if (outcome !== 'all') params.set('outcome', outcome);
     if (withTotal) params.set('withTotal', '1');
     const res = await fetch(`/api/mge/games?${params.toString()}`);
     const payload = await res.json();
-    const items: MgeDuel[] = Array.isArray(payload) ? payload : payload.items;
+    games = Array.isArray(payload) ? payload : payload.items;
     totalItems = Array.isArray(payload) ? totalItems : (payload.total ?? totalItems);
-    return items;
-  };
-
-  const resetAndLoad = async (flag: Region) => {
-    loading = true;
-    games = [];
-    currentPage = 1;
-    const first = await fetchData(flag, 0, pageSize, true);
-    games = first;
-    loading = false;
-  };
-
-  $effect(() => {
-    const unsubscribe = steamStore.subscribe((value) => {
-      if (value !== undefined) {
-        loading = false;
-      }
-    });
-    const unreg = regionStore.subscribe((r) => {
-      currentRegion = r;
-      resetAndLoad(r);
-    });
-    // initial load uses current region value
-    resetAndLoad(currentRegion);
-    return () => { unsubscribe(); unreg(); };
-  });
-
-  // Region is controlled globally via navbar; no local dropdown
-
-  function formatDate(unixEpoch: string | null): string {
-    const date = new Date(Number(unixEpoch) * 1000); // Convert seconds to milliseconds
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-    const month = months[date.getMonth()];
-    const day = date.getDate().toString().padStart(2, '0');
-    const year = date.getFullYear();
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    const seconds = date.getSeconds().toString().padStart(2, '0');
-
-    return `${month} ${day}, ${year} ${hours}:${minutes}:${seconds}`;
   }
 
-  $effect(() => {});
+  async function resetAndLoad(db: Region) {
+    loading = true;
+    currentPage = 1;
+    await Promise.all([fetchArenas(db), fetchGames(db, 1, true)]);
+    loading = false;
+  }
+
+  onMount(() => {
+    const unreg = regionStore.subscribe((r) => {
+      if (currentRegion !== r) {
+        currentRegion = r;
+        resetAndLoad(r);
+      }
+    });
+    // initial load
+    resetAndLoad(currentRegion);
+    return () => { unreg(); };
+  });
+
+  // No auto-fetch on filter or page size changes; use Search button or pagination
 </script>
 
-<div class="h-[90vh] p-4">
+<div class="p-4">
   <Title>Latest games</Title>
-  <!-- Region is selected globally in the navbar -->
-  <div class="flex flex-col">
-    <div class="h-screen">
-      <div>
-        <Table hoverable={true}>
-          <TableHead defaultRow={false}>
-            <tr>
-              <TableHeadCell>Winner</TableHeadCell>
-              <TableHeadCell>Loser</TableHeadCell>
-              <TableHeadCell>Date</TableHeadCell>
-              <TableHeadCell>Arena</TableHeadCell>
-            </tr>
-          </TableHead>
-          <TableBody>
-            {#each games as game}
-              <TableBodyRow>
-                <TableBodyCell>{game.winnername} ({game.winnerscore})</TableBodyCell>
-                <TableBodyCell>{game.losername} ({game.loserscore})</TableBodyCell>
-                <TableBodyCell>{formatDate(game.gametime)}</TableBodyCell>
-                <TableBodyCell>{game.arenaname}</TableBodyCell>
-              </TableBodyRow>
-            {/each}
-          </TableBody>
-        </Table>
-          <div class="mt-4 flex justify-center">
-            <div class="flex items-center gap-2">
-              <Button color="light" aria-label="Previous page" title="Previous" on:click={() => goToPage(currentPage - 1)} disabled={currentPage <= 1}>
-                <ChevronLeftOutline class="h-5 w-5" />
-              </Button>
-              <span class="text-sm">{currentPage} / {totalPages}</span>
-              <Button color="light" aria-label="Next page" title="Next" on:click={() => goToPage(currentPage + 1)} disabled={currentPage >= totalPages}>
-                <ChevronRightOutline class="h-5 w-5" />
-              </Button>
-            </div>
-          </div>
+
+  <!-- Filters -->
+  <div class="mt-3 flex flex-wrap items-center gap-3">
+    <input class="w-64 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+           placeholder="Search name or SteamID"
+           value={search}
+           oninput={(e) => search = (e.target as HTMLInputElement).value} />
+
+    <select class="rounded-md border border-gray-200 bg-white px-2 py-2 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+            value={arena}
+            onchange={(e) => arena = (e.target as HTMLSelectElement).value}>
+      <option value="">All arenas</option>
+      {#each arenas as a}
+        <option value={a}>{a}</option>
+      {/each}
+    </select>
+
+    <div class="flex items-center gap-2 text-sm">
+      <label class="text-gray-500 dark:text-gray-400" for="fromDate">From</label>
+      <input id="fromDate" type="date" class="rounded-md border border-gray-200 bg-white px-2 py-1 text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+             value={dateFrom}
+             onchange={(e) => dateFrom = (e.target as HTMLInputElement).value} />
+      <label class="text-gray-500 dark:text-gray-400" for="toDate">To</label>
+      <input id="toDate" type="date" class="rounded-md border border-gray-200 bg-white px-2 py-1 text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+             value={dateTo}
+             onchange={(e) => dateTo = (e.target as HTMLInputElement).value} />
+    </div>
+
+    <div class="ml-auto flex items-center gap-2 text-sm">
+      <span class="rounded-md px-2 py-1">Outcome:</span>
+      <button class={`rounded-md px-2 py-1 ${outcome === 'all' ? 'bg-gray-200 text-gray-900 dark:bg-gray-800 dark:text-gray-100' : 'bg-transparent text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'}`}
+              onclick={() => outcome = 'all'}>All</button>
+      <button class={`rounded-md px-2 py-1 ${outcome === 'win' ? 'bg-gray-200 text-gray-900 dark:bg-gray-800 dark:text-gray-100' : 'bg-transparent text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'}`}
+              onclick={() => outcome = 'win'}>Wins</button>
+      <button class={`rounded-md px-2 py-1 ${outcome === 'loss' ? 'bg-gray-200 text-gray-900 dark:bg-gray-800 dark:text-gray-100' : 'bg-transparent text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'}`}
+              onclick={() => outcome = 'loss'}>Losses</button>
+
+      <div class="ml-4 flex items-center gap-2">
+        <div class="text-xs text-gray-500 dark:text-gray-400">Per page:</div>
+        <select class="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+                value={String(pageSize)}
+                onchange={(e) => { const v = Number((e.target as HTMLSelectElement).value); pageSize = v; }}>
+          <option value="10">10</option>
+          <option value="25">25</option>
+          <option value="50">50</option>
+        </select>
+        <button class="rounded-md bg-blue-600 px-3 py-1 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+                onclick={() => applyFilters()}>Search</button>
       </div>
     </div>
+  </div>
+
+  <!-- Matches list -->
+  <div class="mt-4">
+    <MatchList items={games}
+               currentPage={currentPage}
+               totalPages={totalPages}
+               onPageChange={async (p: number) => { currentPage = p; await fetchGames(currentRegion, currentPage, false); }}
+               emptyText="No matches found." />
   </div>
 </div>

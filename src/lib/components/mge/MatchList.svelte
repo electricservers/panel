@@ -7,7 +7,7 @@
 
   interface Props {
     items: MgeDuel[];
-    subjectId2: string; // Steam2 id of the profile owner, to determine W/L
+    subjectId2?: string; // Optional; when omitted, cards render neutral style
     loading?: boolean;
     emptyText?: string;
     currentPage?: number;

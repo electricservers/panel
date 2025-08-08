@@ -43,16 +43,16 @@
 
 <section class="relative overflow-hidden rounded-lg bg-gradient-to-br from-slate-800 to-slate-900 p-8 text-white">
   <div class="relative z-10 max-w-3xl">
-    <h1 class="text-3xl font-extrabold tracking-tight md:text-4xl">Your TF2 MGE stats, at a glance</h1>
-    <p class="mt-2 text-slate-300">Browse your matches, arenas and rivals across regions. Placeholders shown until data is wired.</p>
+    <h1 class="text-3xl font-extrabold tracking-tight md:text-4xl">MGE Stats</h1>
 
     <div class="mt-6 flex flex-wrap gap-3">
-      <a href="/api/auth/login">
-        <Button color="blue">Sign in with Steam</Button>
-      </a>
       {#if $steamStore}
         <a href={`/mge/games/${$steamStore.steamid}`}>
           <Button>View my profile</Button>
+        </a>
+      {:else}
+        <a href="/api/auth/login">
+          <Button color="blue">Sign in with Steam</Button>
         </a>
       {/if}
     </div>
