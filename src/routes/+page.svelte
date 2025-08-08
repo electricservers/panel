@@ -1,7 +1,7 @@
 <script lang="ts">
   import { steamStore } from '$lib/stores/steamStore';
   import Hero from '$lib/components/home/Hero.svelte';
-  import QuickStatsPlaceholder from '$lib/components/home/QuickStatsPlaceholder.svelte';
+  import QuickStats from '$lib/components/home/QuickStats.svelte';
   import LeaderboardsPreviewPlaceholder from '$lib/components/home/LeaderboardsPreviewPlaceholder.svelte';
   import RecentDuelsPlaceholder from '$lib/components/home/RecentDuelsPlaceholder.svelte';
   import TrendingArenasPlaceholder from '$lib/components/home/TrendingArenasPlaceholder.svelte';
@@ -17,7 +17,7 @@
     </div>
 
     <div class="space-y-4 lg:col-span-4">
-      <QuickStatsPlaceholder />
+      <QuickStats />
       <LeaderboardsPreviewPlaceholder />
     </div>
   </div>
