@@ -2,7 +2,7 @@
   import type { PageData } from './$types';
   import { steamStore } from '$lib/stores/steamStore';
   import { Avatar } from 'flowbite-svelte';
-  import MostPlayedArenasPlaceholder from '$lib/components/mge/MostPlayedArenasPlaceholder.svelte';
+  import MostPlayedArenas from '$lib/components/mge/MostPlayedArenas.svelte';
   import ActivityCard from '$lib/components/mge/ActivityCard.svelte';
   import TopFoesPlaceholder from '$lib/components/mge/TopFoesPlaceholder.svelte';
 
@@ -307,8 +307,8 @@
       <!-- Pagination moved inside DataTable -->
     </div>
     <div class="flex flex-col gap-4 lg:col-span-4">
-      <!-- Sidebar placeholders for future features -->
-      <MostPlayedArenasPlaceholder />
+      <!-- Sidebar -->
+      <MostPlayedArenas steamid={id} />
       <ActivityCard gametimes={activityTimes} loading={activityLoading} days={activityDays} onDaysChange={async (d: number) => { activityDays = d; await fetchActivity(currentRegion); }} />
       <TopFoesPlaceholder />
     </div>
