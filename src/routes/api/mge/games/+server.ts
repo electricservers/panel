@@ -58,12 +58,26 @@ export const GET: RequestHandler = async (event) => {
     });
   }
 
-  const playerMap = Object.fromEntries(players.map((p) => [p.steamid, p.name]));
+  // Attempt to fix common mojibake (UTF-8 bytes interpreted as latin1) without
+  // modifying the database. If the string looks suspicious, decode from latin1
+  // to UTF-8; otherwise, return as-is.
+  const maybeFixMojibake = (value: string | null | undefined): string | null => {
+    if (!value) return value ?? null;
+    const needsFix = /[ÂÃâ€œ¢™žŸ]/.test(value);
+    if (!needsFix) return value;
+    try {
+      return Buffer.from(value, 'latin1').toString('utf8');
+    } catch {
+      return value;
+    }
+  };
+
+  const playerMap = Object.fromEntries(players.map((p) => [p.steamid, maybeFixMojibake(p.name)]));
 
   const games: MgeDuel[] = gamesRaw.map((game) => ({
     ...game,
-    winnername: game.winner ? playerMap[game.winner] || `Unknown (${game.winner})` : 'Unknown',
-    losername: game.loser ? playerMap[game.loser] || `Unknown (${game.loser})` : 'Unknown',
+    winnername: game.winner ? (playerMap[game.winner] ?? maybeFixMojibake(`Unknown (${game.winner})`)) || 'Unknown' : 'Unknown',
+    losername: game.loser ? (playerMap[game.loser] ?? maybeFixMojibake(`Unknown (${game.loser})`)) || 'Unknown' : 'Unknown',
   }));
 
   if (query.has('withTotal')) {

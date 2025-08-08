@@ -2,7 +2,9 @@
   import type { PageData } from './$types';
   import { steamStore } from '$lib/stores/steamStore';
   import { Avatar, Button, Dropdown, DropdownItem, Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell } from 'flowbite-svelte';
-  import Card from '../../../utils/widgets/Card.svelte';
+  import MostPlayedArenasPlaceholder from '$lib/components/mge/MostPlayedArenasPlaceholder.svelte';
+  import ActivityPlaceholder from '$lib/components/mge/ActivityPlaceholder.svelte';
+  import TopFoesPlaceholder from '$lib/components/mge/TopFoesPlaceholder.svelte';
 
   import { ID } from '@node-steam/id';
   import { ChevronDownOutline, ChevronLeftOutline, ChevronRightOutline } from 'flowbite-svelte-icons';
@@ -171,44 +173,46 @@
   </div>
 </div>
 <div class="h-[90vh] p-4">
-  <div class="flex flex-col">
-    <div class="h-screen">
-      <div>
-        <!-- Removed heavy cards; stats are now shown in the compact strip above -->
-        <div>
-          <Table hoverable={true}>
-            <TableHead defaultRow={false}>
-              <tr>
-                <TableHeadCell>Winner</TableHeadCell>
-                <TableHeadCell>Loser</TableHeadCell>
-                <TableHeadCell>Date</TableHeadCell>
-                <TableHeadCell>Arena</TableHeadCell>
-              </tr>
-            </TableHead>
-            <TableBody>
-              {#each games as game}
-                <TableBodyRow color={game.winner === id ? 'green' : 'red'}>
-                  <TableBodyCell>{game.winnername} ({game.winnerscore})</TableBodyCell>
-                  <TableBodyCell>{game.losername} ({game.loserscore})</TableBodyCell>
-                  <TableBodyCell>{formatDate(game.gametime)}</TableBodyCell>
-                  <TableBodyCell>{game.arenaname}</TableBodyCell>
-                </TableBodyRow>
-              {/each}
-            </TableBody>
-          </Table>
-          <div class="mt-4 flex justify-center">
-            <div class="flex items-center gap-2">
-              <Button color="light" aria-label="Previous page" title="Previous" on:click={async () => { if (currentPage > 1) { currentPage -= 1; await fetchGames(server.flag, currentPage); } }} disabled={currentPage <= 1}>
-                <ChevronLeftOutline class="h-5 w-5" />
-              </Button>
-              <span class="text-sm">{currentPage} / {totalPages}</span>
-              <Button color="light" aria-label="Next page" title="Next" on:click={async () => { if (currentPage < totalPages) { currentPage += 1; await fetchGames(server.flag, currentPage); } }} disabled={currentPage >= totalPages}>
-                <ChevronRightOutline class="h-5 w-5" />
-              </Button>
-            </div>
-          </div>
+  <div class="grid grid-cols-1 gap-4 lg:grid-cols-12">
+    <div class="lg:col-span-8">
+      <!-- Matches table -->
+      <Table hoverable={true}>
+        <TableHead defaultRow={false}>
+          <tr>
+            <TableHeadCell>Winner</TableHeadCell>
+            <TableHeadCell>Loser</TableHeadCell>
+            <TableHeadCell>Date</TableHeadCell>
+            <TableHeadCell>Arena</TableHeadCell>
+          </tr>
+        </TableHead>
+        <TableBody>
+          {#each games as game}
+            <TableBodyRow color={game.winner === id ? 'green' : 'red'}>
+              <TableBodyCell>{game.winnername} ({game.winnerscore})</TableBodyCell>
+              <TableBodyCell>{game.losername} ({game.loserscore})</TableBodyCell>
+              <TableBodyCell>{formatDate(game.gametime)}</TableBodyCell>
+              <TableBodyCell>{game.arenaname}</TableBodyCell>
+            </TableBodyRow>
+          {/each}
+        </TableBody>
+      </Table>
+      <div class="mt-4 flex justify-center">
+        <div class="flex items-center gap-2">
+          <Button color="light" aria-label="Previous page" title="Previous" on:click={async () => { if (currentPage > 1) { currentPage -= 1; await fetchGames(server.flag, currentPage); } }} disabled={currentPage <= 1}>
+            <ChevronLeftOutline class="h-5 w-5" />
+          </Button>
+          <span class="text-sm">{currentPage} / {totalPages}</span>
+          <Button color="light" aria-label="Next page" title="Next" on:click={async () => { if (currentPage < totalPages) { currentPage += 1; await fetchGames(server.flag, currentPage); } }} disabled={currentPage >= totalPages}>
+            <ChevronRightOutline class="h-5 w-5" />
+          </Button>
         </div>
       </div>
+    </div>
+    <div class="flex flex-col gap-4 lg:col-span-4">
+      <!-- Sidebar placeholders for future features -->
+      <MostPlayedArenasPlaceholder />
+      <ActivityPlaceholder />
+      <TopFoesPlaceholder />
     </div>
   </div>
 </div>
