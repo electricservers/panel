@@ -1,10 +1,13 @@
 <script lang="ts">
   import { ID } from '@node-steam/id';
   import type { mgemod_stats } from '@prisma-arg/client';
-  import { A, P } from 'flowbite-svelte';
-  import DataTable, { type Column, type SortDirection } from '$lib/components/DataTable.svelte';
+  import { A, Button, P } from 'flowbite-svelte';
+  import { ChevronLeftOutline, ChevronRightOutline } from 'flowbite-svelte-icons';
+  // Removed table view
+  type SortDirection = 'asc' | 'desc';
   import Title from '$lib/components/Title.svelte';
   import { regionStore, type Region } from '$lib/stores/regionStore';
+  import LeaderboardCard from '$lib/components/mge/LeaderboardCard.svelte';
 
   let currentRegion: Region = $state('ar');
   let loading = $state(false);
@@ -21,8 +24,12 @@
     winrate: string;
     wlValue: number;
     winrateValue: number;
+    position?: number | null;
   }
   let ranking = $state<RankRow[]>([]);
+  let avatarMap = $state<Record<string, string>>({}); // 64-bit id -> avatarfull
+  let search = $state(''); // supports name or SteamID64/Steam2
+  let pendingSearch = $state(''); // debounce buffer; only applied on explicit search
   const pageSize = 25;
   let currentPage = $state(1);
   let totalItems = $state(0);
@@ -33,11 +40,23 @@
     currentPage = clamped;
     const start = (clamped - 1) * pageSize;
     ranking = await fetchRankingData(currentRegion, start, pageSize);
+    await fetchAvatarsForCurrentPage();
   };
 
   type SortKey = 'name' | 'rating' | 'wins' | 'losses' | 'totalGames' | 'wlValue' | 'winrateValue';
   let sortKey: SortKey = $state('rating');
   let sortDir: 'asc' | 'desc' = $state('desc');
+  const sortKeyLabels: Record<SortKey, string> = {
+    name: 'Name',
+    rating: 'Rating',
+    wins: 'Wins',
+    losses: 'Losses',
+    totalGames: 'Total games',
+    wlValue: 'W/L',
+    winrateValue: 'Win%'
+  };
+  // Sorting is delegated to the API for both base and derived keys
+  const isClientSort = $derived(false);
 
   const setSort = (key: SortKey, dir?: SortDirection) => {
     if (dir) {
@@ -53,17 +72,15 @@
   };
 
   const fetchRankingData = async (db: Region = 'ar', skip = 0, take = pageSize, withTotal = false) => {
-    const params = new URLSearchParams({ db, skip: String(skip), take: String(take) });
-    // Map client sort keys to API-supported keys
-    if (sortKey === 'name' || sortKey === 'wins' || sortKey === 'losses' || sortKey === 'rating') {
-      params.set('sortKey', sortKey);
-      params.set('sortDir', sortDir);
-    } else {
-      // For derived fields, fallback to rating server-sort and keep client indicators only
-      params.set('sortKey', 'rating');
-      params.set('sortDir', 'desc');
-    }
+    const effectiveSkip = isClientSort ? 0 : skip;
+    const effectiveTake = isClientSort ? Math.max(pageSize * totalPages, 1000) : take; // overfetch for client sort
+    const params = new URLSearchParams({ db, skip: String(effectiveSkip), take: String(effectiveTake) });
+    if (search.trim()) params.set('q', search.trim());
+    // Always pass sort to API (supports rating, wins, losses, name, totalGames, wlValue, winrateValue)
+    params.set('sortKey', sortKey);
+    params.set('sortDir', sortDir);
     if (withTotal) params.set('withTotal', '1');
+    params.set('withPositions', '1');
     const rankResponse = await fetch(`/api/mge/rank?${params.toString()}`);
     const payload = await rankResponse.json();
     const rank: mgemod_stats[] = Array.isArray(payload) ? payload : payload.items;
@@ -86,6 +103,22 @@
       };
     });
 
+    // client-side sort for derived keys
+    if (isClientSort) {
+      const key = sortKey;
+      const dir = sortDir;
+      ranking.sort((a: any, b: any) => {
+        const av = a[key];
+        const bv = b[key];
+        const aNum = typeof av === 'number' ? av : Number(av ?? 0);
+        const bNum = typeof bv === 'number' ? bv : Number(bv ?? 0);
+        const cmp = aNum === bNum ? 0 : (aNum < bNum ? -1 : 1);
+        return dir === 'asc' ? cmp : -cmp;
+      });
+      // slice for current page
+      const start = (currentPage - 1) * pageSize;
+      ranking = ranking.slice(0); // keep full in state, we will page in cardItems instead
+    }
     return ranking;
   };
 
@@ -94,7 +127,14 @@
     ranking = [];
     currentPage = 1;
     const first = await fetchRankingData(db, 0, pageSize, true);
-    ranking = first;
+    if (isClientSort) {
+      // fetch all to sort client-side based on totalItems
+      const all = await fetchRankingData(db, 0, totalItems || pageSize * 10, false);
+      ranking = all;
+    } else {
+      ranking = first;
+    }
+    await fetchAvatarsForCurrentPage();
     loading = false;
   };
 
@@ -109,51 +149,183 @@
     resetAndLoad(currentRegion);
     return () => unreg();
   });
+  async function fetchAvatarsForCurrentPage() {
+    try {
+      // Convert current page steam2 IDs to 64-bit
+      const ids64: string[] = [];
+      for (const r of ranking) {
+        try { ids64.push(new ID(r.steamid).get64()); } catch {}
+      }
+      const unique = Array.from(new Set(ids64));
+      if (unique.length === 0) return;
+      const qs = new URLSearchParams({ steamids: unique.join(',') });
+      const res = await fetch(`/api/steam/profile?${qs.toString()}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const nextMap: Record<string, string> = { ...avatarMap };
+      for (const [sid, info] of Object.entries<any>(data)) {
+        if (info?.avatarfull) nextMap[sid] = info.avatarfull as string;
+      }
+      avatarMap = nextMap;
+    } catch {}
+  }
 
-  // Columns for the reusable DataTable
-  const columns: Column[] = [
-    { id: 'position', title: 'Position', sortable: true, sortKey: 'rating', defaultSortDir: 'desc', widthClass: 'w-[100px]' },
-    { id: 'name', title: 'Name', accessor: 'name', sortable: true, defaultSortDir: 'asc' },
-    { id: 'rating', title: 'Rating', accessor: 'rating', sortable: true, defaultSortDir: 'desc', widthClass: 'w-[120px] text-right', headerClass: 'text-right', cellClass: 'text-right' },
-    { id: 'wins', title: 'Wins', accessor: 'wins', sortable: true, defaultSortDir: 'desc', widthClass: 'w-[100px] text-right', headerClass: 'text-right', cellClass: 'text-right' },
-    { id: 'losses', title: 'Losses', accessor: 'losses', sortable: true, defaultSortDir: 'desc', widthClass: 'w-[100px] text-right', headerClass: 'text-right', cellClass: 'text-right' },
-    { id: 'totalGames', title: 'Total Games', accessor: 'totalGames', sortable: true, defaultSortDir: 'desc', widthClass: 'w-[130px] text-right', headerClass: 'text-right', cellClass: 'text-right' },
-    { id: 'wl', title: 'W/L Ratio', accessor: (row) => row.wl, sortable: true, sortKey: 'wlValue', defaultSortDir: 'desc', widthClass: 'w-[120px] text-right', headerClass: 'text-right', cellClass: 'text-right' },
-    { id: 'winrate', title: 'Winrate', accessor: (row) => row.winrate, sortable: true, sortKey: 'winrateValue', defaultSortDir: 'desc', widthClass: 'w-[120px] text-right', headerClass: 'text-right', cellClass: 'text-right' }
-  ];
+
+  // UI state
+  const cardItems: RankRow[] = $derived(ranking);
+  const rankBase = $derived((currentPage - 1) * pageSize);
+
+  // Deep link/highlight support: highlight a specific steam64 from query param ?id=...
+  let highlightId64 = $state<string | null>(null);
+  $effect.root(() => {
+    try {
+      const url = new URL(window.location.href);
+      const id = url.searchParams.get('id');
+      highlightId64 = id && /^\d{17}$/.test(id) ? id : null;
+    } catch {}
+  });
+
+  function isHighlighted(steamid2: string): boolean {
+    if (!highlightId64) return false;
+    try { return new ID(steamid2).get64() === highlightId64; } catch { return false; }
+  }
+
+  async function locateAndHighlight(idLike: string) {
+    // Accept name or steam id; if steam id, prioritize exact position via API
+    const trimmed = idLike.trim();
+    if (!trimmed) return;
+    // Try resolve to Steam2 and Steam64
+    let steam64: string | null = null;
+    let steam2: string | null = null;
+    try {
+      const id = new ID(trimmed);
+      steam2 = id.getSteamID2();
+      steam64 = id.get64();
+    } catch {
+      steam2 = null;
+      steam64 = null;
+    }
+
+    // If we have an id, fetch their rank position using API with withRankPosition
+    if (steam2) {
+      const params = new URLSearchParams({ db: currentRegion, steamid: steam2, withRankPosition: '1' });
+      const res = await fetch(`/api/mge/rank?${params.toString()}`);
+      if (res.ok) {
+        const payload = await res.json();
+        const pos: number | null = payload?.position ?? null;
+        if (pos && pos > 0) {
+          const page = Math.ceil(pos / pageSize);
+          highlightId64 = steam64;
+          await goToPage(page);
+          // Scroll into view after DOM updates
+          queueMicrotask(() => {
+            try {
+              const el = document.querySelector(`[data-steam64="${highlightId64}"]`);
+              el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } catch {}
+          });
+          return;
+        }
+      }
+    }
+
+    // Fallback: set name search and reload page 1
+    search = trimmed;
+    pendingSearch = trimmed;
+    await resetAndLoad(currentRegion);
+  }
 </script>
 
-<div class="h-[90vh] p-4">
-  <Title>MGE Stats</Title>
-  <!-- Region is selected in the navbar -->
+<div class="p-4">
+  <div class="flex items-end justify-between gap-2">
+    <div>
+      <Title>MGE Leaderboard</Title>
+      <div class="mt-1 text-sm text-gray-500 dark:text-gray-400">Region is selected in the navbar.</div>
+    </div>
+    <div class="flex flex-wrap items-center gap-2">
+      <!-- Sort controls for card view -->
+      <select class="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+              value={sortKey}
+              onchange={(e) => setSort((e.target as HTMLSelectElement).value as SortKey, sortDir)}>
+        <option value="rating">Rating</option>
+        <option value="wins">Wins</option>
+        <option value="losses">Losses</option>
+        <option value="totalGames">Games</option>
+        <option value="wlValue">W/L</option>
+        <option value="winrateValue">Win%</option>
+        <option value="name">Name</option>
+      </select>
+      <button class="rounded-md border border-gray-200 px-2 py-1 text-xs text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+              onclick={() => setSort(sortKey, sortDir === 'asc' ? 'desc' : 'asc')}>
+        {sortDir === 'asc' ? 'Asc' : 'Desc'}
+      </button>
+      <input class="w-64 rounded-md border border-gray-200 bg-white px-2 py-1 text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+             placeholder="Search name or SteamID"
+             value={pendingSearch}
+             oninput={(e) => pendingSearch = (e.target as HTMLInputElement).value}
+             onkeydown={(e) => { if (e.key === 'Enter') { search = pendingSearch; resetAndLoad(currentRegion); } }} />
+      <Button color="light" on:click={() => { search = pendingSearch; resetAndLoad(currentRegion); }}>Search</Button>
+    </div>
+  </div>
+
   {#if loading}
-    <P>Loading ranking...</P>
+    <div class="mt-4 text-sm text-gray-500">Loading ranking…</div>
+  {:else if ranking.length === 0}
+    <div class="mt-4 text-sm text-gray-500">No players found.</div>
   {:else}
-    <DataTable
-      columns={columns}
-      rows={ranking}
-      currentPage={currentPage}
-      totalPages={totalPages}
-      onPageChange={(p) => goToPage(p)}
-      sortKey={sortKey}
-      sortDir={sortDir}
-      onSortChange={(key, dir) => setSort(key as SortKey, dir)}
-      emptyText="No players found."
-    >
-      <svelte:fragment slot="cell" let:row let:index let:col let:value>
-        {#if col.id === 'position'}
-          #{(currentPage - 1) * pageSize + index + 1}
-        {:else if col.id === 'name'}
-          {@const steamid = new ID(row.steamid).get64()}
-          <A target="_blank" href={`https://steamcommunity.com/profiles/${steamid}`}>
-            {row.name}
-          </A>
-        {:else if col.id === 'winrate'}
-          {row.winrate}%
-        {:else}
-          {value}
-        {/if}
-      </svelte:fragment>
-    </DataTable>
+      <!-- Top pagination (card view) -->
+      {#if totalPages > 1}
+        <div class="mb-2 mt-3 flex justify-center">
+          <div class="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+            <button class="rounded px-2 py-1 hover:bg-gray-100 disabled:opacity-50 dark:hover:bg-gray-800" onclick={() => goToPage(currentPage - 1)} disabled={currentPage <= 1} aria-label="Previous page" title="Previous">
+              <ChevronLeftOutline class="h-4 w-4" />
+            </button>
+            <span>{currentPage}/{Math.max(1, totalPages)}</span>
+            <button class="rounded px-2 py-1 hover:bg-gray-100 disabled:opacity-50 dark:hover:bg-gray-800" onclick={() => goToPage(currentPage + 1)} disabled={currentPage >= totalPages} aria-label="Next page" title="Next">
+              <ChevronRightOutline class="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      {/if}
+
+      <!-- Sorting hint above list -->
+      <div class="-mt-1 mb-1 text-center text-xs text-gray-500 dark:text-gray-400">
+        Sorting by <span class="font-semibold">{sortKeyLabels[sortKey]}</span>
+        <span class="ml-1 rounded bg-gray-100 px-1 py-0.5 text-[10px] uppercase tracking-wide ring-1 ring-gray-200 dark:bg-gray-800 dark:ring-gray-700">{sortDir}</span>
+      </div>
+
+      <!-- Cards (vertical, centered) -->
+      <div class="mt-4 flex justify-center">
+        <div class="w-full max-w-3xl space-y-3">
+          {#each cardItems as r, idx}
+            <LeaderboardCard player={{
+              rank: r.position ?? (rankBase + idx + 1),
+              steamid: r.steamid,
+              name: r.name,
+              rating: r.rating,
+              wins: r.wins,
+              losses: r.losses,
+              totalGames: r.totalGames,
+              wl: r.wl,
+              winrate: r.winrate,
+              avatarUrl: (() => { try { return avatarMap[new ID(r.steamid).get64()] ?? null; } catch { return null; } })()
+            }} highlight={isHighlighted(r.steamid)} />
+          {/each}
+        </div>
+      </div>
+      <!-- Bottom pagination (card view) -->
+      {#if totalPages > 1}
+        <div class="mt-2 flex justify-center">
+          <div class="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+            <button class="rounded px-2 py-1 hover:bg-gray-100 disabled:opacity-50 dark:hover:bg-gray-800" onclick={() => goToPage(currentPage - 1)} disabled={currentPage <= 1} aria-label="Previous page" title="Previous">
+              <ChevronLeftOutline class="h-4 w-4" />
+            </button>
+            <span>{currentPage}/{Math.max(1, totalPages)}</span>
+            <button class="rounded px-2 py-1 hover:bg-gray-100 disabled:opacity-50 dark:hover:bg-gray-800" onclick={() => goToPage(currentPage + 1)} disabled={currentPage >= totalPages} aria-label="Next page" title="Next">
+              <ChevronRightOutline class="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      {/if}
   {/if}
 </div>
