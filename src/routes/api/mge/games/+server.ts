@@ -4,6 +4,7 @@ import prismaBr from '$lib/prisma/prismaBr';
 import type { mgemod_duels, Prisma } from '@prisma-arg/client';
 import { error, json, type RequestHandler } from '@sveltejs/kit';
 import { ID } from '@node-steam/id';
+import { canonicalizeArenaName } from '$lib/mge/arenaNames';
 
 export const GET: RequestHandler = async (event) => {
   const query = event.url.searchParams;
@@ -12,6 +13,7 @@ export const GET: RequestHandler = async (event) => {
   const steamid = query.get('steamid');
   const outcome = query.get('outcome'); // 'win' | 'loss'
   const arena = query.get('arena')?.trim() || undefined;
+  const arenaCanonical = query.get('arenaCanonical')?.trim(); // '1' to treat arena filter as canonical
   const q = query.get('q')?.trim() || undefined; // name or steamid (64 or 2)
   const from = query.get('from')?.trim() || undefined; // unix seconds string
   const to = query.get('to')?.trim() || undefined;
@@ -30,7 +32,32 @@ export const GET: RequestHandler = async (event) => {
   }
   // arena filter
   if (arena) {
-    where = { ...where, arenaname: arena };
+    if (arenaCanonical === '1') {
+      // Expand canonical to raw variants using distinct groupBy then filtering in-memory list of variants
+      // We cannot subquery easily with Prisma groupBy, so we will fetch distinct arenas first.
+      const db = query.get('db');
+      let rows: { arenaname: string | null }[] = [];
+      if (db === 'br') {
+        // @ts-expect-error Prisma groupBy typing in this environment requires extra args
+        rows = await prismaBr.mgemod_duels.groupBy({ by: ['arenaname'] });
+      } else {
+        // @ts-expect-error Prisma groupBy typing in this environment requires extra args
+        rows = await prismaArg.mgemod_duels.groupBy({ by: ['arenaname'] });
+      }
+      const wanted = canonicalizeArenaName(arena);
+      const variants = rows
+        .map((r) => r.arenaname)
+        .filter((v): v is string => Boolean(v))
+        .filter((v) => canonicalizeArenaName(v) === wanted);
+      if (variants.length > 0) {
+        where = { ...where, arenaname: { in: variants } };
+      } else {
+        // Fallback to canonicalized exact (no matches likely, but keeps behavior defined)
+        where = { ...where, arenaname: wanted };
+      }
+    } else {
+      where = { ...where, arenaname: arena };
+    }
   }
   // date range filter (gametime stored as seconds string)
   if (from || to) {
@@ -180,6 +207,9 @@ export const GET: RequestHandler = async (event) => {
     ...game,
     winnername: game.winner ? (playerMap[game.winner] ?? maybeFixMojibake(`Unknown (${game.winner})`)) || 'Unknown' : 'Unknown',
     losername: game.loser ? (playerMap[game.loser] ?? maybeFixMojibake(`Unknown (${game.loser})`)) || 'Unknown' : 'Unknown',
+    // add canonical arena for UI friendliness
+    arenaname: game.arenaname ?? null,
+    arenanameCanonical: canonicalizeArenaName(game.arenaname ?? '')
   }));
 
   if (query.has('withTotal')) {

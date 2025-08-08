@@ -18,6 +18,7 @@
   let search = $state(''); // name or steamid
   let arena = $state('');
   let arenas = $state<string[]>([]);
+  let arenaVariants: Record<string, string[]> = $state({});
   let outcome: 'all' | 'win' | 'loss' = $state('all');
   let dateFrom = $state<string>(''); // yyyy-mm-dd
   let dateTo = $state<string>('');
@@ -56,7 +57,9 @@
     try {
       const res = await fetch(`/api/mge/games/arenas?db=${db}`);
       if (res.ok) {
-        arenas = await res.json();
+        const payload = await res.json();
+        arenas = Array.isArray(payload) ? payload : (payload.items ?? []);
+        arenaVariants = payload?.variants ?? {};
       }
     } catch {}
   }
@@ -70,7 +73,11 @@
     } else if (search.trim()) {
       params.set('q', search.trim());
     }
-    if (arena) params.set('arena', arena);
+    if (arena) {
+      // Use canonical arena filter expansion on the server
+      params.set('arena', arena);
+      params.set('arenaCanonical', '1');
+    }
     const from = toUnixStart(dateFrom);
     const to = toUnixEnd(dateTo);
     if (from) params.set('from', from);

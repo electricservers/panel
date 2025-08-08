@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { MgeDuel } from '$lib/mge/mgeduel';
+  import { canonicalizeArenaName } from '$lib/mge/arenaNames';
 
   export interface Props {
     game: MgeDuel;
@@ -51,7 +52,7 @@
 
     <!-- Meta line -->
     <div class="col-start-1 col-span-3 row-start-2 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500 md:text-sm dark:text-gray-400">
-      <span class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-gray-700 dark:bg-gray-800 dark:text-gray-300">{game.arenaname}</span>
+      <span class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-gray-700 dark:bg-gray-800 dark:text-gray-300">{canonicalizeArenaName(game.arenaname)}</span>
       <div class="inline-flex items-center gap-2">
         {#if hasSubject}
           <span class="rounded-full bg-gray-100 px-2 py-0.5 text-gray-700 dark:bg-gray-800 dark:text-gray-300">{win ? 'Win' : 'Loss'}</span>

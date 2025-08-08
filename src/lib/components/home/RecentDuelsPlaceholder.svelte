@@ -86,7 +86,7 @@
             {:else}
               <span class="text-gray-300">{it.losername}</span>
             {/if}
-            <span class="ml-2 text-gray-500">on {it.arenaname}</span>
+            <span class="ml-2 text-gray-500">on {it.arenanameCanonical ?? it.arenaname}</span>
           </div>
           <span class="shrink-0 text-xs text-gray-500">{formatDate(it.gametime)}</span>
         </li>
