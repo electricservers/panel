@@ -22,6 +22,14 @@
   let games = $state<MgeDuel[]>([]);
   let id = $state(''); // Steam2 format used by DB queries
 
+  // Region existence flags sent from server
+  let existsInAr = $state(Boolean(data.existsInAr));
+  let existsInBr = $state(Boolean(data.existsInBr));
+  const existsInAny = $derived(existsInAr || existsInBr);
+  const existsInCurrent = $derived(currentRegion === 'ar' ? existsInAr : existsInBr);
+  const otherRegion = $derived<Region>(currentRegion === 'ar' ? 'br' : 'ar');
+  const existsInOther = $derived(otherRegion === 'ar' ? existsInAr : existsInBr);
+
   // Pagination
   const pageSize = 25;
   let currentPage = $state(1);
@@ -57,6 +65,22 @@
     const u = get(steamStore);
     if (u && u.steamid === String(data.id)) {
       avatarUrl = u.avatarfull || u.avatarmedium || u.avatar;
+    }
+
+    // Fallback: fetch avatar from Steam API for any profile when not the logged-in user
+    if (!avatarUrl) {
+      try {
+        const resp2 = await fetch(`/api/steam/profile?steamid=${encodeURIComponent(String(data.id))}`);
+        if (resp2.ok) {
+          const profile = await resp2.json();
+          avatarUrl = profile?.avatarfull || profile?.avatarmedium || profile?.avatar || undefined;
+          if (!playerName && profile?.personaname) {
+            playerName = profile.personaname;
+          }
+        }
+      } catch {
+        // ignore
+      }
     }
   };
 
@@ -122,8 +146,21 @@
     </div>
   </div>
   <div class="mt-3 flex flex-col gap-3">
+    {#if !existsInAny}
+      <div class="rounded-md border border-rose-300 bg-rose-50 p-3 text-rose-900 dark:border-rose-900/50 dark:bg-rose-950 dark:text-rose-100">
+        Player does not exist in any region.
+      </div>
+    {:else if !existsInCurrent && existsInOther}
+      <div class="rounded-md border border-amber-300 bg-amber-50 p-3 text-amber-900 dark:border-amber-900/50 dark:bg-amber-950 dark:text-amber-100">
+        No stats in {currentRegion === 'ar' ? 'Argentina' : 'Brasil'}. 
+        <button class="ml-1 underline" onclick={() => regionStore.set(otherRegion)}>
+          View in {otherRegion === 'ar' ? 'Argentina' : 'Brasil'}
+        </button>
+      </div>
+    {/if}
     <!-- Region is selected in the navbar -->
     <!-- Compact stat strip -->
+    {#if existsInCurrent}
     <div class="flex flex-wrap items-end justify-start gap-x-8 gap-y-2">
       <div>
         <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Matches</div>
@@ -147,12 +184,14 @@
         </div>
       </div>
     </div>
+    {/if}
   </div>
 </div>
 <div class="h-[90vh] p-4">
   <div class="grid grid-cols-1 gap-4 lg:grid-cols-12">
     <div class="lg:col-span-8">
       <!-- Matches table -->
+      {#if existsInCurrent}
       <Table hoverable={true}>
         <TableHead defaultRow={false}>
           <tr>
@@ -173,6 +212,11 @@
           {/each}
         </TableBody>
       </Table>
+      {:else}
+      <div class="rounded-md border border-amber-300 bg-amber-50 p-3 text-amber-900 dark:border-amber-900/50 dark:bg-amber-950 dark:text-amber-100">
+        No matches in this region.
+      </div>
+      {/if}
       <div class="mt-4 flex justify-center">
         <div class="flex items-center gap-2">
           <Button color="light" aria-label="Previous page" title="Previous" on:click={async () => { if (currentPage > 1) { currentPage -= 1; await fetchGames(currentRegion, currentPage); } }} disabled={currentPage <= 1}>
