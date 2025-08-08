@@ -1,13 +1,13 @@
 <script lang="ts">
   import type { PageData } from './$types';
   import { steamStore } from '$lib/stores/steamStore';
-  import { Avatar, Button, Dropdown, DropdownItem, Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell } from 'flowbite-svelte';
+  import { Avatar, Button, Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell } from 'flowbite-svelte';
   import MostPlayedArenasPlaceholder from '$lib/components/mge/MostPlayedArenasPlaceholder.svelte';
   import ActivityPlaceholder from '$lib/components/mge/ActivityPlaceholder.svelte';
   import TopFoesPlaceholder from '$lib/components/mge/TopFoesPlaceholder.svelte';
 
   import { ID } from '@node-steam/id';
-  import { ChevronDownOutline, ChevronLeftOutline, ChevronRightOutline } from 'flowbite-svelte-icons';
+  import { ChevronLeftOutline, ChevronRightOutline } from 'flowbite-svelte-icons';
   import type { MgeDuel } from '$lib/mge/mgeduel';
   import { get } from 'svelte/store';
 
@@ -15,11 +15,8 @@
     data: PageData;
   }
 
-  let dropOpen: boolean = $state(false);
-  let server = $state({
-    name: 'Argentina',
-    flag: 'ar'
-  });
+  import { regionStore, type Region } from '$lib/stores/regionStore';
+  let currentRegion: Region = $state('ar');
   let { data }: Props = $props();
   let loading = $state(true);
   let games = $state<MgeDuel[]>([]);
@@ -40,7 +37,7 @@
   const winrate = $derived(winrateNum.toFixed(1));
   let avatarUrl = $state<string | undefined>(undefined);
 
-  const fetchPlayerSummary = async (db: string) => {
+  const fetchPlayerSummary = async (db: Region) => {
     // Load wins/losses and name
     const params = new URLSearchParams({ db, steamid: id, take: '1' });
     const resp = await fetch(`/api/mge/rank?${params.toString()}`);
@@ -63,7 +60,7 @@
     }
   };
 
-  const fetchGames = async (db: string, page = 1, withTotal = false) => {
+  const fetchGames = async (db: Region, page = 1, withTotal = false) => {
     const skip = (page - 1) * pageSize;
     const params = new URLSearchParams({ db, steamid: id, skip: String(skip), take: String(pageSize) });
     if (withTotal) params.set('withTotal', '1');
@@ -74,7 +71,7 @@
     games = items;
   };
 
-  const fetchData = async (db: string) => {
+  const fetchData = async (db: Region) => {
     id = new ID(data.id).getSteamID2();
     currentPage = 1;
     await Promise.all([
@@ -89,20 +86,15 @@
         loading = false;
       }
     });
-    fetchData('ar');
-    return unsubscribe;
+    const unreg = regionStore.subscribe((r) => {
+      currentRegion = r;
+      fetchData(r);
+    });
+    fetchData(currentRegion);
+    return () => { unsubscribe(); unreg(); };
   });
 
-  const dropClicked = async (arg: string) => {
-    dropOpen = false;
-    if (arg === 'ar') {
-      server.name = 'Argentina';
-    } else {
-      server.name = 'Brasil';
-    }
-    server.flag = arg;
-    await fetchData(arg);
-  };
+  // Region is controlled globally via navbar
 
   function formatDate(unixEpoch: string | null): string {
     const date = new Date(Number(unixEpoch) * 1000); // Convert seconds to milliseconds
@@ -130,22 +122,7 @@
     </div>
   </div>
   <div class="mt-3 flex flex-col gap-3">
-    <!-- Region selector aligned under header -->
-    <Button class="w-fit">
-      <span class="fi fi-{server.flag} mr-2"></span>
-      {server.name}
-      <ChevronDownOutline class="ms-2 h-6 w-6 text-white dark:text-white" />
-    </Button>
-    <Dropdown bind:open={dropOpen} placement="bottom-start" class="overflow-y-auto px-3 pb-3 text-sm">
-      <DropdownItem on:click={async () => await dropClicked('ar')} class="flex items-center gap-2 text-base font-semibold">
-        <span class="fi fi-ar"></span>
-        Argentina
-      </DropdownItem>
-      <DropdownItem on:click={async () => await dropClicked('br')} class="flex items-center gap-2 text-base font-semibold">
-        <span class="fi fi-br"></span>
-        Brasil
-      </DropdownItem>
-    </Dropdown>
+    <!-- Region is selected in the navbar -->
     <!-- Compact stat strip -->
     <div class="flex flex-wrap items-end justify-start gap-x-8 gap-y-2">
       <div>
@@ -198,11 +175,11 @@
       </Table>
       <div class="mt-4 flex justify-center">
         <div class="flex items-center gap-2">
-          <Button color="light" aria-label="Previous page" title="Previous" on:click={async () => { if (currentPage > 1) { currentPage -= 1; await fetchGames(server.flag, currentPage); } }} disabled={currentPage <= 1}>
+          <Button color="light" aria-label="Previous page" title="Previous" on:click={async () => { if (currentPage > 1) { currentPage -= 1; await fetchGames(currentRegion, currentPage); } }} disabled={currentPage <= 1}>
             <ChevronLeftOutline class="h-5 w-5" />
           </Button>
           <span class="text-sm">{currentPage} / {totalPages}</span>
-          <Button color="light" aria-label="Next page" title="Next" on:click={async () => { if (currentPage < totalPages) { currentPage += 1; await fetchGames(server.flag, currentPage); } }} disabled={currentPage >= totalPages}>
+          <Button color="light" aria-label="Next page" title="Next" on:click={async () => { if (currentPage < totalPages) { currentPage += 1; await fetchGames(currentRegion, currentPage); } }} disabled={currentPage >= totalPages}>
             <ChevronRightOutline class="h-5 w-5" />
           </Button>
         </div>

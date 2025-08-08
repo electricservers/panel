@@ -1,17 +1,28 @@
 <script lang="ts">
   import { ID } from '@node-steam/id';
   import type { mgemod_stats } from '@prisma-arg/client';
-  import { A, P, Button, Dropdown, DropdownItem, Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell } from 'flowbite-svelte';
-  import { ChevronDownOutline, ChevronLeftOutline, ChevronRightOutline } from 'flowbite-svelte-icons';
+  import { A, P, Button, Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell } from 'flowbite-svelte';
+  import { ChevronLeftOutline, ChevronRightOutline } from 'flowbite-svelte-icons';
   import Title from '$lib/components/Title.svelte';
+  import { regionStore, type Region } from '$lib/stores/regionStore';
 
-  let dropOpen: boolean = $state(false);
-  let server = $state({
-    name: 'Argentina',
-    flag: 'ar'
-  });
+  let currentRegion: Region = $state('ar');
   let loading = $state(false);
-  let ranking = $state([]);
+  interface RankRow {
+    rating: number | null;
+    steamid: string;
+    name: string | null;
+    wins: number | null;
+    losses: number | null;
+    lastplayed: string | null;
+    hitblip: string | null;
+    totalGames: number;
+    wl: string;
+    winrate: string;
+    wlValue: number;
+    winrateValue: number;
+  }
+  let ranking = $state<RankRow[]>([]);
   const pageSize = 25;
   let currentPage = $state(1);
   let totalItems = $state(0);
@@ -21,7 +32,7 @@
     const clamped = Math.max(1, Math.min(totalPages, p));
     currentPage = clamped;
     const start = (clamped - 1) * pageSize;
-    ranking = await fetchRankingData(server.flag, start, pageSize);
+    ranking = await fetchRankingData(currentRegion, start, pageSize);
   };
 
   type SortKey = 'name' | 'rating' | 'wins' | 'losses' | 'totalGames' | 'wlValue' | 'winrateValue';
@@ -37,10 +48,10 @@
       sortDir = key === 'name' ? 'asc' : 'desc';
     }
     // Reload from server with new sort across all pages
-    resetAndLoad(server.flag);
+    resetAndLoad(currentRegion);
   };
 
-  const fetchRankingData = async (db: string = 'ar', skip = 0, take = pageSize, withTotal = false) => {
+  const fetchRankingData = async (db: Region = 'ar', skip = 0, take = pageSize, withTotal = false) => {
     const params = new URLSearchParams({ db, skip: String(skip), take: String(take) });
     // Map client sort keys to API-supported keys
     if (sortKey === 'name' || sortKey === 'wins' || sortKey === 'losses' || sortKey === 'rating') {
@@ -77,7 +88,7 @@
     return ranking;
   };
 
-  const resetAndLoad = async (db: string) => {
+  const resetAndLoad = async (db: Region) => {
     loading = true;
     ranking = [];
     currentPage = 1;
@@ -86,25 +97,16 @@
     loading = false;
   };
 
-  const dropClicked = async (arg: string) => {
-    dropOpen = false;
-    loading = true;
-    if (arg === 'ar') {
-      server.name = 'Argentina';
-    } else {
-      server.name = 'Brasil';
-    }
-    server.flag = arg;
-    await resetAndLoad(arg);
-    loading = false;
-  };
+  // Region is controlled globally
 
   $effect(() => {
-    const fetchData = async () => {
-      await resetAndLoad('ar');
-    };
-
-    fetchData();
+    const unreg = regionStore.subscribe((r) => {
+      currentRegion = r;
+      resetAndLoad(r);
+    });
+    // initial
+    resetAndLoad(currentRegion);
+    return () => unreg();
   });
 
   $effect(() => {});
@@ -112,21 +114,7 @@
 
 <div class="h-[90vh] p-4">
   <Title>MGE Stats</Title>
-  <Button class="my-3">
-    <span class="fi fi-{server.flag} mr-2"></span>
-    {server.name}
-    <ChevronDownOutline class="ms-2 h-6 w-6 text-white dark:text-white" />
-  </Button>
-  <Dropdown bind:open={dropOpen} class="overflow-y-auto px-3 pb-3 text-sm">
-    <DropdownItem on:click={async () => await dropClicked('ar')} class="flex items-center gap-2 text-base font-semibold">
-      <span class="fi fi-ar"></span>
-      Argentina
-    </DropdownItem>
-    <DropdownItem on:click={async () => await dropClicked('br')} class="flex items-center gap-2 text-base font-semibold">
-      <span class="fi fi-br"></span>
-      Brasil
-    </DropdownItem>
-  </Dropdown>
+  <!-- Region is selected in the navbar -->
   {#if loading}
     <P>Loading ranking...</P>
   {:else}

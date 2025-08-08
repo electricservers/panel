@@ -2,6 +2,7 @@
   import Card from '../../../routes/utils/widgets/Card.svelte';
   import type { MgeDuel } from '$lib/mge/mgeduel';
   import { onMount } from 'svelte';
+  import { regionStore } from '$lib/stores/regionStore';
   import { ID } from '@node-steam/id';
 
   type Region = 'ar' | 'br';
@@ -10,9 +11,10 @@
     region: Region;
   }
 
-  let loading = true;
-  let items: RecentItem[] = [];
-  let errorMsg = '';
+  let loading = $state(true);
+  let items: RecentItem[] = $state([]);
+  let errorMsg = $state('');
+  let currentRegion: Region = $state('ar');
 
   function to64(id?: string | null): string | null {
     try {
@@ -39,29 +41,25 @@
     return `${month} ${day}, ${year} ${hours}:${minutes}`;
   }
 
-  onMount(async () => {
-    try {
-      const [ar, br] = await Promise.all([fetchRecent('ar'), fetchRecent('br')]);
-      const merged: RecentItem[] = [
-        ...ar.map((g) => ({ ...g, region: 'ar' as const })),
-        ...br.map((g) => ({ ...g, region: 'br' as const })),
-      ];
-      // Sort by gametime desc across regions (fallback to id desc) and keep top 10
-      merged.sort((a, b) => {
-        const timeDiff = (Number(b.gametime) || 0) - (Number(a.gametime) || 0);
-        if (timeDiff !== 0) return timeDiff;
-        return (Number(b.id) || 0) - (Number(a.id) || 0);
-      });
-      items = merged.slice(0, 10);
-    } catch (e) {
-      errorMsg = e instanceof Error ? e.message : 'Unknown error';
-    } finally {
-      loading = false;
-    }
+  onMount(() => {
+    const unreg = regionStore.subscribe(async (r) => {
+      currentRegion = r;
+      loading = true;
+      try {
+        const list = await fetchRecent(r, 20);
+        items = list.map((g) => ({ ...g, region: r }));
+        errorMsg = '';
+      } catch (e) {
+        errorMsg = e instanceof Error ? e.message : 'Unknown error';
+      } finally {
+        loading = false;
+      }
+    });
+    return () => unreg();
   });
 </script>
 
-<Card title="Recent duels" subtitle="Live feed (last 10 across regions)">
+<Card title="Recent duels" subtitle={`Last 20 in ${currentRegion.toUpperCase()}`}>
   {#if loading}
     <div class="py-8 text-center text-sm text-gray-500">Loading…</div>
   {:else if errorMsg}

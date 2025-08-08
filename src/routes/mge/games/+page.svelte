@@ -2,22 +2,19 @@
   import type { PageData } from './$types';
   import { steamStore } from '$lib/stores/steamStore';
   import Title from '$lib/components/Title.svelte';
-  import { Avatar, Button, Dropdown, DropdownItem, P, Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell } from 'flowbite-svelte';
+  import { Button, P, Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell } from 'flowbite-svelte';
   import Card from '../../utils/widgets/Card.svelte';
 
   import { ID } from '@node-steam/id';
-  import { ChevronDownOutline, ChevronLeftOutline, ChevronRightOutline } from 'flowbite-svelte-icons';
+  import { ChevronLeftOutline, ChevronRightOutline } from 'flowbite-svelte-icons';
   import type { MgeDuel } from '$lib/mge/mgeduel';
+  import { regionStore, type Region } from '$lib/stores/regionStore';
 
   interface Props {
     data: PageData;
   }
 
-  let dropOpen: boolean = $state(false);
-  let server = $state({
-    name: 'Argentina',
-    flag: 'ar'
-  });
+  let currentRegion: Region = $state('ar');
   let { data }: Props = $props();
   let loading = $state(true);
   let games = $state<MgeDuel[]>([]);
@@ -31,11 +28,11 @@
     const clamped = Math.max(1, Math.min(totalPages, p));
     currentPage = clamped;
     const start = (clamped - 1) * pageSize;
-    games = await fetchData(server.flag, start, pageSize);
+    games = await fetchData(currentRegion, start, pageSize);
   };
 
-  const fetchData = async (flag: string, skip = 0, take = pageSize, withTotal = false) => {
-    const params = new URLSearchParams({ db: flag, skip: String(skip), take: String(take) });
+  const fetchData = async (flag: Region, skip = 0, take = pageSize, withTotal = false) => {
+    const params = new URLSearchParams({ db: String(flag), skip: String(skip), take: String(take) });
     if (withTotal) params.set('withTotal', '1');
     const res = await fetch(`/api/mge/games?${params.toString()}`);
     const payload = await res.json();
@@ -44,7 +41,7 @@
     return items;
   };
 
-  const resetAndLoad = async (flag: string) => {
+  const resetAndLoad = async (flag: Region) => {
     loading = true;
     games = [];
     currentPage = 1;
@@ -59,20 +56,16 @@
         loading = false;
       }
     });
-    resetAndLoad('ar');
-    return unsubscribe;
+    const unreg = regionStore.subscribe((r) => {
+      currentRegion = r;
+      resetAndLoad(r);
+    });
+    // initial load uses current region value
+    resetAndLoad(currentRegion);
+    return () => { unsubscribe(); unreg(); };
   });
 
-  const dropClicked = async (arg: string) => {
-    dropOpen = false;
-    if (arg === 'ar') {
-      server.name = 'Argentina';
-    } else {
-      server.name = 'Brasil';
-    }
-    server.flag = arg;
-    await resetAndLoad(arg);
-  };
+  // Region is controlled globally via navbar; no local dropdown
 
   function formatDate(unixEpoch: string | null): string {
     const date = new Date(Number(unixEpoch) * 1000); // Convert seconds to milliseconds
@@ -93,21 +86,7 @@
 
 <div class="h-[90vh] p-4">
   <Title>Latest games</Title>
-  <Button class="my-3">
-    <span class="fi fi-{server.flag} mr-2"></span>
-    {server.name}
-    <ChevronDownOutline class="ms-2 h-6 w-6 text-white dark:text-white" />
-  </Button>
-  <Dropdown bind:open={dropOpen} class="overflow-y-auto px-3 pb-3 text-sm">
-    <DropdownItem on:click={async () => await dropClicked('ar')} class="flex items-center gap-2 text-base font-semibold">
-      <span class="fi fi-ar"></span>
-      Argentina
-    </DropdownItem>
-    <DropdownItem on:click={async () => await dropClicked('br')} class="flex items-center gap-2 text-base font-semibold">
-      <span class="fi fi-br"></span>
-      Brasil
-    </DropdownItem>
-  </Dropdown>
+  <!-- Region is selected globally in the navbar -->
   <div class="flex flex-col">
     <div class="h-screen">
       <div>
