@@ -12,6 +12,9 @@
     emptyText?: string;
     currentPage?: number;
     totalPages?: number;
+    pageSize?: number;
+    pageSizeOptions?: number[];
+    onPageSizeChange?: (n: number) => void;
     onPageChange?: (page: number) => void;
   }
 
@@ -22,6 +25,9 @@
     emptyText = 'No matches in this region.',
     currentPage = 1,
     totalPages = 1,
+    pageSize = undefined,
+    pageSizeOptions = [10, 25, 50],
+    onPageSizeChange,
     onPageChange
   }: Props = $props();
 
@@ -71,6 +77,18 @@
         <button class="rounded px-2 py-1 hover:bg-gray-100 disabled:opacity-50 dark:hover:bg-gray-800" onclick={() => goTo(currentPage + 1)} disabled={currentPage >= (totalPages || 1)} aria-label="Next page" title="Next">
           <ChevronRightOutline class="h-4 w-4" />
         </button>
+        {#if pageSize}
+          <div class="ml-3 flex items-center gap-2">
+            <label for="pageSizeTop" class="text-[11px] text-gray-500 dark:text-gray-400">Per page:</label>
+            <select id="pageSizeTop" class="rounded-md border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+                    value={String(pageSize)}
+                    onchange={(e) => { const v = Number((e.target as HTMLSelectElement).value); if (onPageSizeChange) onPageSizeChange(v); }}>
+              {#each pageSizeOptions as opt}
+                <option value={String(opt)}>{opt}</option>
+              {/each}
+            </select>
+          </div>
+        {/if}
       </div>
     </div>
   {/if}
@@ -92,6 +110,18 @@
         <button class="rounded px-2 py-1 hover:bg-gray-100 disabled:opacity-50 dark:hover:bg-gray-800" onclick={() => goTo(currentPage + 1)} disabled={currentPage >= (totalPages || 1)} aria-label="Next page" title="Next">
           <ChevronRightOutline class="h-4 w-4" />
         </button>
+        {#if pageSize}
+          <div class="ml-3 flex items-center gap-2">
+            <label for="pageSizeBottom" class="text-[11px] text-gray-500 dark:text-gray-400">Per page:</label>
+            <select id="pageSizeBottom" class="rounded-md border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+                    value={String(pageSize)}
+                    onchange={(e) => { const v = Number((e.target as HTMLSelectElement).value); if (onPageSizeChange) onPageSizeChange(v); }}>
+              {#each pageSizeOptions as opt}
+                <option value={String(opt)}>{opt}</option>
+              {/each}
+            </select>
+          </div>
+        {/if}
       </div>
     </div>
   {/if}
