@@ -69,7 +69,10 @@
           <P>{$steamStore.personaname ?? ''}</P>
           <UserMenu />
         {:else}
-          <Button on:click={() => goto('/api/auth/login')}>Login with Steam</Button>
+          <Button on:click={() => {
+            const current = typeof window !== 'undefined' ? window.location.pathname + window.location.search + window.location.hash : '/';
+            goto(`/api/auth/login?returnTo=${encodeURIComponent(current)}`);
+          }}>Login with Steam</Button>
         {/if}
       </div>
     </NavContainer>

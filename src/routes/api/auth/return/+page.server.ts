@@ -18,7 +18,11 @@ export const load = async ({ request, cookies }: PageServerLoadEvent) => {
     const userJson = JSON.stringify(userWithRole);
     cookies.set('client', userJson, { path: '/', httpOnly: true, secure: true, sameSite: 'strict' });
 
-    return { user: userJson };
+    // Read and clear returnTo cookie to avoid reuse
+    const returnTo = cookies.get('returnTo') || '/';
+    cookies.delete('returnTo', { path: '/' });
+
+    return { user: userJson, returnTo };
   } catch (error) {
     console.error('Authentication error:', error);
     return {

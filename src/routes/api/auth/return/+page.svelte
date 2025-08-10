@@ -5,7 +5,7 @@
   import type { SteamProfile } from '$lib/steam/config';
 
   interface Props {
-    data: { user?: string; error?: string };
+    data: { user?: string; error?: string; returnTo?: string };
   }
 
   let { data }: Props = $props();
@@ -15,7 +15,7 @@
       try {
         const profile: SteamProfile & { role: string } = JSON.parse(data.user);
         steamStore.set(profile);
-        goto('/');
+        goto(data.returnTo || '/');
       } catch (error) {
         console.error('Error parsing user data:', error);
       }

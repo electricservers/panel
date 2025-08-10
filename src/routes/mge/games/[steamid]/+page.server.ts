@@ -4,9 +4,10 @@ import prismaArg from '$lib/prisma/prismaArg';
 import prismaBr from '$lib/prisma/prismaBr';
 import { ID } from '@node-steam/id';
 
-export const load: PageServerLoad = async ({ params, locals }) => {
+export const load: PageServerLoad = async ({ params, locals, url }) => {
   if (!locals.user) {
-    throw redirect(302, '/api/auth/login');
+    const returnTo = encodeURIComponent(url.pathname + url.search);
+    throw redirect(302, `/api/auth/login?returnTo=${returnTo}`);
   }
 
   // Discover presence in each region DB
