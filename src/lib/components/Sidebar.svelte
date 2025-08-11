@@ -2,8 +2,11 @@
   import { afterNavigate } from '$app/navigation';
   import { page } from '$app/stores';
   import { Sidebar, SidebarDropdownWrapper, SidebarGroup, SidebarItem, SidebarWrapper } from 'flowbite-svelte';
-  import { AngleDownOutline, AngleUpOutline, ChartOutline, UsersGroupOutline } from 'flowbite-svelte-icons';
+  import { AngleDownOutline, AngleUpOutline, ChartOutline, UsersGroupOutline, SearchOutline, CogOutline, HomeOutline } from 'flowbite-svelte-icons';
   import TrophyOutline from '$lib/components/icons/TrophyOutline.svelte';
+  import MgeOutline from '$lib/components/icons/MgeOutline.svelte';
+  import LeaderboardOutline from '$lib/components/icons/LeaderboardOutline.svelte';
+  import GamesOutline from '$lib/components/icons/GamesOutline.svelte';
   import { steamStore } from '$lib/stores/steamStore';
 
   // Types
@@ -39,20 +42,24 @@
   };
 
   // Navigation items
+  const homeItem: NavItem = { name: 'Home', href: '/', icon: HomeOutline };
+
   const baseMgeChildren: NavItem[] = [
-    { name: 'Leaderboard', href: '/mge/ranking', icon: TrophyOutline },
-    { name: 'Games', href: '/mge/games', icon: ChartOutline }
+    { name: 'Leaderboard', href: '/mge/ranking', icon: LeaderboardOutline },
+    { name: 'Games', href: '/mge/games', icon: GamesOutline }
   ];
 
   const whoisItem: NavItem = {
     name: 'Whois',
-    icon: UsersGroupOutline,
+    icon: SearchOutline,
     href: '/whois'
   };
 
+  const adminItem: NavItem = { name: 'Admin', href: '/admin', icon: CogOutline };
+
   let mgeItem = $derived({
     name: 'MGE',
-    icon: ChartOutline,
+    icon: MgeOutline,
     href: '#',
     children: $steamStore
       ? [
@@ -60,13 +67,19 @@
           {
             name: 'My stats',
             href: `/mge/games/${$steamStore.steamid}`,
-            icon: UsersGroupOutline
+            icon: ChartOutline
           }
         ]
       : baseMgeChildren
   });
 
-  let navigationItems = $derived([mgeItem, ...($steamStore?.role === 'admin' || $steamStore?.role === 'owner' ? [whoisItem] : [])]);
+  const primaryItems = $derived([
+    homeItem,
+    mgeItem,
+    ...($steamStore?.role === 'admin' || $steamStore?.role === 'owner' ? [whoisItem] : [])
+  ]);
+
+  const showAdmin = $derived($steamStore?.role === 'owner');
 </script>
 
 <Sidebar
@@ -77,7 +90,7 @@
   <SidebarWrapper divClass="overflow-y-auto px-3 pt-20 lg:pt-5 h-full bg-white scrolling-touch max-w-2xs lg:h-[calc(100vh-4rem)] lg:block dark:bg-gray-800 lg:me-0 lg:sticky top-2">
     <nav class="divide-y divide-gray-200 dark:divide-gray-700">
       <SidebarGroup ulClass={styles.group} class="mb-3">
-        {#each navigationItems as item}
+        {#each primaryItems as item}
           {#if item.children?.length}
             <SidebarDropdownWrapper label={item.name} class="pr-3">
               <svelte:fragment slot="icon">
@@ -105,6 +118,14 @@
             </SidebarItem>
           {/if}
         {/each}
+        {#if showAdmin}
+          <li class="my-2 border-t border-gray-200 dark:border-gray-700"></li>
+          <SidebarItem label={adminItem.name} href={adminItem.href} spanClass="ml-3" class={styles.item}>
+            <svelte:fragment slot="icon">
+              <adminItem.icon class={styles.icon} />
+            </svelte:fragment>
+          </SidebarItem>
+        {/if}
       </SidebarGroup>
     </nav>
   </SidebarWrapper>
