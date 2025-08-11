@@ -1,0 +1,25 @@
+{
+  "$schema": "https://unpkg.com/knip@latest/schema.json",
+  "entry": [
+    "src/routes/**/*",
+    "src/lib/**/*",
+    "src/hooks.server.ts",
+    "src/app.html",
+    "src/app.d.ts"
+  ],
+  "project": [
+    "src/**/*.{ts,svelte,js}"
+  ],
+  "ignoreDependencies": [
+    "@prisma-arg/client",
+    "@prisma-br/client"
+  ],
+  "ignore": [
+    ".svelte-kit/**",
+    "node_modules/**",
+    "static/**",
+    "playwright.config.ts"
+  ]
+}
+
+

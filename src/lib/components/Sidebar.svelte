@@ -1,9 +1,7 @@
 <script lang="ts">
-  import { afterNavigate } from '$app/navigation';
   import { page } from '$app/stores';
   import { Sidebar, SidebarDropdownWrapper, SidebarGroup, SidebarItem, SidebarWrapper } from 'flowbite-svelte';
-  import { AngleDownOutline, AngleUpOutline, ChartOutline, UsersGroupOutline, SearchOutline, CogOutline, HomeOutline } from 'flowbite-svelte-icons';
-  import TrophyOutline from '$lib/components/icons/TrophyOutline.svelte';
+  import { AngleDownOutline, AngleUpOutline, ChartOutline, SearchOutline, CogOutline, HomeOutline } from 'flowbite-svelte-icons';
   import MgeOutline from '$lib/components/icons/MgeOutline.svelte';
   import LeaderboardOutline from '$lib/components/icons/LeaderboardOutline.svelte';
   import GamesOutline from '$lib/components/icons/GamesOutline.svelte';
@@ -27,15 +25,6 @@
     group: 'pt-2 space-y-2'
   };
 
-  // Active sidebar tracking
-  let activeMainSidebar: string = $state($page.url.pathname as unknown as string);
-
-  // Navigation handlers
-  afterNavigate((navigation) => {
-    document.getElementById('svelte')?.scrollTo({ top: 0 });
-    drawerHidden = true;
-    activeMainSidebar = navigation.to?.url.pathname ?? '';
-  });
 
   const handleDrawerClose = () => {
     drawerHidden = true;

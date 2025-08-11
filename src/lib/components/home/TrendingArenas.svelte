@@ -19,7 +19,7 @@
       if (!res.ok) throw new Error(`Request failed: ${res.status}`);
       const payload = await res.json();
       items = payload?.items ?? [];
-    } catch (e) {
+    } catch {
       items = [];
       errorText = 'Failed to load trending arenas';
     } finally {

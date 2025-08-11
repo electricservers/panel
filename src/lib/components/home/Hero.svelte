@@ -1,7 +1,6 @@
 <script lang="ts">
   import { Button } from 'flowbite-svelte';
   import Card from '../../../routes/utils/widgets/Card.svelte';
-  import { steamStore } from '$lib/stores/steamStore';
   import { goto } from '$app/navigation';
   let steamInput = '';
 

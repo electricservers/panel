@@ -20,9 +20,7 @@
   ].sort((a, b) => (Number(b.matches || 0) - Number(a.matches || 0)) || a.name.localeCompare(b.name)) as ArenaStat[]);
   let errorText = $state<string | null>(null);
 
-  const maxMatches = $derived(items.reduce((m, it) => Math.max(m, Number(it.matches) || 0), 0));
-
-  const topMatches = $derived(items.length > 0 ? (Number(items[0]?.matches) || 0) : 0);
+  // Removed unused derived values to reduce lints
   const totalMatchesSum = $derived(items.reduce((sum, a) => sum + (Number(a.matches) || 0), 0));
 
   function computeMatchPercent(matches: number | string | null | undefined): number {

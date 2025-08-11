@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { steamStore } from '$lib/stores/steamStore';
   import Hero from '$lib/components/home/Hero.svelte';
   import QuickStats from '$lib/components/home/QuickStats.svelte';
   import LeaderboardsPreviewPlaceholder from '$lib/components/home/LeaderboardsPreviewPlaceholder.svelte';

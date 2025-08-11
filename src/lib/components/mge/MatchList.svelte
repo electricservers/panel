@@ -1,6 +1,5 @@
 <script lang="ts">
   import type { MgeDuel } from '$lib/mge/mgeduel';
-  import { Button } from 'flowbite-svelte';
   import { ChevronLeftOutline, ChevronRightOutline } from 'flowbite-svelte-icons';
   import { ID } from '@node-steam/id';
   import MatchCard from './MatchCard.svelte';
@@ -56,9 +55,7 @@
     return `${month} ${day}, ${year} ${hours}:${minutes}`;
   }
 
-  function isWin(game: MgeDuel): boolean {
-    return game.winner === subjectId2;
-  }
+  // isWin derived inside MatchCard; no local helper needed
 </script>
 
 {#if loading}

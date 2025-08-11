@@ -21,7 +21,7 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
     ]);
     existsInAr = (arCount ?? 0) > 0;
     existsInBr = (brCount ?? 0) > 0;
-  } catch (e) {
+  } catch {
     // If conversion fails or DB error occurs, leave as false/false
   }
 

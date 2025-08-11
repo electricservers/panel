@@ -1,7 +1,7 @@
 <script lang="ts">
   import { ID } from '@node-steam/id';
   import type { mgemod_stats } from '@prisma-arg/client';
-  import { A, Button, P } from 'flowbite-svelte';
+  import { Button } from 'flowbite-svelte';
   import { ChevronLeftOutline, ChevronRightOutline } from 'flowbite-svelte-icons';
   // Removed table view
   type SortDirection = 'asc' | 'desc';
@@ -116,7 +116,6 @@
         return dir === 'asc' ? cmp : -cmp;
       });
       // slice for current page
-      const start = (currentPage - 1) * pageSize;
       ranking = ranking.slice(0); // keep full in state, we will page in cardItems instead
     }
     return ranking;
@@ -176,64 +175,15 @@
   const rankBase = $derived((currentPage - 1) * pageSize);
 
   // Deep link/highlight support: highlight a specific steam64 from query param ?id=...
-  let highlightId64 = $state<string | null>(null);
-  $effect.root(() => {
-    try {
-      const url = new URL(window.location.href);
-      const id = url.searchParams.get('id');
-      highlightId64 = id && /^\d{17}$/.test(id) ? id : null;
-    } catch {}
-  });
-
-  function isHighlighted(steamid2: string): boolean {
-    if (!highlightId64) return false;
-    try { return new ID(steamid2).get64() === highlightId64; } catch { return false; }
-  }
-
-  async function locateAndHighlight(idLike: string) {
-    // Accept name or steam id; if steam id, prioritize exact position via API
-    const trimmed = idLike.trim();
-    if (!trimmed) return;
-    // Try resolve to Steam2 and Steam64
-    let steam64: string | null = null;
-    let steam2: string | null = null;
-    try {
-      const id = new ID(trimmed);
-      steam2 = id.getSteamID2();
-      steam64 = id.get64();
-    } catch {
-      steam2 = null;
-      steam64 = null;
-    }
-
-    // If we have an id, fetch their rank position using API with withRankPosition
-    if (steam2) {
-      const params = new URLSearchParams({ db: currentRegion, steamid: steam2, withRankPosition: '1' });
-      const res = await fetch(`/api/mge/rank?${params.toString()}`);
-      if (res.ok) {
-        const payload = await res.json();
-        const pos: number | null = payload?.position ?? null;
-        if (pos && pos > 0) {
-          const page = Math.ceil(pos / pageSize);
-          highlightId64 = steam64;
-          await goToPage(page);
-          // Scroll into view after DOM updates
-          queueMicrotask(() => {
-            try {
-              const el = document.querySelector(`[data-steam64="${highlightId64}"]`);
-              el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            } catch {}
-          });
-          return;
-        }
-      }
-    }
-
-    // Fallback: set name search and reload page 1
-    search = trimmed;
-    pendingSearch = trimmed;
-    await resetAndLoad(currentRegion);
-  }
+  // Deep link highlight support is temporarily disabled; keep scaffold for future
+  // let highlightId64 = $state<string | null>(null);
+  // $effect.root(() => {
+  //   try {
+  //     const url = new URL(window.location.href);
+  //     const id = url.searchParams.get('id');
+  //     highlightId64 = id && /^\d{17}$/.test(id) ? id : null;
+  //   } catch {}
+  // });
 </script>
 
 <div class="p-4">
@@ -309,7 +259,7 @@
               wl: r.wl,
               winrate: r.winrate,
               avatarUrl: (() => { try { return avatarMap[new ID(r.steamid).get64()] ?? null; } catch { return null; } })()
-            }} highlight={isHighlighted(r.steamid)} />
+            }} />
           {/each}
         </div>
       </div>

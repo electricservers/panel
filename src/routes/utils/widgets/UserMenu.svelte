@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Avatar, Dropdown, DropdownHeader, DropdownItem } from 'flowbite-svelte';
+  import { Avatar, Dropdown, DropdownItem } from 'flowbite-svelte';
   import { steamStore } from '$lib/stores/steamStore';
   import { goto } from '$app/navigation';
 </script>

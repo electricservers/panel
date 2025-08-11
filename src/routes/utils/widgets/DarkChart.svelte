@@ -7,10 +7,10 @@
     type ConfigFunc = (dark: boolean) => ApexOptions;
     interface Props {
         configFunc: ConfigFunc;
-        [key: string]: any;
+        class?: string;
     }
 
-    let { configFunc, ...props }: Props = $props();
+    let { configFunc, class: className = '' }: Props = $props();
 
     let dark = $state(browser ? document.documentElement.classList.contains('dark') : false);
 
@@ -29,4 +29,4 @@
     });
 </script>
 
-<Chart {options} class={props.class} />
+<Chart {options} class={className} />

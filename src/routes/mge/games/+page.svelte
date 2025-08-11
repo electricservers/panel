@@ -7,7 +7,7 @@
   import { ID } from '@node-steam/id';
   
   let currentRegion: Region = $state('ar');
-  let loading = $state(true);
+  // remove unused loading flag
   let games = $state<MgeDuel[]>([]);
   let totalItems = $state(0);
   let pageSize = $state(25);
@@ -18,7 +18,7 @@
   let search = $state(''); // name or steamid
   let arena = $state('');
   let arenas = $state<string[]>([]);
-  let arenaVariants: Record<string, string[]> = $state({});
+  // variants unused in UI; keep arenas only
   let outcome: 'all' | 'win' | 'loss' = $state('all');
   let dateFrom = $state<string>(''); // yyyy-mm-dd
   let dateTo = $state<string>('');
@@ -56,10 +56,9 @@
   async function fetchArenas(db: Region) {
     try {
       const res = await fetch(`/api/mge/games/arenas?db=${db}`);
-      if (res.ok) {
+    if (res.ok) {
         const payload = await res.json();
         arenas = Array.isArray(payload) ? payload : (payload.items ?? []);
-        arenaVariants = payload?.variants ?? {};
       }
     } catch {}
   }
@@ -91,10 +90,8 @@
   }
 
   async function resetAndLoad(db: Region) {
-    loading = true;
     currentPage = 1;
     await Promise.all([fetchArenas(db), fetchGames(db, 1, true)]);
-    loading = false;
   }
 
   onMount(() => {
@@ -118,7 +115,7 @@
   <!-- Filters (organized card) -->
   <div class="mt-3 flex justify-center">
     <div class="w-full max-w-3xl">
-      <div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+       <div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
         <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
           <div class="md:col-span-3">
             <input class="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"

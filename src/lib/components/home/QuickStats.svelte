@@ -24,7 +24,7 @@
       const res = await fetch(`/api/mge/stats/quick?${params.toString()}`);
       if (!res.ok) throw new Error(`Request failed: ${res.status}`);
       stats = await res.json();
-    } catch (e) {
+    } catch {
       errorText = 'Failed to load quick stats';
       stats = null;
     } finally {

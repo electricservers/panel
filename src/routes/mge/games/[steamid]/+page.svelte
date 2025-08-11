@@ -18,7 +18,7 @@
   import { regionStore, type Region } from '$lib/stores/regionStore';
   let currentRegion: Region = $state('ar');
   let { data }: Props = $props();
-  let loading = $state(true);
+  // remove unused loading flag
   let games = $state<MgeDuel[]>([]);
   let id = $state(''); // Steam2 format used by DB queries
 
@@ -112,7 +112,6 @@
   };
 
   const fetchData = async (db: Region) => {
-    loading = true;
     id = new ID(data.id).getSteamID2();
     currentPage = 1;
     await Promise.all([
@@ -120,7 +119,6 @@
       fetchGames(db, 1, true),
       fetchActivity(db)
     ]);
-    loading = false;
   };
 
   const fetchActivity = async (db: Region) => {
@@ -142,11 +140,7 @@
   };
 
   $effect(() => {
-    const unsubscribe = steamStore.subscribe((value) => {
-      if (value !== undefined) {
-        loading = false;
-      }
-    });
+    const unsubscribe = steamStore.subscribe(() => {});
     const unreg = regionStore.subscribe((r) => {
       currentRegion = r;
       fetchData(r);
@@ -178,19 +172,7 @@
 
   // Region is controlled globally via navbar
 
-  function formatDate(unixEpoch: string | null): string {
-    const date = new Date(Number(unixEpoch) * 1000); // Convert seconds to milliseconds
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-    const month = months[date.getMonth()];
-    const day = date.getDate().toString().padStart(2, '0');
-    const year = date.getFullYear();
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    const seconds = date.getSeconds().toString().padStart(2, '0');
-
-    return `${month} ${day}, ${year} ${hours}:${minutes}:${seconds}`;
-  }
+  // formatting handled within list; remove unused helper
 
   // using MatchList for a more modern layout instead of a table
 </script>

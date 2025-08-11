@@ -58,7 +58,7 @@ export const GET: RequestHandler = async ({ url }) => {
       return json({ error: 'Player not found' }, { status: 404 });
     }
     return json(player, { headers: { 'cache-control': 'public, max-age=21600' } });
-  } catch (error) {
+  } catch {
     return json({ error: 'Failed to fetch Steam profile' }, { status: 500 });
   }
 };

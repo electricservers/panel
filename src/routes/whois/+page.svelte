@@ -1,9 +1,7 @@
 <script lang="ts">
-  import type { PageData } from './$types';
   import Title from '$lib/components/Title.svelte';
 
-  interface Props { data: PageData }
-  // data is currently unused in this page
+  // PageData currently unused in this view; removing unused interface
 
   let query = $state('');
   let loading = $state(false);
@@ -11,7 +9,8 @@
   let result: any = $state(null);
   let alts: any[] = $state([]);
   let profiles: Record<string, { avatar: string; avatarmedium: string; avatarfull: string; personaname?: string }> = $state({});
-  let hasSearched = $state(false);
+  // track if a search has been attempted; currently not used in UI
+  // let hasSearched = $state(false);
   let showAllNames = $state(false);
   let showAllIPs = $state(false);
   let showAllLogs = $state(false);
@@ -27,7 +26,7 @@
     result = null;
     const q = query.trim();
     if (!q) return;
-    hasSearched = true;
+    // hasSearched = true;
     loading = true;
     loadingWhois = true;
     loadingAlts = false;
