@@ -16,14 +16,19 @@ export const GET: RequestHandler = async ({ url }) => {
 
   try {
     if (steamidsParam) {
-      const ids = Array.from(new Set(steamidsParam.split(',').map((s) => s.trim()).filter(Boolean)));
+      const ids = Array.from(
+        new Set(
+          steamidsParam
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean)
+        )
+      );
       if (ids.length === 0) {
         return json({}, { headers: { 'cache-control': 'public, max-age=3600' } });
       }
       // Steam supports up to 100 per request; our lists are small, so no chunking needed for now
-      const apiUrl = `https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=${encodeURIComponent(
-        STEAM_API_KEY
-      )}&steamids=${encodeURIComponent(ids.join(','))}`;
+      const apiUrl = `https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=${encodeURIComponent(STEAM_API_KEY)}&steamids=${encodeURIComponent(ids.join(','))}`;
       const resp = await fetch(apiUrl, { method: 'GET' });
       if (!resp.ok) {
         return json({ error: 'Steam API error' }, { status: 502 });
@@ -45,9 +50,7 @@ export const GET: RequestHandler = async ({ url }) => {
     }
 
     // Single player fallback
-    const apiUrl = `https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=${encodeURIComponent(
-      STEAM_API_KEY
-    )}&steamids=${encodeURIComponent(steamid!)}`;
+    const apiUrl = `https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=${encodeURIComponent(STEAM_API_KEY)}&steamids=${encodeURIComponent(steamid!)}`;
     const resp = await fetch(apiUrl, { method: 'GET' });
     if (!resp.ok) {
       return json({ error: 'Steam API error' }, { status: 502 });
@@ -62,5 +65,3 @@ export const GET: RequestHandler = async ({ url }) => {
     return json({ error: 'Failed to fetch Steam profile' }, { status: 500 });
   }
 };
-
-

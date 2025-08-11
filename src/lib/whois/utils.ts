@@ -89,9 +89,15 @@ export function allIdVariantsForSteam64(steam64: string): string[] {
   const acc = steam64ToAccountId(steam64);
   if (acc) variants.add(acc);
   const s2 = steam64ToSteam2(steam64);
-  if (s2) { variants.add(s2.u0); variants.add(s2.u1); }
+  if (s2) {
+    variants.add(s2.u0);
+    variants.add(s2.u1);
+  }
   const s3 = steam64ToSteam3(steam64);
-  if (s3) { variants.add(s3); variants.add(s3.replace(/\[|\]/g, '')); }
+  if (s3) {
+    variants.add(s3);
+    variants.add(s3.replace(/\[|\]/g, ''));
+  }
   return Array.from(variants);
 }
 
@@ -127,5 +133,3 @@ export function stringSimilarity(a: string, b: string): number {
   const lev = dp[s1.length][s2.length];
   return 1 - lev / Math.max(s1.length, s2.length);
 }
-
-

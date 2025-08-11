@@ -67,19 +67,34 @@
   {#if totalPages > 1}
     <div class="mb-2 flex justify-center">
       <div class="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-        <button class="rounded px-2 py-1 hover:bg-gray-100 disabled:opacity-50 dark:hover:bg-gray-800" onclick={() => goTo(currentPage - 1)} disabled={currentPage <= 1} aria-label="Previous page" title="Previous">
+        <button
+          class="rounded px-2 py-1 hover:bg-gray-100 disabled:opacity-50 dark:hover:bg-gray-800"
+          onclick={() => goTo(currentPage - 1)}
+          disabled={currentPage <= 1}
+          aria-label="Previous page"
+          title="Previous">
           <ChevronLeftOutline class="h-4 w-4" />
         </button>
         <span>{currentPage}/{Math.max(1, totalPages)}</span>
-        <button class="rounded px-2 py-1 hover:bg-gray-100 disabled:opacity-50 dark:hover:bg-gray-800" onclick={() => goTo(currentPage + 1)} disabled={currentPage >= (totalPages || 1)} aria-label="Next page" title="Next">
+        <button
+          class="rounded px-2 py-1 hover:bg-gray-100 disabled:opacity-50 dark:hover:bg-gray-800"
+          onclick={() => goTo(currentPage + 1)}
+          disabled={currentPage >= (totalPages || 1)}
+          aria-label="Next page"
+          title="Next">
           <ChevronRightOutline class="h-4 w-4" />
         </button>
         {#if pageSize}
           <div class="ml-3 flex items-center gap-2">
             <label for="pageSizeTop" class="text-[11px] text-gray-500 dark:text-gray-400">Per page:</label>
-            <select id="pageSizeTop" class="rounded-md border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
-                    value={String(pageSize)}
-                    onchange={(e) => { const v = Number((e.target as HTMLSelectElement).value); if (onPageSizeChange) onPageSizeChange(v); }}>
+            <select
+              id="pageSizeTop"
+              class="rounded-md border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+              value={String(pageSize)}
+              onchange={(e) => {
+                const v = Number((e.target as HTMLSelectElement).value);
+                if (onPageSizeChange) onPageSizeChange(v);
+              }}>
               {#each pageSizeOptions as opt}
                 <option value={String(opt)}>{opt}</option>
               {/each}
@@ -100,19 +115,34 @@
   {#if totalPages > 1}
     <div class="mt-2 flex justify-center">
       <div class="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-        <button class="rounded px-2 py-1 hover:bg-gray-100 disabled:opacity-50 dark:hover:bg-gray-800" onclick={() => goTo(currentPage - 1)} disabled={currentPage <= 1} aria-label="Previous page" title="Previous">
+        <button
+          class="rounded px-2 py-1 hover:bg-gray-100 disabled:opacity-50 dark:hover:bg-gray-800"
+          onclick={() => goTo(currentPage - 1)}
+          disabled={currentPage <= 1}
+          aria-label="Previous page"
+          title="Previous">
           <ChevronLeftOutline class="h-4 w-4" />
         </button>
         <span>{currentPage}/{Math.max(1, totalPages)}</span>
-        <button class="rounded px-2 py-1 hover:bg-gray-100 disabled:opacity-50 dark:hover:bg-gray-800" onclick={() => goTo(currentPage + 1)} disabled={currentPage >= (totalPages || 1)} aria-label="Next page" title="Next">
+        <button
+          class="rounded px-2 py-1 hover:bg-gray-100 disabled:opacity-50 dark:hover:bg-gray-800"
+          onclick={() => goTo(currentPage + 1)}
+          disabled={currentPage >= (totalPages || 1)}
+          aria-label="Next page"
+          title="Next">
           <ChevronRightOutline class="h-4 w-4" />
         </button>
         {#if pageSize}
           <div class="ml-3 flex items-center gap-2">
             <label for="pageSizeBottom" class="text-[11px] text-gray-500 dark:text-gray-400">Per page:</label>
-            <select id="pageSizeBottom" class="rounded-md border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
-                    value={String(pageSize)}
-                    onchange={(e) => { const v = Number((e.target as HTMLSelectElement).value); if (onPageSizeChange) onPageSizeChange(v); }}>
+            <select
+              id="pageSizeBottom"
+              class="rounded-md border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+              value={String(pageSize)}
+              onchange={(e) => {
+                const v = Number((e.target as HTMLSelectElement).value);
+                if (onPageSizeChange) onPageSizeChange(v);
+              }}>
               {#each pageSizeOptions as opt}
                 <option value={String(opt)}>{opt}</option>
               {/each}
@@ -123,5 +153,3 @@
     </div>
   {/if}
 {/if}
-
-

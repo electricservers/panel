@@ -48,5 +48,3 @@ module.exports = [
     ignores: ['.svelte-kit/**', 'node_modules/**', 'static/**', 'dist/**']
   }
 ];
-
-

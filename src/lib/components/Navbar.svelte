@@ -37,43 +37,54 @@
 </script>
 
 <Navbar {fluid} color="default" let:NavContainer>
-    <NavContainer class="mb-px mt-px px-1" {fluid}>
-      <NavHamburger onClick={() => (drawerHidden = !drawerHidden)} class="m-0 me-3 md:block lg:hidden" />
-      <NavBrand href="/" class={list ? 'w-40' : 'lg:w-60'}>
-        <img src="/images/favicon.png" class="me-2.5 h-6 sm:h-8" alt="Flowbite Logo" />
-        <span class="ml-px self-center whitespace-nowrap text-xl font-semibold dark:text-white sm:text-2xl"> Electric Panel </span>
-      </NavBrand>
-      <!-- Region selector -->
-      <div class="ms-auto flex items-center gap-2 text-gray-500 dark:text-gray-400 sm:order-2">
-        <!-- Place the trigger button BEFORE the dropdown as a sibling (Flowbite expects previousElementSibling) -->
-        <Button color="light" class="!py-1 !px-2" on:click={(e) => e.stopPropagation()}>
-          <span class="fi fi-{currentRegion} mr-2"></span>
-          {currentRegion === 'ar' ? 'Argentina' : 'Brasil'}
-          <ChevronDownOutline class="ms-2 h-5 w-5" />
-        </Button>
-        <Dropdown trigger="click" placement="bottom-end" class="px-3 pb-3 text-sm" bind:open={regionDropOpen}>
-          <DropdownItem on:click={() => { regionStore.set('ar'); regionDropOpen = false; }} class="flex items-center gap-2 text-base font-semibold">
-            <span class="fi fi-ar"></span>
-            Argentina
-          </DropdownItem>
-          <DropdownItem on:click={() => { regionStore.set('br'); regionDropOpen = false; }} class="flex items-center gap-2 text-base font-semibold">
-            <span class="fi fi-br"></span>
-            Brasil
-          </DropdownItem>
-        </Dropdown>
-        <DarkMode />
-        {#if loading}
-          <div class="pulse mr-3 h-4 w-20 rounded-lg bg-gray-200 dark:bg-gray-700"></div>
-          <Avatar size="sm" class="pulse" />
-        {:else if $steamStore}
-          <P>{$steamStore.personaname ?? ''}</P>
-          <UserMenu />
-        {:else}
-          <Button on:click={() => {
+  <NavContainer class="mb-px mt-px px-1" {fluid}>
+    <NavHamburger onClick={() => (drawerHidden = !drawerHidden)} class="m-0 me-3 md:block lg:hidden" />
+    <NavBrand href="/" class={list ? 'w-40' : 'lg:w-60'}>
+      <img src="/images/favicon.png" class="me-2.5 h-6 sm:h-8" alt="Flowbite Logo" />
+      <span class="ml-px self-center whitespace-nowrap text-xl font-semibold dark:text-white sm:text-2xl"> Electric Panel </span>
+    </NavBrand>
+    <!-- Region selector -->
+    <div class="ms-auto flex items-center gap-2 text-gray-500 dark:text-gray-400 sm:order-2">
+      <!-- Place the trigger button BEFORE the dropdown as a sibling (Flowbite expects previousElementSibling) -->
+      <Button color="light" class="!px-2 !py-1" on:click={(e) => e.stopPropagation()}>
+        <span class="fi fi-{currentRegion} mr-2"></span>
+        {currentRegion === 'ar' ? 'Argentina' : 'Brasil'}
+        <ChevronDownOutline class="ms-2 h-5 w-5" />
+      </Button>
+      <Dropdown trigger="click" placement="bottom-end" class="px-3 pb-3 text-sm" bind:open={regionDropOpen}>
+        <DropdownItem
+          on:click={() => {
+            regionStore.set('ar');
+            regionDropOpen = false;
+          }}
+          class="flex items-center gap-2 text-base font-semibold">
+          <span class="fi fi-ar"></span>
+          Argentina
+        </DropdownItem>
+        <DropdownItem
+          on:click={() => {
+            regionStore.set('br');
+            regionDropOpen = false;
+          }}
+          class="flex items-center gap-2 text-base font-semibold">
+          <span class="fi fi-br"></span>
+          Brasil
+        </DropdownItem>
+      </Dropdown>
+      <DarkMode />
+      {#if loading}
+        <div class="pulse mr-3 h-4 w-20 rounded-lg bg-gray-200 dark:bg-gray-700"></div>
+        <Avatar size="sm" class="pulse" />
+      {:else if $steamStore}
+        <P>{$steamStore.personaname ?? ''}</P>
+        <UserMenu />
+      {:else}
+        <Button
+          on:click={() => {
             const current = typeof window !== 'undefined' ? window.location.pathname + window.location.search + window.location.hash : '/';
             goto(`/api/auth/login?returnTo=${encodeURIComponent(current)}`);
           }}>Login with Steam</Button>
-        {/if}
-      </div>
-    </NavContainer>
+      {/if}
+    </div>
+  </NavContainer>
 </Navbar>

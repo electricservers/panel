@@ -64,7 +64,7 @@ export const GET: RequestHandler = async (event) => {
           const wins = user.wins ?? 0;
           const losses = user.losses ?? 0;
           const totalGames = wins + losses;
-          const wlValue = losses !== 0 ? wins / losses : (wins > 0 ? Number.POSITIVE_INFINITY : 0);
+          const wlValue = losses !== 0 ? wins / losses : wins > 0 ? Number.POSITIVE_INFINITY : 0;
           const winrateValue = totalGames !== 0 ? (wins / totalGames) * 100 : 0;
           return { ...user, totalGames, wlValue, winrateValue };
         });
@@ -73,7 +73,7 @@ export const GET: RequestHandler = async (event) => {
           const bv = b[sortKey];
           const aNum = typeof av === 'number' ? av : Number(av ?? 0);
           const bNum = typeof bv === 'number' ? bv : Number(bv ?? 0);
-          const cmp = aNum === bNum ? 0 : (aNum < bNum ? -1 : 1);
+          const cmp = aNum === bNum ? 0 : aNum < bNum ? -1 : 1;
           return sortDir === 'asc' ? cmp : -cmp;
         });
         total = computed.length;
@@ -85,7 +85,7 @@ export const GET: RequestHandler = async (event) => {
             const wins = user.wins ?? 0;
             const losses = user.losses ?? 0;
             const totalGames = wins + losses;
-            const wlValue = losses !== 0 ? wins / losses : (wins > 0 ? Number.POSITIVE_INFINITY : 0);
+            const wlValue = losses !== 0 ? wins / losses : wins > 0 ? Number.POSITIVE_INFINITY : 0;
             const winrateValue = totalGames !== 0 ? (wins / totalGames) * 100 : 0;
             return { ...user, totalGames, wlValue, winrateValue };
           });
@@ -94,11 +94,13 @@ export const GET: RequestHandler = async (event) => {
             const bv = b[sortKey];
             const aNum = typeof av === 'number' ? av : Number(av ?? 0);
             const bNum = typeof bv === 'number' ? bv : Number(bv ?? 0);
-            const cmp = aNum === bNum ? 0 : (aNum < bNum ? -1 : 1);
+            const cmp = aNum === bNum ? 0 : aNum < bNum ? -1 : 1;
             return sortDir === 'asc' ? cmp : -cmp;
           });
           const posMap: Record<string, number> = {};
-          computedAll.forEach((u: any, i: number) => { posMap[u.steamid] = i + 1; });
+          computedAll.forEach((u: any, i: number) => {
+            posMap[u.steamid] = i + 1;
+          });
           ranking = ranking.map((r) => ({ ...r, position: posMap[r.steamid] ?? null }));
         }
       } else {
@@ -109,7 +111,9 @@ export const GET: RequestHandler = async (event) => {
         if (includePositions) {
           const allOrdered = await prismaArg.mgemod_stats.findMany({ orderBy, select: { steamid: true } });
           const posMap: Record<string, number> = {};
-          allOrdered.forEach((u: any, i: number) => { posMap[u.steamid] = i + 1; });
+          allOrdered.forEach((u: any, i: number) => {
+            posMap[u.steamid] = i + 1;
+          });
           ranking = ranking.map((r) => ({ ...r, position: posMap[r.steamid] ?? null }));
         }
       }
@@ -126,7 +130,7 @@ export const GET: RequestHandler = async (event) => {
           const wins = user.wins ?? 0;
           const losses = user.losses ?? 0;
           const totalGames = wins + losses;
-          const wlValue = losses !== 0 ? wins / losses : (wins > 0 ? Number.POSITIVE_INFINITY : 0);
+          const wlValue = losses !== 0 ? wins / losses : wins > 0 ? Number.POSITIVE_INFINITY : 0;
           const winrateValue = totalGames !== 0 ? (wins / totalGames) * 100 : 0;
           return { ...user, totalGames, wlValue, winrateValue };
         });
@@ -135,7 +139,7 @@ export const GET: RequestHandler = async (event) => {
           const bv = b[sortKey];
           const aNum = typeof av === 'number' ? av : Number(av ?? 0);
           const bNum = typeof bv === 'number' ? bv : Number(bv ?? 0);
-          const cmp = aNum === bNum ? 0 : (aNum < bNum ? -1 : 1);
+          const cmp = aNum === bNum ? 0 : aNum < bNum ? -1 : 1;
           return sortDir === 'asc' ? cmp : -cmp;
         });
         total = computed.length;
@@ -146,7 +150,7 @@ export const GET: RequestHandler = async (event) => {
             const wins = user.wins ?? 0;
             const losses = user.losses ?? 0;
             const totalGames = wins + losses;
-            const wlValue = losses !== 0 ? wins / losses : (wins > 0 ? Number.POSITIVE_INFINITY : 0);
+            const wlValue = losses !== 0 ? wins / losses : wins > 0 ? Number.POSITIVE_INFINITY : 0;
             const winrateValue = totalGames !== 0 ? (wins / totalGames) * 100 : 0;
             return { ...user, totalGames, wlValue, winrateValue };
           });
@@ -155,11 +159,13 @@ export const GET: RequestHandler = async (event) => {
             const bv = b[sortKey];
             const aNum = typeof av === 'number' ? av : Number(av ?? 0);
             const bNum = typeof bv === 'number' ? bv : Number(bv ?? 0);
-            const cmp = aNum === bNum ? 0 : (aNum < bNum ? -1 : 1);
+            const cmp = aNum === bNum ? 0 : aNum < bNum ? -1 : 1;
             return sortDir === 'asc' ? cmp : -cmp;
           });
           const posMap: Record<string, number> = {};
-          computedAll.forEach((u: any, i: number) => { posMap[u.steamid] = i + 1; });
+          computedAll.forEach((u: any, i: number) => {
+            posMap[u.steamid] = i + 1;
+          });
           ranking = ranking.map((r) => ({ ...r, position: posMap[r.steamid] ?? null }));
         }
       } else {
@@ -170,7 +176,9 @@ export const GET: RequestHandler = async (event) => {
         if (includePositions) {
           const allOrdered = await prismaBr.mgemod_stats.findMany({ orderBy, select: { steamid: true } });
           const posMap: Record<string, number> = {};
-          allOrdered.forEach((u: any, i: number) => { posMap[u.steamid] = i + 1; });
+          allOrdered.forEach((u: any, i: number) => {
+            posMap[u.steamid] = i + 1;
+          });
           ranking = ranking.map((r) => ({ ...r, position: posMap[r.steamid] ?? null }));
         }
       }

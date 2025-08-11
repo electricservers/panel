@@ -114,11 +114,7 @@
   const fetchData = async (db: Region) => {
     id = new ID(data.id).getSteamID2();
     currentPage = 1;
-    await Promise.all([
-      fetchPlayerSummary(db),
-      fetchGames(db, 1, true),
-      fetchActivity(db)
-    ]);
+    await Promise.all([fetchPlayerSummary(db), fetchGames(db, 1, true), fetchActivity(db)]);
   };
 
   const fetchActivity = async (db: Region) => {
@@ -146,7 +142,10 @@
       fetchData(r);
     });
     fetchData(currentRegion);
-    return () => { unsubscribe(); unreg(); };
+    return () => {
+      unsubscribe();
+      unreg();
+    };
   });
 
   // Re-fetch on outcome change
@@ -195,19 +194,15 @@
           </span>
         {/if}
       </div>
-      <a target="_blank" class="text-sm text-blue-600 hover:underline" href={`https://steamcommunity.com/profiles/${data.id}`}>
-        View Steam profile
-      </a>
+      <a target="_blank" class="text-sm text-blue-600 hover:underline" href={`https://steamcommunity.com/profiles/${data.id}`}> View Steam profile </a>
     </div>
   </div>
   <div class="mt-3 flex flex-col gap-3">
     {#if !existsInAny}
-      <div class="rounded-md border border-rose-300 bg-rose-50 p-3 text-rose-900 dark:border-rose-900/50 dark:bg-rose-950 dark:text-rose-100">
-        Player does not exist in any region.
-      </div>
+      <div class="rounded-md border border-rose-300 bg-rose-50 p-3 text-rose-900 dark:border-rose-900/50 dark:bg-rose-950 dark:text-rose-100">Player does not exist in any region.</div>
     {:else if !existsInCurrent && existsInOther}
       <div class="rounded-md border border-amber-300 bg-amber-50 p-3 text-amber-900 dark:border-amber-900/50 dark:bg-amber-950 dark:text-amber-100">
-        No stats in {currentRegion === 'ar' ? 'Argentina' : 'Brasil'}. 
+        No stats in {currentRegion === 'ar' ? 'Argentina' : 'Brasil'}.
         <button class="ml-1 underline" onclick={() => regionStore.set(otherRegion)}>
           View in {otherRegion === 'ar' ? 'Argentina' : 'Brasil'}
         </button>
@@ -216,29 +211,29 @@
     <!-- Region is selected in the navbar -->
     <!-- Compact stat strip -->
     {#if existsInCurrent}
-    <div class="flex flex-wrap items-end justify-start gap-x-8 gap-y-2">
-      <div>
-        <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Matches</div>
-        <div class="text-2xl font-semibold">{totalMatches.toLocaleString()}</div>
-      </div>
-      <div>
-        <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Wins</div>
-        <div class="text-2xl font-semibold text-emerald-500">{wins.toLocaleString()}</div>
-      </div>
-      <div>
-        <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Losses</div>
-        <div class="text-2xl font-semibold text-rose-400">{losses.toLocaleString()}</div>
-      </div>
-      <div class="min-w-[200px] flex-1 md:max-w-[420px]">
-        <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-          <span>Winrate</span>
-          <span>{winrate}%</span>
+      <div class="flex flex-wrap items-end justify-start gap-x-8 gap-y-2">
+        <div>
+          <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Matches</div>
+          <div class="text-2xl font-semibold">{totalMatches.toLocaleString()}</div>
         </div>
-        <div class="mt-1 h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
-          <div class="h-2 rounded-full bg-emerald-500" style={`width: ${winrateNum}%`}></div>
+        <div>
+          <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Wins</div>
+          <div class="text-2xl font-semibold text-emerald-500">{wins.toLocaleString()}</div>
+        </div>
+        <div>
+          <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Losses</div>
+          <div class="text-2xl font-semibold text-rose-400">{losses.toLocaleString()}</div>
+        </div>
+        <div class="min-w-[200px] flex-1 md:max-w-[420px]">
+          <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+            <span>Winrate</span>
+            <span>{winrate}%</span>
+          </div>
+          <div class="mt-1 h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
+            <div class="h-2 rounded-full bg-emerald-500" style={`width: ${winrateNum}%`}></div>
+          </div>
         </div>
       </div>
-    </div>
     {/if}
   </div>
 </div>
@@ -248,21 +243,37 @@
       <!-- Filters -->
       <div class="mb-3 flex flex-wrap items-center gap-3">
         <div class="text-xs text-gray-500 dark:text-gray-400">Outcome:</div>
-        <button class={`rounded-md px-2 py-1 text-sm ${outcome === 'all' ? 'bg-gray-200 text-gray-900 dark:bg-gray-800 dark:text-gray-100' : 'bg-transparent text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'}`} onclick={() => { outcome = 'all'; }}>
+        <button
+          class={`rounded-md px-2 py-1 text-sm ${outcome === 'all' ? 'bg-gray-200 text-gray-900 dark:bg-gray-800 dark:text-gray-100' : 'bg-transparent text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'}`}
+          onclick={() => {
+            outcome = 'all';
+          }}>
           All
         </button>
-        <button class={`rounded-md px-2 py-1 text-sm ${outcome === 'win' ? 'bg-gray-200 text-gray-900 dark:bg-gray-800 dark:text-gray-100' : 'bg-transparent text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'}`} onclick={() => { outcome = 'win'; }}>
+        <button
+          class={`rounded-md px-2 py-1 text-sm ${outcome === 'win' ? 'bg-gray-200 text-gray-900 dark:bg-gray-800 dark:text-gray-100' : 'bg-transparent text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'}`}
+          onclick={() => {
+            outcome = 'win';
+          }}>
           Wins
         </button>
-        <button class={`rounded-md px-2 py-1 text-sm ${outcome === 'loss' ? 'bg-gray-200 text-gray-900 dark:bg-gray-800 dark:text-gray-100' : 'bg-transparent text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'}`} onclick={() => { outcome = 'loss'; }}>
+        <button
+          class={`rounded-md px-2 py-1 text-sm ${outcome === 'loss' ? 'bg-gray-200 text-gray-900 dark:bg-gray-800 dark:text-gray-100' : 'bg-transparent text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'}`}
+          onclick={() => {
+            outcome = 'loss';
+          }}>
           Losses
         </button>
 
         <div class="ml-auto flex items-center gap-2">
           <div class="text-xs text-gray-500 dark:text-gray-400">Per page:</div>
-          <select class="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
-                  value={String(pageSize)}
-                  onchange={(e) => { const v = Number((e.target as HTMLSelectElement).value); pageSize = v; }}>
+          <select
+            class="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+            value={String(pageSize)}
+            onchange={(e) => {
+              const v = Number((e.target as HTMLSelectElement).value);
+              pageSize = v;
+            }}>
             <option value="5">5</option>
             <option value="10">10</option>
             <option value="15">15</option>
@@ -273,25 +284,32 @@
 
       <!-- Matches list -->
       {#if existsInCurrent}
-      <MatchList
-        items={games}
-        subjectId2={id}
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={async (p: number) => { currentPage = p; await fetchGames(currentRegion, currentPage, false); }}
-        emptyText="No matches in this region."
-      />
+        <MatchList
+          items={games}
+          subjectId2={id}
+          {currentPage}
+          {totalPages}
+          onPageChange={async (p: number) => {
+            currentPage = p;
+            await fetchGames(currentRegion, currentPage, false);
+          }}
+          emptyText="No matches in this region." />
       {:else}
-      <div class="rounded-md border border-amber-300 bg-amber-50 p-3 text-amber-900 dark:border-amber-900/50 dark:bg-amber-950 dark:text-amber-100">
-        No matches in this region.
-      </div>
+        <div class="rounded-md border border-amber-300 bg-amber-50 p-3 text-amber-900 dark:border-amber-900/50 dark:bg-amber-950 dark:text-amber-100">No matches in this region.</div>
       {/if}
       <!-- Pagination moved inside DataTable -->
     </div>
     <div class="flex flex-col gap-4 lg:col-span-4">
       <!-- Sidebar -->
       <MostPlayedArenas steamid={id} />
-      <ActivityCard gametimes={activityTimes} loading={activityLoading} days={activityDays} onDaysChange={async (d: number) => { activityDays = d; await fetchActivity(currentRegion); }} />
+      <ActivityCard
+        gametimes={activityTimes}
+        loading={activityLoading}
+        days={activityDays}
+        onDaysChange={async (d: number) => {
+          activityDays = d;
+          await fetchActivity(currentRegion);
+        }} />
       <TopFoesPlaceholder />
     </div>
   </div>

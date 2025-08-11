@@ -7,5 +7,3 @@ export const load: LayoutServerLoad = async (event) => {
   if (user.role !== 'owner') throw error(403, 'Forbidden');
   return { user };
 };
-
-

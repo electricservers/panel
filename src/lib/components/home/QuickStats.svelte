@@ -38,19 +38,27 @@
       fetchStats(r);
     });
     fetchStats(currentRegion);
-    return () => { unreg(); };
+    return () => {
+      unreg();
+    };
   });
 
-  $effect(() => { days; fetchStats(currentRegion); });
+  $effect(() => {
+    days;
+    fetchStats(currentRegion);
+  });
 </script>
 
 <Card title="Quick stats" subtitle={`Last ${days}d in ${currentRegion.toUpperCase()}`}>
   <div class="mb-2 flex items-center justify-between">
     <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Window</div>
     <div class="flex items-center gap-1">
-      {#each [1,7,30,90] as d}
-        <button class={`rounded px-2 py-1 text-xs ${days === d ? 'bg-gray-200 text-gray-900 dark:bg-gray-800 dark:text-gray-100' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'}`}
-                onclick={() => { days = d; }}>
+      {#each [1, 7, 30, 90] as d}
+        <button
+          class={`rounded px-2 py-1 text-xs ${days === d ? 'bg-gray-200 text-gray-900 dark:bg-gray-800 dark:text-gray-100' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'}`}
+          onclick={() => {
+            days = d;
+          }}>
           {d}d
         </button>
       {/each}
@@ -79,5 +87,3 @@
     </div>
   {/if}
 </Card>
-
-

@@ -48,9 +48,7 @@ export const GET: RequestHandler = async (event) => {
       break;
   }
 
-  let gametimes = rows
-    .map((r) => (r.gametime == null ? null : String(r.gametime)))
-    .filter((v): v is string => Boolean(v));
+  let gametimes = rows.map((r) => (r.gametime == null ? null : String(r.gametime))).filter((v): v is string => Boolean(v));
 
   if (days && Number.isFinite(days) && days > 0) {
     const nowSec = Math.floor(Date.now() / 1000);
@@ -63,5 +61,3 @@ export const GET: RequestHandler = async (event) => {
 
   return json({ gametimes });
 };
-
-

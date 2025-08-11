@@ -9,12 +9,7 @@ interface ArenaRow {
   _count: { _all: number };
 }
 
-function normalizeRows(
-  total: ArenaRow[],
-  wins: Record<string, number>,
-  losses: Record<string, number>,
-  take: number
-) {
+function normalizeRows(total: ArenaRow[], wins: Record<string, number>, losses: Record<string, number>, take: number) {
   const agg: Record<string, { name: string; matches: number; wins: number; losses: number; winrate: number }> = {};
   for (const r of total) {
     const raw = r.arenaname ?? '';
@@ -111,5 +106,3 @@ export const GET: RequestHandler = async (event) => {
   const items = normalizeRows(total, winsMap, lossesMap, take);
   return json({ items });
 };
-
-

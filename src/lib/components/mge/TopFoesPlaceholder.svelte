@@ -33,5 +33,3 @@
 </Card>
 
 <!-- TODO: Replace Avatar src with steam avatars and add link to expandable foes list. -->
-
-

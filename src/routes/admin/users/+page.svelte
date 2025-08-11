@@ -3,7 +3,7 @@
   import Title from '$lib/components/Title.svelte';
   let { data } = $props<{ data: PageData }>();
 
-  let users = $state(data.users || [] as { steamId: string; role: string }[]);
+  let users = $state(data.users || ([] as { steamId: string; role: string }[]));
   let steamIdInput = $state('');
   let roleInput = $state<'owner' | 'admin' | 'user'>('user');
   let busy = $state(false);
@@ -50,31 +50,31 @@
 <Title>Manage users</Title>
 
 <div class="mt-4 grid gap-4">
-  <div class="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
-    <div class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+  <div class="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+    <div class="grid grid-cols-1 items-end gap-3 md:grid-cols-5">
       <div class="md:col-span-3">
-        <label class="block text-sm font-medium mb-1" for="steamid">SteamID64</label>
-        <input id="steamid" class="w-full rounded border-gray-300 dark:bg-gray-800 dark:border-gray-700" bind:value={steamIdInput} placeholder="7656119xxxxxxxxxx" />
+        <label class="mb-1 block text-sm font-medium" for="steamid">SteamID64</label>
+        <input id="steamid" class="w-full rounded border-gray-300 dark:border-gray-700 dark:bg-gray-800" bind:value={steamIdInput} placeholder="7656119xxxxxxxxxx" />
       </div>
       <div>
-        <label class="block text-sm font-medium mb-1" for="role">Role</label>
-        <select id="role" class="w-full rounded border-gray-300 dark:bg-gray-800 dark:border-gray-700" bind:value={roleInput}>
+        <label class="mb-1 block text-sm font-medium" for="role">Role</label>
+        <select id="role" class="w-full rounded border-gray-300 dark:border-gray-700 dark:bg-gray-800" bind:value={roleInput}>
           <option value="user">user</option>
           <option value="admin">admin</option>
           <option value="owner">owner</option>
         </select>
       </div>
       <div>
-        <button class="w-full rounded bg-blue-600 text-white py-2 disabled:opacity-50" disabled={busy} onclick={upsert}>Save</button>
+        <button class="w-full rounded bg-blue-600 py-2 text-white disabled:opacity-50" disabled={busy} onclick={upsert}>Save</button>
       </div>
     </div>
     {#if errorMsg}
-      <div class="text-sm text-red-600 mt-2">{errorMsg}</div>
+      <div class="mt-2 text-sm text-red-600">{errorMsg}</div>
     {/if}
   </div>
 
-  <div class="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
-    <div class="text-sm font-medium mb-2">Explicit role assignments</div>
+  <div class="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+    <div class="mb-2 text-sm font-medium">Explicit role assignments</div>
     {#if users?.length}
       <div class="overflow-x-auto">
         <table class="min-w-full text-sm">
@@ -88,10 +88,10 @@
           <tbody>
             {#each users as u}
               <tr class="border-t border-gray-200 dark:border-gray-700">
-                <td class="py-2 pr-4 font-mono">{u.steamId}</td>
+                <td class="font-mono py-2 pr-4">{u.steamId}</td>
                 <td class="py-2 pr-4">{u.role}</td>
                 <td class="py-2 pr-4">
-                  <button class="px-2 py-1 rounded bg-red-600 text-white" disabled={busy} onclick={() => remove(u.steamId)}>Remove</button>
+                  <button class="rounded bg-red-600 px-2 py-1 text-white" disabled={busy} onclick={() => remove(u.steamId)}>Remove</button>
                 </td>
               </tr>
             {/each}
@@ -103,5 +103,3 @@
     {/if}
   </div>
 </div>
-
-

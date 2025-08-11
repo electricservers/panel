@@ -44,10 +44,14 @@
 <Card title="Find a profile" class="w-full !max-w-none">
   <div>
     <div class="mt-3 flex max-w-lg gap-2">
-      <input class="w-full rounded-md border border-gray-200 bg-white px-3 text-sm placeholder:text-gray-400 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" placeholder="Paste Steam profile URL or 17-digit SteamID64" bind:value={steamInput} on:keydown={(e) => { if (e.key === 'Enter') goToProfile(); }} />
+      <input
+        class="w-full rounded-md border border-gray-200 bg-white px-3 text-sm placeholder:text-gray-400 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+        placeholder="Paste Steam profile URL or 17-digit SteamID64"
+        bind:value={steamInput}
+        on:keydown={(e) => {
+          if (e.key === 'Enter') goToProfile();
+        }} />
       <Button color="light" size="sm" on:click={goToProfile}>Go</Button>
     </div>
   </div>
 </Card>
-
-

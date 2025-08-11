@@ -25,7 +25,6 @@
     group: 'pt-2 space-y-2'
   };
 
-
   const handleDrawerClose = () => {
     drawerHidden = true;
   };
@@ -62,11 +61,7 @@
       : baseMgeChildren
   });
 
-  const primaryItems = $derived([
-    homeItem,
-    mgeItem,
-    ...($steamStore?.role === 'admin' || $steamStore?.role === 'owner' ? [whoisItem] : [])
-  ]);
+  const primaryItems = $derived([homeItem, mgeItem, ...($steamStore?.role === 'admin' || $steamStore?.role === 'owner' ? [whoisItem] : [])]);
 
   const showAdmin = $derived($steamStore?.role === 'owner');
 </script>

@@ -34,15 +34,22 @@ export const GET: RequestHandler = async (event) => {
   // @ts-expect-error see above
   const losers = await client.mgemod_duels.groupBy({ by: ['loser'], where: { gametime: { gte: cutoff } as any } });
   const uniqPlayers = new Set<string>();
-  winners.forEach((r: any) => { if (r.winner) uniqPlayers.add(String(r.winner)); });
-  losers.forEach((r: any) => { if (r.loser) uniqPlayers.add(String(r.loser)); });
+  winners.forEach((r: any) => {
+    if (r.winner) uniqPlayers.add(String(r.winner));
+  });
+  losers.forEach((r: any) => {
+    if (r.loser) uniqPlayers.add(String(r.loser));
+  });
   const activePlayers = uniqPlayers.size;
 
   // Arenas played (distinct canonical names) in window
   // @ts-expect-error see above
   const arenaRows = await client.mgemod_duels.groupBy({ by: ['arenaname'], where: { gametime: { gte: cutoff } as any } });
   const uniqArenas = new Set<string>();
-  arenaRows.forEach((r: any) => { const key = canonicalizeArenaName(r.arenaname ?? ''); if (key) uniqArenas.add(key); });
+  arenaRows.forEach((r: any) => {
+    const key = canonicalizeArenaName(r.arenaname ?? '');
+    if (key) uniqArenas.add(key);
+  });
   const arenasPlayed = uniqArenas.size;
 
   return json({
@@ -53,5 +60,3 @@ export const GET: RequestHandler = async (event) => {
     days
   });
 };
-
-

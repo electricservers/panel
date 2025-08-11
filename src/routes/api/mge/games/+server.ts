@@ -106,18 +106,15 @@ export const GET: RequestHandler = async (event) => {
           });
           idFilters = players.map((p) => p.steamid);
         }
-        const whereWithIds: Prisma.mgemod_duelsWhereInput = idFilters && idFilters.length > 0
-          ? {
-              AND: [
-                findManyParams.where ?? {},
-                outcome === 'win'
-                  ? { winner: { in: idFilters } }
-                  : outcome === 'loss'
-                  ? { loser: { in: idFilters } }
-                  : { OR: [{ winner: { in: idFilters } }, { loser: { in: idFilters } }] }
-              ]
-            }
-          : findManyParams.where ?? {};
+        const whereWithIds: Prisma.mgemod_duelsWhereInput =
+          idFilters && idFilters.length > 0
+            ? {
+                AND: [
+                  findManyParams.where ?? {},
+                  outcome === 'win' ? { winner: { in: idFilters } } : outcome === 'loss' ? { loser: { in: idFilters } } : { OR: [{ winner: { in: idFilters } }, { loser: { in: idFilters } }] }
+                ]
+              }
+            : (findManyParams.where ?? {});
         gamesRaw = await prismaArg.mgemod_duels.findMany({ ...findManyParams, where: whereWithIds });
         if (query.has('withTotal')) {
           total = await prismaArg.mgemod_duels.count({ where: whereWithIds });
@@ -140,18 +137,15 @@ export const GET: RequestHandler = async (event) => {
           });
           idFilters = players.map((p) => p.steamid);
         }
-        const whereWithIds: Prisma.mgemod_duelsWhereInput = idFilters && idFilters.length > 0
-          ? {
-              AND: [
-                findManyParams.where ?? {},
-                outcome === 'win'
-                  ? { winner: { in: idFilters } }
-                  : outcome === 'loss'
-                  ? { loser: { in: idFilters } }
-                  : { OR: [{ winner: { in: idFilters } }, { loser: { in: idFilters } }] }
-              ]
-            }
-          : findManyParams.where ?? {};
+        const whereWithIds: Prisma.mgemod_duelsWhereInput =
+          idFilters && idFilters.length > 0
+            ? {
+                AND: [
+                  findManyParams.where ?? {},
+                  outcome === 'win' ? { winner: { in: idFilters } } : outcome === 'loss' ? { loser: { in: idFilters } } : { OR: [{ winner: { in: idFilters } }, { loser: { in: idFilters } }] }
+                ]
+              }
+            : (findManyParams.where ?? {});
         gamesRaw = await prismaBr.mgemod_duels.findMany({ ...findManyParams, where: whereWithIds });
         if (query.has('withTotal')) {
           total = await prismaBr.mgemod_duels.count({ where: whereWithIds });
@@ -166,24 +160,18 @@ export const GET: RequestHandler = async (event) => {
       return error(400, "wrong db supplied (only 'ar' or 'br' accepted)");
   }
 
-  const steamIDs = Array.from(
-    new Set(
-      gamesRaw
-        .flatMap((game) => [game.winner, game.loser])
-        .filter((id): id is string => Boolean(id))
-    )
-  );
+  const steamIDs = Array.from(new Set(gamesRaw.flatMap((game) => [game.winner, game.loser]).filter((id): id is string => Boolean(id))));
 
   let players: { steamid: string; name: string | null }[] = [];
   if (query.get('db') === 'br') {
     players = await prismaBr.mgemod_stats.findMany({
       where: { steamid: { in: steamIDs } },
-      select: { steamid: true, name: true },
+      select: { steamid: true, name: true }
     });
   } else {
     players = await prismaArg.mgemod_stats.findMany({
       where: { steamid: { in: steamIDs } },
-      select: { steamid: true, name: true },
+      select: { steamid: true, name: true }
     });
   }
 

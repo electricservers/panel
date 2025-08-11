@@ -15,10 +15,7 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
   let existsInBr = false;
   try {
     const id2 = new ID(params.steamid).getSteamID2();
-    const [arCount, brCount] = await Promise.all([
-      prismaArg.mgemod_stats.count({ where: { steamid: id2 } }),
-      prismaBr.mgemod_stats.count({ where: { steamid: id2 } })
-    ]);
+    const [arCount, brCount] = await Promise.all([prismaArg.mgemod_stats.count({ where: { steamid: id2 } }), prismaBr.mgemod_stats.count({ where: { steamid: id2 } })]);
     existsInAr = (arCount ?? 0) > 0;
     existsInBr = (brCount ?? 0) > 0;
   } catch {

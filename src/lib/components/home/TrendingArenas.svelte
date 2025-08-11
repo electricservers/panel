@@ -2,7 +2,11 @@
   import Card from '../../../routes/utils/widgets/Card.svelte';
   import { regionStore, type Region } from '$lib/stores/regionStore';
 
-  interface ArenaItem { name: string; matches: number; percent: number }
+  interface ArenaItem {
+    name: string;
+    matches: number;
+    percent: number;
+  }
 
   let currentRegion: Region = $state('ar');
   let days = $state(7);
@@ -33,19 +37,27 @@
       fetchTrending(r);
     });
     fetchTrending(currentRegion);
-    return () => { unreg(); };
+    return () => {
+      unreg();
+    };
   });
 
-  $effect(() => { days; fetchTrending(currentRegion); });
+  $effect(() => {
+    days;
+    fetchTrending(currentRegion);
+  });
 </script>
 
 <Card title="Trending arenas" subtitle={`Last ${days} days`}>
   <div class="mb-2 flex items-center justify-between">
     <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Window</div>
     <div class="flex items-center gap-1">
-      {#each [7,14,30,90] as d}
-        <button class={`rounded px-2 py-1 text-xs ${days === d ? 'bg-gray-200 text-gray-900 dark:bg-gray-800 dark:text-gray-100' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'}`}
-                onclick={() => { days = d; }}>
+      {#each [7, 14, 30, 90] as d}
+        <button
+          class={`rounded px-2 py-1 text-xs ${days === d ? 'bg-gray-200 text-gray-900 dark:bg-gray-800 dark:text-gray-100' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'}`}
+          onclick={() => {
+            days = d;
+          }}>
           {d}d
         </button>
       {/each}
@@ -73,5 +85,3 @@
     </div>
   {/if}
 </Card>
-
-

@@ -15,7 +15,7 @@
 
   const hist: ActivityHistograms = $derived(computeActivityHistograms(gametimes || []));
   const weekdayValues = $derived(reorderWeekdayToMondayFirst(hist.byWeekday)); // Mon..Sun
-  const weekdayLabels = $derived(['Mon','Tue','Wed','Thu','Fri','Sat','Sun']);
+  const weekdayLabels = $derived(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
 
   // Track dark mode from the root <html class="dark"> toggled by Flowbite's DarkMode
   let isDark = $state(false);
@@ -24,7 +24,9 @@
     const root = document.documentElement;
     const compute = () => root.classList.contains('dark');
     isDark = compute();
-    const obs = new MutationObserver(() => { isDark = compute(); });
+    const obs = new MutationObserver(() => {
+      isDark = compute();
+    });
     obs.observe(root, { attributes: true, attributeFilter: ['class'] });
     return () => obs.disconnect();
   });
@@ -55,9 +57,7 @@
     colors: ['#10b981'],
     tooltip: { theme: isDark ? 'dark' : 'light', y: { formatter: (v: number) => `${v} matches` } },
     theme: { mode: isDark ? 'dark' : 'light' },
-    series: [
-      { name: 'Matches', data: weekdayValues }
-    ]
+    series: [{ name: 'Matches', data: weekdayValues }]
   } as unknown as ApexOptions);
 </script>
 
@@ -69,9 +69,10 @@
       <div class="flex items-center justify-between">
         <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">By weekday</div>
         <div class="flex items-center gap-1">
-          {#each [15,30,60,90] as d}
-            <button class={`rounded px-2 py-1 text-xs ${days === d ? 'bg-gray-200 text-gray-900 dark:bg-gray-800 dark:text-gray-100' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'}`}
-                    onclick={() => onDaysChange && onDaysChange(d)}>{d}d</button>
+          {#each [15, 30, 60, 90] as d}
+            <button
+              class={`rounded px-2 py-1 text-xs ${days === d ? 'bg-gray-200 text-gray-900 dark:bg-gray-800 dark:text-gray-100' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'}`}
+              onclick={() => onDaysChange && onDaysChange(d)}>{d}d</button>
           {/each}
         </div>
       </div>
@@ -79,5 +80,3 @@
     </div>
   {/if}
 </Card>
-
-

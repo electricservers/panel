@@ -30,5 +30,3 @@ export const GET: RequestHandler = async (event) => {
   const items = Object.keys(map).sort((a, b) => a.localeCompare(b));
   return json({ items, variants: map });
 };
-
-

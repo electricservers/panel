@@ -66,48 +66,49 @@ export const GET: RequestHandler = async (event) => {
     ipToAccounts.get(ip)!.add(sid);
   }
 
-  const candidates = Object.values(candidatesMap).map((c) => {
-    const sharedIps = [...c.sharedIps];
-    // Weight IPs: rare IPs weigh more
-    let ipScore = 0;
-    for (const ip of sharedIps) {
-      const accCount = ipToAccounts.get(ip)?.size || 1;
-      const rarity = 1 / Math.min(accCount, 10); // 1.0 for 1, 0.5 for 2, ... floor at 0.1
-      ipScore += rarity;
-    }
-    // Normalize roughly to 0..1
-    const ipOverlapScore = Math.min(1, ipScore / 3);
-
-    // Name similarity (best match across names)
-    let nameSim = 0;
-    for (const n1 of subjectNames) for (const n2 of c.names) nameSim = Math.max(nameSim, stringSimilarity(n1!, n2!));
-    const nameSimilarityScore = nameSim * 0.6; // cap influence
-
-    // Simple aggregate
-    const score = Math.max(0, Math.min(1, 0.75 * ipOverlapScore + 0.25 * nameSimilarityScore));
-
-    let label: 'Likely' | 'Possible' | 'Unlikely' = 'Unlikely';
-    if (score >= 0.7) label = 'Likely';
-    else if (score >= 0.4) label = 'Possible';
-
-    const cand64 = toSteam64FromAny(c.steamid) || null;
-    if (cand64 && subjectVariants.has(cand64)) {
-      return null;
-    }
-    return {
-      steamidRaw: c.steamid,
-      steamid64: cand64,
-      score,
-      label,
-      sharedIps: sharedIps,
-      evidence: {
-        ipOverlapScore,
-        nameSimilarityScore
+  const candidates = Object.values(candidatesMap)
+    .map((c) => {
+      const sharedIps = [...c.sharedIps];
+      // Weight IPs: rare IPs weigh more
+      let ipScore = 0;
+      for (const ip of sharedIps) {
+        const accCount = ipToAccounts.get(ip)?.size || 1;
+        const rarity = 1 / Math.min(accCount, 10); // 1.0 for 1, 0.5 for 2, ... floor at 0.1
+        ipScore += rarity;
       }
-    };
-  }).filter(Boolean).sort((a: any, b: any) => b.score - a.score);
+      // Normalize roughly to 0..1
+      const ipOverlapScore = Math.min(1, ipScore / 3);
+
+      // Name similarity (best match across names)
+      let nameSim = 0;
+      for (const n1 of subjectNames) for (const n2 of c.names) nameSim = Math.max(nameSim, stringSimilarity(n1!, n2!));
+      const nameSimilarityScore = nameSim * 0.6; // cap influence
+
+      // Simple aggregate
+      const score = Math.max(0, Math.min(1, 0.75 * ipOverlapScore + 0.25 * nameSimilarityScore));
+
+      let label: 'Likely' | 'Possible' | 'Unlikely' = 'Unlikely';
+      if (score >= 0.7) label = 'Likely';
+      else if (score >= 0.4) label = 'Possible';
+
+      const cand64 = toSteam64FromAny(c.steamid) || null;
+      if (cand64 && subjectVariants.has(cand64)) {
+        return null;
+      }
+      return {
+        steamidRaw: c.steamid,
+        steamid64: cand64,
+        score,
+        label,
+        sharedIps: sharedIps,
+        evidence: {
+          ipOverlapScore,
+          nameSimilarityScore
+        }
+      };
+    })
+    .filter(Boolean)
+    .sort((a: any, b: any) => b.score - a.score);
 
   return json({ steamid, candidates }, { headers: { 'cache-control': 'no-store' } });
 };
-
-

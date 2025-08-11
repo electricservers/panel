@@ -38,5 +38,3 @@ export function reorderWeekdayToMondayFirst(values: number[]): number[] {
 }
 
 // Removed hour-of-day helpers and labels as we dropped that chart for now
-
-

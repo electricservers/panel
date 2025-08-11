@@ -5,5 +5,3 @@ export const load: PageServerLoad = async ({ fetch }) => {
   const data = await resp.json();
   return { users: resp.ok ? data.users : [] };
 };
-
-

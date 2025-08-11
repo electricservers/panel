@@ -32,11 +32,7 @@ export const POST: RequestHandler = async (event) => {
     return json({ error: 'Invalid role' }, { status: 400 });
   }
 
-  await User.findOneAndUpdate(
-    { steamId },
-    { $set: { steamId, role } },
-    { upsert: true, new: true }
-  );
+  await User.findOneAndUpdate({ steamId }, { $set: { steamId, role } }, { upsert: true, new: true });
 
   return json({ ok: true });
 };
@@ -57,5 +53,3 @@ export const DELETE: RequestHandler = async (event) => {
   await User.deleteOne({ steamId });
   return json({ ok: true });
 };
-
-

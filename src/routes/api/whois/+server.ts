@@ -40,20 +40,23 @@ export const GET: RequestHandler = async (event) => {
     // Fast path: check if there are any sessions first
     const totalSessions = await prismaArg.whois_logs.count({ where: { steam_id: { in: variants } } });
     if (totalSessions === 0) {
-      return json({
-        type: 'steam',
-        steamid: normalized.value,
-        exists: false,
-        summary: {
-          firstSeen: null,
-          lastSeen: null,
-          totalSessions: 0,
-          distinctIPs: [],
-          distinctServers: []
+      return json(
+        {
+          type: 'steam',
+          steamid: normalized.value,
+          exists: false,
+          summary: {
+            firstSeen: null,
+            lastSeen: null,
+            totalSessions: 0,
+            distinctIPs: [],
+            distinctServers: []
+          },
+          names: { permanent: null, known: [] },
+          logs: []
         },
-        names: { permanent: null, known: [] },
-        logs: []
-      }, { headers: { 'cache-control': 'no-store' } });
+        { headers: { 'cache-control': 'no-store' } }
+      );
     }
 
     const logs = await prismaArg.whois_logs.findMany({
@@ -103,27 +106,28 @@ export const GET: RequestHandler = async (event) => {
 
     // Remove permaname from known list if present
     const permanentName = (permName?.name ?? '').trim();
-    const knownFiltered = permanentName
-      ? knownNames.filter((n) => (n ?? '').trim().toLowerCase() !== permanentName.toLowerCase())
-      : knownNames;
+    const knownFiltered = permanentName ? knownNames.filter((n) => (n ?? '').trim().toLowerCase() !== permanentName.toLowerCase()) : knownNames;
 
-    return json({
-      type: 'steam',
-      steamid: normalized.value,
-      exists: true,
-      summary: {
-        firstSeen: firstLast[0] || null,
-        lastSeen,
-        totalSessions,
-        distinctIPs: distinctIps.map((r) => r.ip).filter(Boolean),
-        distinctServers: distinctServers.map((r) => ({ ip: r.server_ip, name: r.server_name }))
+    return json(
+      {
+        type: 'steam',
+        steamid: normalized.value,
+        exists: true,
+        summary: {
+          firstSeen: firstLast[0] || null,
+          lastSeen,
+          totalSessions,
+          distinctIPs: distinctIps.map((r) => r.ip).filter(Boolean),
+          distinctServers: distinctServers.map((r) => ({ ip: r.server_ip, name: r.server_name }))
+        },
+        names: {
+          permanent: permanentName || null,
+          known: knownFiltered
+        },
+        logs
       },
-      names: {
-        permanent: permanentName || null,
-        known: knownFiltered
-      },
-      logs
-    }, { headers: { 'cache-control': 'no-store' } });
+      { headers: { 'cache-control': 'no-store' } }
+    );
   }
 
   // IP mode
@@ -155,16 +159,19 @@ export const GET: RequestHandler = async (event) => {
     })
   ).then((arr) => arr.filter(Boolean));
 
-  return json({
-    type: 'ip',
-    ip: normalized.value,
-    summary: {
-      firstSeen: logsByIp[logsByIp.length - 1] || null,
-      lastSeen: logsByIp[0] || null,
-      totalSessions: await prismaArg.whois_logs.count({ where: { ip: normalized.value } }),
-      distinctAccounts: distinctAccounts.map((r) => r.steam_id).filter(Boolean)
+  return json(
+    {
+      type: 'ip',
+      ip: normalized.value,
+      summary: {
+        firstSeen: logsByIp[logsByIp.length - 1] || null,
+        lastSeen: logsByIp[0] || null,
+        totalSessions: await prismaArg.whois_logs.count({ where: { ip: normalized.value } }),
+        distinctAccounts: distinctAccounts.map((r) => r.steam_id).filter(Boolean)
+      },
+      accounts,
+      logs: logsByIp
     },
-    accounts,
-    logs: logsByIp
-  }, { headers: { 'cache-control': 'no-store' } });
+    { headers: { 'cache-control': 'no-store' } }
+  );
 };

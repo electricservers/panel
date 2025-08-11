@@ -10,5 +10,5 @@ services:
       DATABASE_URL_1: # TODO: Add Database URL 1
       DATABASE_URL_2: # TODO: Add Database URL 2
     ports:
-      - "3000:3000"
+      - '3000:3000'
     restart: unless-stopped

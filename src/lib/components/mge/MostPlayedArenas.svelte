@@ -2,7 +2,13 @@
   import Card from '../../../routes/utils/widgets/Card.svelte';
   import { regionStore, type Region } from '$lib/stores/regionStore';
 
-  export interface ArenaStat { name: string; matches: number; wins: number; losses: number; winrate: number }
+  export interface ArenaStat {
+    name: string;
+    matches: number;
+    wins: number;
+    losses: number;
+    winrate: number;
+  }
 
   interface Props {
     steamid?: string | null;
@@ -15,9 +21,7 @@
   let currentRegion: Region = $state('ar');
   let loading = $state(false);
   let items = $state<ArenaStat[]>([]);
-  const sortedItems = $derived([
-    ...items
-  ].sort((a, b) => (Number(b.matches || 0) - Number(a.matches || 0)) || a.name.localeCompare(b.name)) as ArenaStat[]);
+  const sortedItems = $derived([...items].sort((a, b) => Number(b.matches || 0) - Number(a.matches || 0) || a.name.localeCompare(b.name)) as ArenaStat[]);
   let errorText = $state<string | null>(null);
 
   // Removed unused derived values to reduce lints
@@ -57,12 +61,17 @@
       currentRegion = r;
     });
     // no immediate fetch here
-    return () => { unsub(); };
+    return () => {
+      unsub();
+    };
   });
 
   // React when inputs change (steamid/days/take/region)
   $effect(() => {
-    steamid; days; take; currentRegion;
+    steamid;
+    days;
+    take;
+    currentRegion;
     if (!steamid || String(steamid).trim() === '') {
       // do not fetch until a valid steamid is available; also clear any previous error
       items = [];
@@ -80,9 +89,12 @@
   <div class="mb-2 flex items-center justify-between">
     <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Window</div>
     <div class="flex items-center gap-1">
-      {#each [15,30,60,90] as d}
-        <button class={`rounded px-2 py-1 text-xs ${days === d ? 'bg-gray-200 text-gray-900 dark:bg-gray-800 dark:text-gray-100' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'}`}
-                onclick={() => { days = d; }}>
+      {#each [15, 30, 60, 90] as d}
+        <button
+          class={`rounded px-2 py-1 text-xs ${days === d ? 'bg-gray-200 text-gray-900 dark:bg-gray-800 dark:text-gray-100' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'}`}
+          onclick={() => {
+            days = d;
+          }}>
           {d}d
         </button>
       {/each}
@@ -114,5 +126,3 @@
     {/if}
   </div>
 </Card>
-
-

@@ -15,13 +15,7 @@ function normalizeWhitespace(input: string): string {
   return input.replace(/\s+/g, ' ').trim();
 }
 
-const TOKEN_STRIP = [
-  '1v1',
-  '2v2',
-  'mge',
-  'tf2',
-  'arena'
-];
+const TOKEN_STRIP = ['1v1', '2v2', 'mge', 'tf2', 'arena'];
 
 const PART_SYNONYMS: Record<string, string> = {
   mid: 'middle'
@@ -55,5 +49,3 @@ export function canonicalizeArenaName(original: string | null | undefined): stri
   s = s.replace(/\s+(?:[ivx]+|\d+)$/i, '');
   return s;
 }
-
-

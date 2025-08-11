@@ -56,5 +56,3 @@ export const GET: RequestHandler = async (event) => {
 
   return json({ items, total, days });
 };
-
-

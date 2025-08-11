@@ -20,5 +20,3 @@ if (browser) {
 }
 
 export const regionStore = region;
-
-

@@ -1,32 +1,31 @@
 <script lang="ts">
-    import { browser } from '$app/environment';
-    import type { ApexOptions } from 'apexcharts';
-    import { Chart } from 'flowbite-svelte';
-    import { onMount } from 'svelte';
+  import { browser } from '$app/environment';
+  import type { ApexOptions } from 'apexcharts';
+  import { Chart } from 'flowbite-svelte';
+  import { onMount } from 'svelte';
 
-    type ConfigFunc = (dark: boolean) => ApexOptions;
-    interface Props {
-        configFunc: ConfigFunc;
-        class?: string;
+  type ConfigFunc = (dark: boolean) => ApexOptions;
+  interface Props {
+    configFunc: ConfigFunc;
+    class?: string;
+  }
+
+  let { configFunc, class: className = '' }: Props = $props();
+
+  let dark = $state(browser ? document.documentElement.classList.contains('dark') : false);
+
+  let options: ApexOptions = $derived(configFunc(dark));
+
+  function handler(ev: Event) {
+    if ('detail' in ev) {
+      dark = !!ev.detail;
     }
+  }
 
-    let { configFunc, class: className = '' }: Props = $props();
-
-    let dark = $state(browser ? document.documentElement.classList.contains('dark') : false);
-
-    let options: ApexOptions = $derived(configFunc(dark));
-    
-
-    function handler(ev: Event) {
-        if ('detail' in ev) {
-            dark = !!ev.detail;
-        }
-    }
-
-    onMount(() => {
-        document.addEventListener('dark', handler);
-        return () => document.removeEventListener('dark', handler);
-    });
+  onMount(() => {
+    document.addEventListener('dark', handler);
+    return () => document.removeEventListener('dark', handler);
+  });
 </script>
 
 <Chart {options} class={className} />
