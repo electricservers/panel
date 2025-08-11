@@ -19,6 +19,7 @@
   let errorMsg = $state('');
   let currentRegion: Region = $state('ar');
   let rows: Row[] = $state([]);
+  let avatarMap = $state<Record<string, string>>({});
 
   async function fetchTop(region: Region, take = 5): Promise<Row[]> {
     const params = new URLSearchParams({ db: region, take: String(take), sortKey: 'rating', sortDir: 'desc' });
@@ -51,6 +52,7 @@
         loading = true;
         try {
           rows = await fetchTop(r);
+          await fetchAvatarsForRows(rows);
           errorMsg = '';
         } catch (e) {
           errorMsg = e instanceof Error ? e.message : 'Unknown error';
@@ -64,6 +66,7 @@
       loading = true;
       try {
         rows = await fetchTop(currentRegion);
+        await fetchAvatarsForRows(rows);
         errorMsg = '';
       } catch (e) {
         errorMsg = e instanceof Error ? e.message : 'Unknown error';
@@ -73,23 +76,49 @@
     })();
     return () => unreg();
   });
+
+  async function fetchAvatarsForRows(list: Row[]) {
+    try {
+      const ids = Array.from(new Set(list.map((r) => r.steamid64).filter(Boolean))) as string[];
+      if (ids.length === 0) {
+        avatarMap = {};
+        return;
+      }
+      const resp = await fetch(`/api/steam/profile?steamids=${encodeURIComponent(ids.join(','))}`);
+      if (!resp.ok) return;
+      const data = await resp.json();
+      const map: Record<string, string> = {};
+      for (const [sid, info] of Object.entries<any>(data)) {
+        const url = info?.avatarfull || info?.avatarmedium || info?.avatar;
+        if (sid && url) map[sid] = url as string;
+      }
+      avatarMap = map;
+    } catch {}
+  }
 </script>
 
 <Card title="Leaderboard">
+  {#snippet titleSuffix()}
+    <span class="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+      <span class="fi fi-{currentRegion}"></span>
+      <span class="uppercase">{currentRegion}</span>
+    </span>
+  {/snippet}
   {#if loading}
     <div class="py-4 text-center text-sm text-gray-500">Loading…</div>
   {:else if errorMsg}
     <div class="py-4 text-center text-sm text-rose-500">{errorMsg}</div>
   {:else}
-    <div class="mb-2 flex items-center gap-2">
-      <span class="fi fi-{currentRegion}"></span>
-      <span class="text-xs uppercase text-gray-500">{currentRegion}</span>
-    </div>
     <div class="space-y-2">
       {#each rows as r}
         <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <span class="w-6 text-right text-sm tabular-nums text-gray-500">{r.pos}</span>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-gray-500">#{r.pos}</span>
+            {#if r.steamid64 && avatarMap[r.steamid64]}
+              <img class="h-6 w-6 rounded" src={avatarMap[r.steamid64]} alt="avatar" />
+            {:else}
+              <div class="h-6 w-6 rounded bg-gray-200 dark:bg-gray-700"></div>
+            {/if}
             {#if r.steamid64}
               <a class="font-medium text-emerald-600 hover:underline dark:text-emerald-400" href="/mge/games/{r.steamid64}">{r.name}</a>
             {:else}
@@ -105,3 +134,5 @@
     </div>
   {/if}
 </Card>
+
+

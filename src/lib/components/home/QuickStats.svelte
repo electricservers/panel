@@ -49,7 +49,13 @@
   });
 </script>
 
-<Card title="Quick stats" subtitle={`Last ${days}d in ${currentRegion.toUpperCase()}`}>
+<Card title="Quick stats">
+  {#snippet titleSuffix()}
+    <span class="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+      <span class="fi fi-{currentRegion}"></span>
+      <span class="uppercase">{currentRegion}</span>
+    </span>
+  {/snippet}
   <div class="mb-2 flex items-center justify-between">
     <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Window</div>
     <div class="flex items-center gap-1">
@@ -73,7 +79,7 @@
   {:else}
     <div class="grid grid-cols-2 gap-4 md:grid-cols-3">
       <div>
-        <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Duels ({days}d)</div>
+        <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Duels</div>
         <div class="text-2xl font-semibold">{stats.duelsWindow.toLocaleString()}</div>
       </div>
       <div>

@@ -48,7 +48,13 @@
   });
 </script>
 
-<Card title="Trending arenas" subtitle={`Last ${days} days`}>
+<Card title="Trending arenas">
+  {#snippet titleSuffix()}
+    <span class="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+      <span class="fi fi-{currentRegion}"></span>
+      <span class="uppercase">{currentRegion}</span>
+    </span>
+  {/snippet}
   <div class="mb-2 flex items-center justify-between">
     <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Window</div>
     <div class="flex items-center gap-1">

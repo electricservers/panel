@@ -41,6 +41,32 @@
     return `${month} ${day}, ${year} ${hours}:${minutes}`;
   }
 
+  function relativeTime(unixEpoch: string | null): string {
+    if (!unixEpoch) return '';
+    const ts = Number(unixEpoch) * 1000;
+    if (!Number.isFinite(ts)) return '';
+    const now = Date.now();
+    let diff = Math.max(0, now - ts);
+    const minute = 60 * 1000;
+    const hour = 60 * minute;
+    const day = 24 * hour;
+    const week = 7 * day;
+    if (diff < hour) {
+      const m = Math.max(1, Math.floor(diff / minute));
+      return `${m} ${m === 1 ? 'minute' : 'minutes'} ago`;
+    }
+    if (diff < day) {
+      const h = Math.floor(diff / hour);
+      return `${h} ${h === 1 ? 'hour' : 'hours'} ago`;
+    }
+    if (diff < week) {
+      const d = Math.floor(diff / day);
+      return `${d} ${d === 1 ? 'day' : 'days'} ago`;
+    }
+    const w = Math.floor(diff / week);
+    return `${w} ${w === 1 ? 'week' : 'weeks'} ago`;
+  }
+
   onMount(() => {
     const unreg = regionStore.subscribe(async (r) => {
       currentRegion = r;
@@ -59,7 +85,13 @@
   });
 </script>
 
-<Card title="Recent duels" subtitle={`Last 20 in ${currentRegion.toUpperCase()}`}>
+<Card title="Recent duels" class="w-full !max-w-none">
+  {#snippet titleSuffix()}
+    <span class="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+      <span class="fi fi-{currentRegion}"></span>
+      <span class="uppercase">{currentRegion}</span>
+    </span>
+  {/snippet}
   {#if loading}
     <div class="py-8 text-center text-sm text-gray-500">Loading…</div>
   {:else if errorMsg}
@@ -71,16 +103,13 @@
       {#each items as it}
         <li class="flex items-center justify-between py-2 text-sm">
           <div class="min-w-0 flex-1 truncate">
-            <span class="inline-flex items-center gap-1">
-              <span class="fi fi-{it.region}"></span>
-              <span class="text-xs uppercase text-gray-500">{it.region}</span>
-            </span>
+            <span class="text-xs text-gray-500" title={formatDate(it.gametime)}>{relativeTime(it.gametime)}</span>
             {#if to64(it.winner)}
               <a class="ml-2 font-medium text-emerald-600 hover:underline dark:text-emerald-400" href="/mge/games/{to64(it.winner)}">{it.winnername}</a>
             {:else}
               <span class="ml-2 font-medium text-gray-900 dark:text-gray-100">{it.winnername}</span>
             {/if}
-            <span class="mx-1 text-gray-500">def.</span>
+            <span class="mx-1 text-gray-500">beat</span>
             {#if to64(it.loser)}
               <a class="text-emerald-600 hover:underline dark:text-emerald-400" href="/mge/games/{to64(it.loser)}">{it.losername}</a>
             {:else}
@@ -92,5 +121,10 @@
         </li>
       {/each}
     </ul>
+    <div class="mt-3">
+      <a href="/mge/games" class="text-sm text-emerald-500 hover:underline">View all</a>
+    </div>
   {/if}
 </Card>
+
+
