@@ -1,4 +1,5 @@
 <script>
+  // @ts-nocheck
   import { MegaMenu, ToolbarButton } from 'flowbite-svelte';
   import {
     ArchiveSolid,

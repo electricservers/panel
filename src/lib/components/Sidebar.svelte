@@ -25,7 +25,7 @@
   };
 
   // Active sidebar tracking
-  let activeMainSidebar = $state($page.url.pathname);
+  let activeMainSidebar: string = $state($page.url.pathname as unknown as string);
 
   // Navigation handlers
   afterNavigate((navigation) => {
@@ -80,28 +80,28 @@
         {#each navigationItems as item}
           {#if item.children?.length}
             <SidebarDropdownWrapper label={item.name} class="pr-3">
-              {#snippet arrowdown()}
-                <AngleDownOutline strokeWidth="3.3" size="sm" />
-              {/snippet}
-              {#snippet arrowup()}
-                <AngleUpOutline strokeWidth="3.3" size="sm" />
-              {/snippet}
-              {#snippet icon()}
+              <svelte:fragment slot="icon">
                 <item.icon class={styles.icon} />
-              {/snippet}
+              </svelte:fragment>
+              <svelte:fragment slot="arrowdown">
+                <AngleDownOutline strokeWidth="3.3" size="sm" />
+              </svelte:fragment>
+              <svelte:fragment slot="arrowup">
+                <AngleUpOutline strokeWidth="3.3" size="sm" />
+              </svelte:fragment>
               {#each item.children as child}
-                <SidebarItem label={child.name} href={child.href} spanClass="ml-3" class={`${styles.item} pl-9`} active={activeMainSidebar === child.href}>
-                  {#snippet icon()}
+                <SidebarItem label={child.name} href={child.href} spanClass="ml-3" class={`${styles.item} pl-9`}>
+                  <svelte:fragment slot="icon">
                     <child.icon class={styles.icon} />
-                  {/snippet}
+                  </svelte:fragment>
                 </SidebarItem>
               {/each}
             </SidebarDropdownWrapper>
           {:else}
-            <SidebarItem label={item.name} href={item.href} spanClass="ml-3" class={styles.item} active={activeMainSidebar === item.href}>
-              {#snippet icon()}
+            <SidebarItem label={item.name} href={item.href} spanClass="ml-3" class={styles.item}>
+              <svelte:fragment slot="icon">
                 <item.icon class={styles.icon} />
-              {/snippet}
+              </svelte:fragment>
             </SidebarItem>
           {/if}
         {/each}

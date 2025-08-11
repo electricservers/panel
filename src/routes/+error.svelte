@@ -9,12 +9,10 @@
     400: Maintenance,
     404: NotFound,
     500: ServerError
-  };
+  } as const;
 
   const status = +$page.status;
-  const index = Object.keys(pages)
-    .map((x) => +x)
-    .reduce((p, c) => (p < status ? c : p));
+  const index = ([400, 404, 500].find((code) => status <= code) ?? 500) as keyof typeof pages;
   const component = pages[index];
 
   import MetaTag from './utils/MetaTag.svelte';

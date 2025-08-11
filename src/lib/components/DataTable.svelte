@@ -81,6 +81,10 @@
   }
 </script>
 
+{#snippet cell({ row, index, col, value }: { row: any; index: number; col: Column; value: any })}
+  {value}
+{/snippet}
+
 {#if loading}
   <div class="py-8 text-center text-sm text-gray-500">Loading…</div>
 {:else if !rows || rows.length === 0}
@@ -107,9 +111,7 @@
         <TableBodyRow color={getRowColor ? getRowColor(row, i) : undefined}>
           {#each columns as col}
             <TableBodyCell class={col.cellClass}>
-              <slot name="cell" row={row} index={i} col={col} value={resolveCellValue(col, row, i)}>
-                {resolveCellValue(col, row, i)}
-              </slot>
+              {@render cell({ row, index: i, col, value: resolveCellValue(col, row, i) })}
             </TableBodyCell>
           {/each}
         </TableBodyRow>

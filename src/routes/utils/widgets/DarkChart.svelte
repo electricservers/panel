@@ -5,13 +5,12 @@
     import { onMount } from 'svelte';
 
     type ConfigFunc = (dark: boolean) => ApexOptions;
-props.
     interface Props {
         configFunc: ConfigFunc;
-        [key: string]: any
+        [key: string]: any;
     }
 
-    let { ...props }: Props = $props();
+    let { configFunc, ...props }: Props = $props();
 
     let dark = $state(browser ? document.documentElement.classList.contains('dark') : false);
 
