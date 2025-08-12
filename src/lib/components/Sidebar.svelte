@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import { Sidebar, SidebarDropdownWrapper, SidebarGroup, SidebarItem, SidebarWrapper } from 'flowbite-svelte';
-  import { AngleDownOutline, AngleUpOutline, ChartOutline, SearchOutline, CogOutline, HomeOutline } from 'flowbite-svelte-icons';
+  import { AngleDownOutline, AngleUpOutline, ChartOutline, SearchOutline, CogOutline, HomeOutline, UsersGroupOutline, GridOutline } from 'flowbite-svelte-icons';
   import MgeOutline from '$lib/components/icons/MgeOutline.svelte';
   import LeaderboardOutline from '$lib/components/icons/LeaderboardOutline.svelte';
   import GamesOutline from '$lib/components/icons/GamesOutline.svelte';
@@ -43,7 +43,16 @@
     href: '/whois'
   };
 
-  const adminItem: NavItem = { name: 'Admin', href: '/admin', icon: CogOutline };
+  const adminItem: NavItem = {
+    name: 'Admin',
+    icon: CogOutline,
+    href: '#',
+    children: [
+      { name: 'Users', href: '/admin/users', icon: UsersGroupOutline },
+      { name: 'Site Configuration', href: '/admin/config', icon: CogOutline },
+      { name: 'Modules', href: '/admin/modules', icon: GridOutline }
+    ]
+  };
 
   let mgeItem = $derived({
     name: 'MGE',
@@ -104,11 +113,24 @@
         {/each}
         {#if showAdmin}
           <li class="my-2 border-t border-gray-200 dark:border-gray-700"></li>
-          <SidebarItem label={adminItem.name} href={adminItem.href} spanClass="ml-3" class={styles.item}>
+          <SidebarDropdownWrapper label={adminItem.name} class="pr-3">
             <svelte:fragment slot="icon">
               <adminItem.icon class={styles.icon} />
             </svelte:fragment>
-          </SidebarItem>
+            <svelte:fragment slot="arrowdown">
+              <AngleDownOutline strokeWidth="3.3" size="sm" />
+            </svelte:fragment>
+            <svelte:fragment slot="arrowup">
+              <AngleUpOutline strokeWidth="3.3" size="sm" />
+            </svelte:fragment>
+            {#each adminItem.children ?? [] as child}
+              <SidebarItem label={child.name} href={child.href} spanClass="ml-3" class={`${styles.item} pl-9`}>
+                <svelte:fragment slot="icon">
+                  <child.icon class={styles.icon} />
+                </svelte:fragment>
+              </SidebarItem>
+            {/each}
+          </SidebarDropdownWrapper>
         {/if}
       </SidebarGroup>
     </nav>

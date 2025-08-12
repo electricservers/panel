@@ -1,21 +1,29 @@
-<script>
-  // @ts-nocheck
+<script lang="ts">
   import UserMenu from '../../routes/utils/widgets/UserMenu.svelte';
   import { Avatar, Button, DarkMode, NavBrand, NavHamburger, Navbar, P, Dropdown, DropdownItem } from 'flowbite-svelte';
   import { steamStore } from '$lib/stores/steamStore';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
   import { regionStore } from '$lib/stores/regionStore';
+  import { siteSettingsStore, loadSiteSettings } from '$lib/stores/siteSettingsStore';
   import { ChevronDownOutline } from 'flowbite-svelte-icons';
 
-  /** @type {{fluid?: boolean, drawerHidden?: boolean, list?: boolean}} */
-  let { fluid = true, drawerHidden = $bindable(false), list = false } = $props();
+  interface Props {
+    fluid?: boolean;
+    drawerHidden?: boolean;
+    list?: boolean;
+  }
+
+  let { fluid = true, drawerHidden = $bindable(false), list = false }: Props = $props();
 
   let loading = $state(true);
   let currentRegion = $state('ar');
   let regionDropOpen = $state(false);
 
   onMount(() => {
+    // Load site settings
+    loadSiteSettings();
+
     const unsubscribe = steamStore.subscribe((value) => {
       if (value !== undefined) {
         loading = false;
@@ -40,8 +48,8 @@
   <NavContainer class="mb-px mt-px px-1" {fluid}>
     <NavHamburger onClick={() => (drawerHidden = !drawerHidden)} class="m-0 me-3 md:block lg:hidden" />
     <NavBrand href="/" class={list ? 'w-40' : 'lg:w-60'}>
-      <img src="/images/favicon.png" class="me-2.5 h-6 sm:h-8" alt="Flowbite Logo" />
-      <span class="ml-px self-center whitespace-nowrap text-xl font-semibold dark:text-white sm:text-2xl"> Electric Panel </span>
+      <img src={$siteSettingsStore?.faviconPath || '/images/favicon.png'} class="me-2.5 h-6 sm:h-8" alt="Site Logo" />
+      <span class="ml-px self-center whitespace-nowrap text-xl font-semibold dark:text-white sm:text-2xl"> {$siteSettingsStore?.siteName || 'Electric Panel'} </span>
     </NavBrand>
     <!-- Region selector -->
     <div class="ms-auto flex items-center gap-2 text-gray-500 dark:text-gray-400 sm:order-2">

@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import '../app.pcss';
   import '/node_modules/flag-icons/css/flag-icons.min.css';
   import Navbar from '../lib/components/Navbar.svelte';
@@ -6,13 +6,37 @@
   let drawerHidden = $state(false);
   import { onMount } from 'svelte';
   import { steamStore } from '$lib/stores/steamStore';
+  import { siteSettingsStore, loadSiteSettings } from '$lib/stores/siteSettingsStore';
 
-  /** @type {{data: any, children?: import('svelte').Snippet}} */
-  let { data, children } = $props();
+  interface Props {
+    data: any;
+    children?: import('svelte').Snippet;
+  }
+
+  let { data, children }: Props = $props();
 
   onMount(() => {
     if (data.user) {
       steamStore.set(data.user);
+    }
+    // Load site settings
+    loadSiteSettings();
+  });
+
+  // Update favicon when settings change
+  $effect(() => {
+    if (typeof window !== 'undefined' && $siteSettingsStore?.faviconPath) {
+      const link = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
+      if (link) {
+        link.href = $siteSettingsStore.faviconPath;
+      }
+    }
+  });
+
+  // Update page title when settings change
+  $effect(() => {
+    if (typeof window !== 'undefined' && $siteSettingsStore?.siteName) {
+      document.title = $siteSettingsStore.siteName;
     }
   });
 </script>
