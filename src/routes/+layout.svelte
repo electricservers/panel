@@ -3,7 +3,7 @@
   import '/node_modules/flag-icons/css/flag-icons.min.css';
   import Navbar from '../lib/components/Navbar.svelte';
   import Sidebar from '../lib/components/Sidebar.svelte';
-  let drawerHidden = $state(false);
+  let drawerHidden = $state(true);
   import { onMount } from 'svelte';
   import { steamStore } from '$lib/stores/steamStore';
   import { siteSettingsStore, loadSiteSettings } from '$lib/stores/siteSettingsStore';

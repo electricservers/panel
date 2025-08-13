@@ -76,7 +76,7 @@
 </script>
 
 <Sidebar
-  class={drawerHidden ? 'hidden' : ''}
+  class={drawerHidden ? 'hidden lg:block' : ''}
   activeUrl={$page.url.pathname}
   activeClass="bg-gray-100 dark:bg-gray-700"
   asideClass="fixed inset-0 z-30 flex-none h-full w-64 lg:h-auto border-e border-gray-200 dark:border-gray-600 lg:overflow-y-visible lg:pt-16 lg:block">
@@ -137,4 +137,4 @@
   </SidebarWrapper>
 </Sidebar>
 
-<div hidden={drawerHidden} class="fixed inset-0 z-20 bg-gray-900/50 dark:bg-gray-900/60" onclick={handleDrawerClose} onkeydown={handleDrawerClose} role="presentation"></div>
+<div hidden={drawerHidden} class="fixed inset-0 z-20 bg-gray-900/50 dark:bg-gray-900/60 lg:hidden" onclick={handleDrawerClose} onkeydown={handleDrawerClose} role="presentation"></div>
