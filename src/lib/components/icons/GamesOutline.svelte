@@ -8,7 +8,6 @@
   let { size = '24', color = 'currentColor', class: className = '' }: Props = $props();
 </script>
 
-<!-- Games icon from user (svgrepo), adapted for Svelte props -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width={size} height={size} class={className}>
   <path d="M3 1H1V3H3V1Z" fill={color} />
   <path d="M3 5H1V7H3V5Z" fill={color} />

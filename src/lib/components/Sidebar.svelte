@@ -5,6 +5,7 @@
   import MgeOutline from '$lib/components/icons/MgeOutline.svelte';
   import LeaderboardOutline from '$lib/components/icons/LeaderboardOutline.svelte';
   import GamesOutline from '$lib/components/icons/GamesOutline.svelte';
+  import VersusOutline from '$lib/components/icons/VersusOutline.svelte';
   import { steamStore } from '$lib/stores/steamStore';
 
   // Types
@@ -34,7 +35,8 @@
 
   const baseMgeChildren: NavItem[] = [
     { name: 'Leaderboard', href: '/mge/ranking', icon: LeaderboardOutline },
-    { name: 'Games', href: '/mge/games', icon: GamesOutline }
+    { name: 'Games', href: '/mge/games', icon: GamesOutline },
+    { name: 'Versus', href: '/mge/versus', icon: VersusOutline }
   ];
 
   const whoisItem: NavItem = {

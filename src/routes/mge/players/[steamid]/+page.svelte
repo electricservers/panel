@@ -10,6 +10,7 @@
   import type { MgeDuel } from '$lib/mge/mgeduel';
   import { get } from 'svelte/store';
   import MatchList from '$lib/components/mge/MatchList.svelte';
+  import { goto } from '$app/navigation';
 
   interface Props {
     data: PageData;
@@ -195,7 +196,16 @@
           </span>
         {/if}
       </div>
-      <a target="_blank" class="text-sm text-blue-600 hover:underline" href={`https://steamcommunity.com/profiles/${data.id}`}> View Steam profile </a>
+      <div class="mt-1 flex items-center gap-2">
+        <a target="_blank" class="text-sm text-blue-600 hover:underline" href={`https://steamcommunity.com/profiles/${data.id}`}>View Steam profile</a>
+        {#if $steamStore?.steamid && String($steamStore.steamid) !== String(data.id)}
+          <button
+            class="rounded-md border border-gray-200 px-2 py-1 text-xs text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+            onclick={() => goto(`/mge/versus?a=${encodeURIComponent(String($steamStore.steamid))}&b=${encodeURIComponent(String(data.id))}`)}>
+            See my stats vs this player
+          </button>
+        {/if}
+      </div>
     </div>
   </div>
   <div class="mt-3 flex flex-col gap-3">
