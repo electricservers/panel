@@ -64,11 +64,6 @@ pnpm check
 pnpm lint
 ```
 
-### Run tests
-```powershell
-pnpm test
-```
-
 ## Build
 The build script generates both Prisma clients and compiles the app.
 ```powershell
