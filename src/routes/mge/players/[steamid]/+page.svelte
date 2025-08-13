@@ -4,7 +4,7 @@
   import { Avatar } from 'flowbite-svelte';
   import MostPlayedArenas from '$lib/components/mge/MostPlayedArenas.svelte';
   import ActivityCard from '$lib/components/mge/ActivityCard.svelte';
-  import TopFoesPlaceholder from '$lib/components/mge/TopFoesPlaceholder.svelte';
+  import TopFoes from '$lib/components/mge/TopFoes.svelte';
 
   import { ID } from '@node-steam/id';
   import type { MgeDuel } from '$lib/mge/mgeduel';
@@ -315,7 +315,7 @@
           activityDays = d;
           await fetchActivity(currentRegion);
         }} />
-      <TopFoesPlaceholder />
+      <TopFoes steamid={id} />
     </div>
   </div>
 </div>
