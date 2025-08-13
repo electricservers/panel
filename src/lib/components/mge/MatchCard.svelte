@@ -27,7 +27,7 @@
       {#if to64(game.winner)}
         <a
           class={`block truncate md:text-lg ${isPlayerLeft ? 'font-extrabold text-gray-900 dark:text-gray-100' : 'font-medium text-gray-700 dark:text-gray-300'} hover:underline`}
-          href={`/mge/games/${to64(game.winner)}`}>{game.winnername}</a>
+          href={`/mge/players/${to64(game.winner)}`}>{game.winnername}</a>
       {:else}
         <span class={`block truncate md:text-lg ${isPlayerLeft ? 'font-extrabold text-gray-900 dark:text-gray-100' : 'font-medium text-gray-700 dark:text-gray-300'}`}>{game.winnername}</span>
       {/if}
@@ -49,7 +49,7 @@
       {#if to64(game.loser)}
         <a
           class={`block truncate md:text-lg ${isPlayerRight ? 'font-extrabold text-gray-900 dark:text-gray-100' : 'font-medium text-gray-700 dark:text-gray-300'} hover:underline`}
-          href={`/mge/games/${to64(game.loser)}`}>{game.losername}</a>
+          href={`/mge/players/${to64(game.loser)}`}>{game.losername}</a>
       {:else}
         <span class={`block truncate md:text-lg ${isPlayerRight ? 'font-extrabold text-gray-900 dark:text-gray-100' : 'font-medium text-gray-700 dark:text-gray-300'}`}>{game.losername}</span>
       {/if}

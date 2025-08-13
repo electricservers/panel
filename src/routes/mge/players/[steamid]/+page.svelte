@@ -18,11 +18,9 @@
   import { regionStore, type Region } from '$lib/stores/regionStore';
   let currentRegion: Region = $state('ar');
   let { data }: Props = $props();
-  // remove unused loading flag
   let games = $state<MgeDuel[]>([]);
-  let id = $state(''); // Steam2 format used by DB queries
+  let id = $state('');
 
-  // Region existence flags sent from server
   let existsInAr = $state(Boolean(data.existsInAr));
   let existsInBr = $state(Boolean(data.existsInBr));
   const existsInAny = $derived(existsInAr || existsInBr);
@@ -30,16 +28,13 @@
   const otherRegion = $derived<Region>(currentRegion === 'ar' ? 'br' : 'ar');
   const existsInOther = $derived(otherRegion === 'ar' ? existsInAr : existsInBr);
 
-  // Pagination
   let pageSize = $state(5);
   let currentPage = $state(1);
   let totalItems = $state(0);
   const totalPages = $derived(Math.max(1, Math.ceil(totalItems / pageSize)));
 
-  // Outcome filter: 'all' | 'win' | 'loss'
   let outcome = $state<'all' | 'win' | 'loss'>('all');
 
-  // Player summary
   let playerName = $state('');
   let wins = $state(0);
   let losses = $state(0);
@@ -70,9 +65,7 @@
   }
 
   const fetchPlayerSummary = async (db: Region) => {
-    // Reset avatar to ensure fresh fetch on profile changes
     avatarUrl = undefined;
-    // Load wins/losses and name
     const params = new URLSearchParams({ db, steamid: id, take: '1', withRankPosition: '1' });
     const resp = await fetch(`/api/mge/rank?${params.toString()}`);
     const arr = await resp.json();
@@ -92,13 +85,10 @@
       rankPosition = null;
     }
 
-    // Prefer the logged-in user's avatar if same profile; otherwise leave undefined
     const u = get(steamStore);
     if (u && u.steamid === String(data.id)) {
       avatarUrl = u.avatarfull || u.avatarmedium || u.avatar;
     }
-
-    // Fallback: fetch avatar from Steam API for any profile when not the logged-in user
     if (!avatarUrl) {
       try {
         const resp2 = await fetch(`/api/steam/profile?steamid=${encodeURIComponent(String(data.id))}`);
@@ -109,9 +99,7 @@
             playerName = profile.personaname;
           }
         }
-      } catch {
-        // ignore
-      }
+      } catch {}
     }
   };
 
@@ -164,32 +152,23 @@
     };
   });
 
-  // Re-fetch on outcome change
   $effect(() => {
     outcome;
     currentPage = 1;
     fetchGames(currentRegion, 1, true);
   });
 
-  // Re-fetch on page size change
   $effect(() => {
     pageSize;
     currentPage = 1;
     fetchGames(currentRegion, 1, true);
   });
 
-  // Re-fetch when navigating between different profile ids
   $effect(() => {
     data.id;
     avatarUrl = undefined;
     fetchData(currentRegion);
   });
-
-  // Region is controlled globally via navbar
-
-  // formatting handled within list; remove unused helper
-
-  // using MatchList for a more modern layout instead of a table
 </script>
 
 <div class="p-4">
@@ -230,8 +209,6 @@
         </button>
       </div>
     {/if}
-    <!-- Region is selected in the navbar -->
-    <!-- Compact stat strip -->
     {#if existsInCurrent}
       <div class="flex flex-wrap items-end justify-start gap-x-8 gap-y-2">
         <div>
@@ -262,7 +239,6 @@
 <div class="h-[90vh] p-4">
   <div class="grid grid-cols-1 gap-4 lg:grid-cols-12">
     <div class="lg:col-span-8">
-      <!-- Filters -->
       <div class="mb-3 flex flex-wrap items-center gap-3">
         <div class="text-xs text-gray-500 dark:text-gray-400">Outcome:</div>
         <button
@@ -304,7 +280,6 @@
         </div>
       </div>
 
-      <!-- Matches list -->
       {#if existsInCurrent}
         <MatchList
           items={games}
@@ -319,10 +294,8 @@
       {:else}
         <div class="rounded-md border border-amber-300 bg-amber-50 p-3 text-amber-900 dark:border-amber-900/50 dark:bg-amber-950 dark:text-amber-100">No matches in this region.</div>
       {/if}
-      <!-- Pagination moved inside DataTable -->
     </div>
     <div class="flex flex-col gap-4 lg:col-span-4">
-      <!-- Sidebar -->
       <MostPlayedArenas steamid={id} />
       <ActivityCard
         gametimes={activityTimes}
@@ -336,3 +309,5 @@
     </div>
   </div>
 </div>
+
+

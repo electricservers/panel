@@ -120,7 +120,7 @@
               <div class="h-6 w-6 rounded bg-gray-200 dark:bg-gray-700"></div>
             {/if}
             {#if r.steamid64}
-              <a class="font-medium text-emerald-600 hover:underline dark:text-emerald-400" href="/mge/games/{r.steamid64}">{r.name}</a>
+              <a class="font-medium text-emerald-600 hover:underline dark:text-emerald-400" href="/mge/players/{r.steamid64}">{r.name}</a>
             {:else}
               <span class="font-medium text-gray-900 dark:text-gray-100">{r.name}</span>
             {/if}

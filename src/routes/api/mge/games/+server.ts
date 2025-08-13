@@ -11,6 +11,9 @@ export const GET: RequestHandler = async (event) => {
   const take = Number(query.get('take') ?? query.get('limit')) || 500;
   const skip = Number(query.get('skip')) || 0;
   const steamid = query.get('steamid');
+  const versus = query.get('versus');
+  const aParam = query.get('a') ?? undefined;
+  const bParam = query.get('b') ?? undefined;
   const outcome = query.get('outcome'); // 'win' | 'loss'
   const arena = query.get('arena')?.trim() || undefined;
   const arenaCanonical = query.get('arenaCanonical')?.trim(); // '1' to treat arena filter as canonical
@@ -28,6 +31,17 @@ export const GET: RequestHandler = async (event) => {
       where = { ...where, loser: steamid };
     } else {
       where = { ...where, OR: [{ winner: steamid }, { loser: steamid }] };
+    }
+  }
+  // versus pair filter (takes precedence over 'q')
+  if (versus && aParam && bParam) {
+    try {
+      const a2 = new ID(aParam).getSteamID2();
+      const b2 = new ID(bParam).getSteamID2();
+      where = { ...where, OR: [{ AND: [{ winner: a2 }, { loser: b2 }] }, { AND: [{ winner: b2 }, { loser: a2 }] }] };
+    } catch {
+      // ignore invalid ids; empty result will follow
+      where = { ...where, id: { equals: -1 as unknown as any } };
     }
   }
   // arena filter
@@ -71,7 +85,7 @@ export const GET: RequestHandler = async (event) => {
   // - If looks like SteamID64 or Steam2, normalize to Steam2 and filter winner/loser accordingly
   // - Else search players by name contains and filter by their steamids
   let additionalIdFilter: string[] | null = null;
-  if (q) {
+  if (q && !(versus && aParam && bParam)) {
     const looksLike64 = /^\d{17}$/.test(q);
     const looksLike2 = /^STEAM_\d+:\d+:\d+$/.test(q);
     try {

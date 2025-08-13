@@ -4,5 +4,5 @@ import { redirect } from '@sveltejs/kit';
 
 export const load = (async ({ locals }) => {
   const id = new ID(locals.user?.steamid).get64();
-  redirect(302, `/mge/games/${id}`);
+  redirect(302, `/mge/players/${id}`);
 }) satisfies PageServerLoad;

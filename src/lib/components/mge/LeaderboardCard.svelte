@@ -63,7 +63,7 @@
   <div class="min-w-0 flex-1">
     <div class="truncate text-base font-semibold text-gray-900 dark:text-gray-100">
       {#if to64(player.steamid)}
-        <a href={`/mge/games/${to64(player.steamid)}`} class="hover:underline">{player.name}</a>
+        <a href={`/mge/players/${to64(player.steamid)}`} class="hover:underline">{player.name}</a>
       {:else}
         {player.name}
       {/if}

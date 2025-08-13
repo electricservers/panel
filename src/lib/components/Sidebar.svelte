@@ -63,7 +63,7 @@
           ...baseMgeChildren,
           {
             name: 'My stats',
-            href: `/mge/games/${$steamStore.steamid}`,
+            href: `/mge/players/${$steamStore.steamid}`,
             icon: ChartOutline
           }
         ]

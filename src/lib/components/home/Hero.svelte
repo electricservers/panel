@@ -34,7 +34,7 @@
   async function goToProfile() {
     const steamid = extractSteamId(steamInput);
     if (steamid) {
-      await goto(`/mge/games/${steamid}`);
+      await goto(`/mge/players/${steamid}`);
     } else {
       // TODO: show user feedback (toast) for invalid input
     }

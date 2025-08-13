@@ -105,13 +105,13 @@
           <div class="min-w-0 flex-1 truncate">
             <span class="text-xs text-gray-500" title={formatDate(it.gametime)}>{relativeTime(it.gametime)}</span>
             {#if to64(it.winner)}
-              <a class="ml-2 font-medium text-emerald-600 hover:underline dark:text-emerald-400" href="/mge/games/{to64(it.winner)}">{it.winnername}</a>
+              <a class="ml-2 font-medium text-emerald-600 hover:underline dark:text-emerald-400" href="/mge/players/{to64(it.winner)}">{it.winnername}</a>
             {:else}
               <span class="ml-2 font-medium text-gray-900 dark:text-gray-100">{it.winnername}</span>
             {/if}
             <span class="mx-1 text-gray-500">beat</span>
             {#if to64(it.loser)}
-              <a class="text-emerald-600 hover:underline dark:text-emerald-400" href="/mge/games/{to64(it.loser)}">{it.losername}</a>
+              <a class="text-emerald-600 hover:underline dark:text-emerald-400" href="/mge/players/{to64(it.loser)}">{it.losername}</a>
             {:else}
               <span class="text-gray-300">{it.losername}</span>
             {/if}
