@@ -79,8 +79,8 @@
   class={drawerHidden ? 'hidden lg:block' : ''}
   activeUrl={$page.url.pathname}
   activeClass="bg-gray-100 dark:bg-gray-700"
-  asideClass="fixed inset-0 z-30 flex-none h-full w-64 lg:h-auto border-e border-gray-200 dark:border-gray-600 lg:overflow-y-visible lg:pt-16 lg:block">
-  <SidebarWrapper divClass="overflow-y-auto px-3 pt-20 lg:pt-5 h-full bg-white scrolling-touch max-w-2xs lg:h-[calc(100vh-4rem)] lg:block dark:bg-gray-800 lg:me-0 lg:sticky top-2">
+  asideClass="fixed inset-0 z-30 flex-none h-full w-64 lg:h-auto border-e border-gray-200 dark:border-gray-600 lg:overflow-y-visible lg:pt-[var(--header-h,4rem)] lg:block">
+  <SidebarWrapper divClass="overflow-y-auto px-3 pt-20 lg:pt-5 h-full bg-white scrolling-touch max-w-2xs lg:h-[calc(100vh-var(--header-h,4rem))] lg:block dark:bg-gray-800 lg:me-0 lg:sticky top-2">
     <nav class="divide-y divide-gray-200 dark:divide-gray-700">
       <SidebarGroup ulClass={styles.group} class="mb-3">
         {#each primaryItems as item}
