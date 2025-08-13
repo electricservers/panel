@@ -12,6 +12,7 @@ export const GET: RequestHandler = async (event) => {
   const sortDir = (query.get('sortDir') ?? 'desc') as 'asc' | 'desc';
   const includeRankPosition = query.has('withRankPosition');
   const includePositions = query.has('withPositions');
+  const includeLastSeenGlobal = query.has('withLastSeenGlobal');
   const derivedKeys = new Set(['totalGames', 'wlValue', 'winrateValue']);
   const isDerived = derivedKeys.has(sortKey);
   const orderBy: any[] = [];
@@ -117,6 +118,26 @@ export const GET: RequestHandler = async (event) => {
           ranking = ranking.map((r) => ({ ...r, position: posMap[r.steamid] ?? null }));
         }
       }
+      // Optionally attach global lastSeen across AR+BR
+      if (includeLastSeenGlobal && Array.isArray(ranking) && ranking.length > 0) {
+        try {
+          const steamIds = ranking.map((r: any) => r.steamid).filter(Boolean);
+          const [lsAr, lsBr] = await Promise.all([
+            prismaArg.mgemod_stats.findMany({ where: { steamid: { in: steamIds } }, select: { steamid: true, lastplayed: true } }),
+            prismaBr.mgemod_stats.findMany({ where: { steamid: { in: steamIds } }, select: { steamid: true, lastplayed: true } })
+          ]);
+          const mapAr = Object.fromEntries(lsAr.map((r: any) => [r.steamid, Number(r.lastplayed ?? 0) || 0]));
+          const mapBr = Object.fromEntries(lsBr.map((r: any) => [r.steamid, Number(r.lastplayed ?? 0) || 0]));
+          const lastSeenMap: Record<string, number | null> = {};
+          for (const sid of steamIds) {
+            const a = mapAr[sid] || 0;
+            const b = mapBr[sid] || 0;
+            const m = Math.max(a, b);
+            lastSeenMap[sid] = m > 0 ? m : null;
+          }
+          ranking = ranking.map((r: any) => ({ ...r, lastSeen: lastSeenMap[r.steamid] ?? null }));
+        } catch {}
+      }
       if (includeRankPosition && query.has('steamid') && ranking.length > 0) {
         const player = ranking[0];
         const higher = await prismaArg.mgemod_stats.count({ where: { rating: { gt: player.rating ?? 0 } } });
@@ -181,6 +202,25 @@ export const GET: RequestHandler = async (event) => {
           });
           ranking = ranking.map((r) => ({ ...r, position: posMap[r.steamid] ?? null }));
         }
+      }
+      if (includeLastSeenGlobal && Array.isArray(ranking) && ranking.length > 0) {
+        try {
+          const steamIds = ranking.map((r: any) => r.steamid).filter(Boolean);
+          const [lsAr, lsBr] = await Promise.all([
+            prismaArg.mgemod_stats.findMany({ where: { steamid: { in: steamIds } }, select: { steamid: true, lastplayed: true } }),
+            prismaBr.mgemod_stats.findMany({ where: { steamid: { in: steamIds } }, select: { steamid: true, lastplayed: true } })
+          ]);
+          const mapAr = Object.fromEntries(lsAr.map((r: any) => [r.steamid, Number(r.lastplayed ?? 0) || 0]));
+          const mapBr = Object.fromEntries(lsBr.map((r: any) => [r.steamid, Number(r.lastplayed ?? 0) || 0]));
+          const lastSeenMap: Record<string, number | null> = {};
+          for (const sid of steamIds) {
+            const a = mapAr[sid] || 0;
+            const b = mapBr[sid] || 0;
+            const m = Math.max(a, b);
+            lastSeenMap[sid] = m > 0 ? m : null;
+          }
+          ranking = ranking.map((r: any) => ({ ...r, lastSeen: lastSeenMap[r.steamid] ?? null }));
+        } catch {}
       }
       if (includeRankPosition && query.has('steamid') && ranking.length > 0) {
         const player = ranking[0];

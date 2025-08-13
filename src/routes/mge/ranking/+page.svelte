@@ -25,6 +25,7 @@
     wlValue: number;
     winrateValue: number;
     position?: number | null;
+    lastSeen?: number | null;
   }
   let ranking = $state<RankRow[]>([]);
   let avatarMap = $state<Record<string, string>>({}); // 64-bit id -> avatarfull
@@ -81,12 +82,13 @@
     params.set('sortDir', sortDir);
     if (withTotal) params.set('withTotal', '1');
     params.set('withPositions', '1');
+    params.set('withLastSeenGlobal', '1');
     const rankResponse = await fetch(`/api/mge/rank?${params.toString()}`);
     const payload = await rankResponse.json();
     const rank: mgemod_stats[] = Array.isArray(payload) ? payload : payload.items;
     totalItems = Array.isArray(payload) ? totalItems : (payload.total ?? totalItems);
 
-    let ranking = rank.map((user) => {
+    let ranking = rank.map((user: any) => {
       const totalGames = user.wins! + user.losses!;
       const wlValue = user.losses !== 0 ? user.wins! / user.losses! : user.wins! > 0 ? Number.POSITIVE_INFINITY : 0;
       const wl = user.losses !== 0 ? wlValue.toFixed(1) : 'N/A';
@@ -99,7 +101,13 @@
         wl,
         winrate,
         wlValue,
-        winrateValue
+        winrateValue,
+        lastSeen: ((): number | null => {
+          const apiProvided = typeof user.lastSeen === 'number' ? user.lastSeen : null;
+          if (apiProvided) return apiProvided;
+          const lp = user.lastplayed ? Number(user.lastplayed) : null;
+          return lp && !Number.isNaN(lp) ? lp : null;
+        })()
       };
     });
 
@@ -289,7 +297,8 @@
                 } catch {
                   return null;
                 }
-              })()
+              })(),
+              lastSeen: r.lastSeen ?? null
             }} />
         {/each}
       </div>

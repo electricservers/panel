@@ -52,6 +52,22 @@
   let activityLoading = $state(false);
   let activityTimes = $state<string[]>([]);
   let activityDays = $state(30);
+  const lastSeenGlobal = $derived(Number(data.lastSeen ?? 0) || null);
+  function formatLastSeen(ts: number | null): string {
+    if (!ts) return '—';
+    const diffMs = Date.now() - ts * 1000;
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    if (days < 30) return `${days}d ago`;
+    const months = Math.floor(days / 30);
+    if (months < 12) return `${months}mo ago`;
+    const years = Math.floor(months / 12);
+    return `${years}y ago`;
+  }
 
   const fetchPlayerSummary = async (db: Region) => {
     // Reset avatar to ensure fresh fetch on profile changes
@@ -191,6 +207,12 @@
           <span class="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700 dark:bg-gray-800 dark:text-gray-300">
             <span class="fi fi-{currentRegion}"></span>
             <span>#{rankPosition}</span>
+          </span>
+        {/if}
+        {#if lastSeenGlobal}
+          <span class="ml-2 inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-xs text-blue-700 dark:bg-blue-950 dark:text-blue-200">
+            <span>Last seen</span>
+            <span class="font-semibold">{formatLastSeen(lastSeenGlobal)}</span>
           </span>
         {/if}
       </div>

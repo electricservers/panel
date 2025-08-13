@@ -12,6 +12,7 @@
     wl?: string | number;
     winrate?: string | number;
     avatarUrl?: string | null;
+    lastSeen?: number | null;
   }
 
   interface Props {
@@ -28,6 +29,22 @@
     } catch {
       return null;
     }
+  }
+
+  function formatLastSeen(ts: number | null | undefined): string | null {
+    if (!ts) return null;
+    const diffMs = Date.now() - ts * 1000;
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    if (days < 30) return `${days}d ago`;
+    const months = Math.floor(days / 30);
+    if (months < 12) return `${months}mo ago`;
+    const years = Math.floor(months / 12);
+    return `${years}y ago`;
   }
 </script>
 
@@ -63,6 +80,12 @@
       {/if}
       {#if player.winrate !== undefined}
         <span class="inline-flex items-center gap-1"><span class="text-gray-400">Win%</span> <span class="font-semibold">{player.winrate}%</span></span>
+      {/if}
+      {#if player.lastSeen}
+        <span class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-1.5 py-0.5 text-[10px] text-blue-700 ring-1 ring-blue-100 dark:bg-blue-950 dark:text-blue-200 dark:ring-blue-900/40">
+          <span>Last seen</span>
+          <span class="font-semibold">{formatLastSeen(player.lastSeen)}</span>
+        </span>
       {/if}
     </div>
   </div>
