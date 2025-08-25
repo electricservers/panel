@@ -103,7 +103,7 @@
       {#each items as it}
         <li class="flex items-center justify-between py-2 text-sm">
           <div class="min-w-0 flex-1 truncate">
-            <span class="text-xs text-gray-500" title={formatDate(it.gametime)}>{relativeTime(it.gametime)}</span>
+            <span class="text-xs text-gray-500" title={formatDate(String(it.endtime ?? ''))}>{relativeTime(String(it.endtime ?? ''))}</span>
             {#if to64(it.winner)}
               <a class="ml-2 font-medium text-emerald-600 hover:underline dark:text-emerald-400" href="/mge/players/{to64(it.winner)}">{it.winnername}</a>
             {:else}
@@ -117,7 +117,7 @@
             {/if}
             <span class="ml-2 text-gray-500">on {it.arenanameCanonical ?? it.arenaname}</span>
           </div>
-          <span class="shrink-0 text-xs text-gray-500">{formatDate(it.gametime)}</span>
+          <span class="shrink-0 text-xs text-gray-500">{formatDate(String(it.endtime ?? ''))}</span>
         </li>
       {/each}
     </ul>

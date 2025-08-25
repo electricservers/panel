@@ -31,7 +31,7 @@ export const GET: RequestHandler = async (event) => {
   // @ts-expect-error Prisma groupBy requires extra args in this env
   const rows: ArenaRow[] = await client.mgemod_duels.groupBy({
     by: ['arenaname'],
-    where: { gametime: { gte: cutoff } as any } as Prisma.mgemod_duelsWhereInput,
+    where: { endtime: { gte: Number(cutoff) } as any } as Prisma.mgemod_duelsWhereInput,
     _count: { _all: true }
   });
 

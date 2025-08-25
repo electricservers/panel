@@ -62,7 +62,7 @@
         {#if hasSubject}
           <span class="rounded-full bg-gray-100 px-2 py-0.5 text-gray-700 dark:bg-gray-800 dark:text-gray-300">{win ? 'Win' : 'Loss'}</span>
         {/if}
-        <span>{formatDate(game.gametime)}</span>
+        <span>{formatDate(String(game.endtime ?? ''))}</span>
       </div>
     </div>
   </div>

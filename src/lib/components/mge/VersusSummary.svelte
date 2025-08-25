@@ -5,9 +5,10 @@
     a64: string;
     b64: string;
     a2: string;
+    games?: MgeDuel[];
   }
 
-  let { a64, b64, a2 }: Props = $props();
+  let { a64, b64, a2, games }: Props = $props();
   import { regionStore, type Region } from '$lib/stores/regionStore';
   let currentRegion: Region = $state('ar');
   let allGames = $state<MgeDuel[]>([]);
@@ -74,8 +75,12 @@
   }
 
   $effect(() => {
-    a64; b64; currentRegion;
-    fetchAllGames(currentRegion);
+    a64; b64; currentRegion; games;
+    if (Array.isArray(games) && games.length > 0) {
+      allGames = games;
+    } else {
+      fetchAllGames(currentRegion);
+    }
   });
 
   const totalMatches = $derived(allGames?.length ?? 0);
@@ -88,13 +93,13 @@
     const list = Array.isArray(allGames) ? allGames : [];
     let maxTs = 0;
     for (const g of list) {
-      const n = Number((g as any)?.gametime);
+      const n = Number((g as any)?.endtime);
       if (Number.isFinite(n) && n > maxTs) maxTs = n;
     }
     if (maxTs > 0) {
       lastPlayedNum = maxTs;
     } else {
-      const first = Number((list[0] as any)?.gametime);
+      const first = Number((list[0] as any)?.endtime);
       lastPlayedNum = Number.isFinite(first) && first > 0 ? first : null;
     }
   });

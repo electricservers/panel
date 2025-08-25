@@ -22,18 +22,18 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 			prismaArg.mgemod_duels.findFirst({
 				where: { OR: [{ winner: id2 }, { loser: id2 }] },
 				orderBy: { id: 'desc' },
-				select: { gametime: true }
+				select: { endtime: true }
 			}),
 			prismaBr.mgemod_duels.findFirst({
 				where: { OR: [{ winner: id2 }, { loser: id2 }] },
 				orderBy: { id: 'desc' },
-				select: { gametime: true }
+				select: { endtime: true }
 			})
 		]);
 		existsInAr = (arCount ?? 0) > 0;
 		existsInBr = (brCount ?? 0) > 0;
-		lastSeenAr = arLast?.gametime ? Number(arLast.gametime) : null;
-		lastSeenBr = brLast?.gametime ? Number(brLast.gametime) : null;
+		lastSeenAr = arLast?.endtime ? Number(arLast.endtime) : null;
+		lastSeenBr = brLast?.endtime ? Number(brLast.endtime) : null;
 	} catch {}
 
 	return {

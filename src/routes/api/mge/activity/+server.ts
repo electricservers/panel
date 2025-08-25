@@ -32,13 +32,13 @@ export const GET: RequestHandler = async (event) => {
   } satisfies Prisma.mgemod_duelsWhereInput;
 
   const findManyParams = {
-    select: { gametime: true },
+    select: { endtime: true },
     where,
     orderBy: [{ id: 'desc' }],
     take
   } satisfies Prisma.mgemod_duelsFindManyArgs;
 
-  let rows: { gametime: string | null }[] = [];
+  let rows: { endtime: number | null }[] = [];
   switch (db) {
     case 'ar':
       rows = await prismaArg.mgemod_duels.findMany(findManyParams);
@@ -48,7 +48,7 @@ export const GET: RequestHandler = async (event) => {
       break;
   }
 
-  let gametimes = rows.map((r) => (r.gametime == null ? null : String(r.gametime))).filter((v): v is string => Boolean(v));
+  let gametimes = rows.map((r) => (r.endtime == null ? null : String(r.endtime))).filter((v): v is string => Boolean(v));
 
   if (days && Number.isFinite(days) && days > 0) {
     const nowSec = Math.floor(Date.now() / 1000);

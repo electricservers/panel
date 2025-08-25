@@ -58,8 +58,8 @@ export const GET: RequestHandler = async (event) => {
   // Optional time window
   if (days && Number.isFinite(days) && days > 0) {
     const nowSec = Math.floor(Date.now() / 1000);
-    const cutoff = String(nowSec - Math.floor(days * 86400));
-    baseWhere.gametime = { gte: cutoff } as any;
+    const cutoff = nowSec - Math.floor(days * 86400);
+    baseWhere.endtime = { gte: cutoff } as any;
   }
 
   const totalWhere = baseWhere;

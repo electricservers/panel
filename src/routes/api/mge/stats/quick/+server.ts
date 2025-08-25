@@ -25,14 +25,14 @@ export const GET: RequestHandler = async (event) => {
 
   // Duels in window
   const duelsWindow = await client.mgemod_duels.count({
-    where: { gametime: { gte: cutoff } as any } as Prisma.mgemod_duelsWhereInput
+    where: { endtime: { gte: Number(cutoff) } as any } as Prisma.mgemod_duelsWhereInput
   });
 
   // Active players in window (distinct winners and losers)
   // @ts-expect-error Prisma groupBy typing in this environment requires extra args
-  const winners = await client.mgemod_duels.groupBy({ by: ['winner'], where: { gametime: { gte: cutoff } as any } });
+  const winners = await client.mgemod_duels.groupBy({ by: ['winner'], where: { endtime: { gte: Number(cutoff) } as any } });
   // @ts-expect-error see above
-  const losers = await client.mgemod_duels.groupBy({ by: ['loser'], where: { gametime: { gte: cutoff } as any } });
+  const losers = await client.mgemod_duels.groupBy({ by: ['loser'], where: { endtime: { gte: Number(cutoff) } as any } });
   const uniqPlayers = new Set<string>();
   winners.forEach((r: any) => {
     if (r.winner) uniqPlayers.add(String(r.winner));
@@ -44,7 +44,7 @@ export const GET: RequestHandler = async (event) => {
 
   // Arenas played (distinct canonical names) in window
   // @ts-expect-error see above
-  const arenaRows = await client.mgemod_duels.groupBy({ by: ['arenaname'], where: { gametime: { gte: cutoff } as any } });
+  const arenaRows = await client.mgemod_duels.groupBy({ by: ['arenaname'], where: { endtime: { gte: Number(cutoff) } as any } });
   const uniqArenas = new Set<string>();
   arenaRows.forEach((r: any) => {
     const key = canonicalizeArenaName(r.arenaname ?? '');

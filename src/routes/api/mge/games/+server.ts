@@ -73,12 +73,12 @@ export const GET: RequestHandler = async (event) => {
       where = { ...where, arenaname: arena };
     }
   }
-  // date range filter (gametime stored as seconds string)
+  // date range filter (timestamps are unix seconds)
   if (from || to) {
-    const gametime: Prisma.StringFilter = {};
-    if (from) gametime.gte = from;
-    if (to) gametime.lte = to;
-    where = { ...where, gametime };
+    const endtime: Prisma.IntFilter = {} as any;
+    if (from) endtime.gte = Number(from);
+    if (to) endtime.lte = Number(to);
+    where = { ...where, endtime };
   }
 
   // name/steamid search 'q'

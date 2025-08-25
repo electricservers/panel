@@ -14,7 +14,7 @@ export function computeActivityHistograms(gametimes: Array<string | number | Dat
     if (t == null) continue;
     const n = typeof t === 'string' ? Number(t) : t instanceof Date ? t.getTime() / 1000 : t;
     if (!Number.isFinite(n)) continue;
-    // gametime appears to be seconds since epoch in DB
+    // timestamp is seconds since epoch
     const d = new Date(Number(n) * 1000);
     const wd = d.getDay(); // 0..6 Sun..Sat
     const hr = d.getHours(); // 0..23 local timezone
