@@ -1,8 +1,8 @@
 generator client {
-  provider = "prisma-client-js"
-  output = "../node_modules/@prisma-arg/client"
-  moduleFormat = "esm"
+  provider      = "prisma-client-js"
+  output        = "../node_modules/@prisma-arg/client"
   binaryTargets = ["native", "linux-musl"]
+  moduleFormat  = "esm"
 }
 
 datasource db {
@@ -161,24 +161,32 @@ model mgemod_duels {
   winnerscore String? @db.VarChar(255)
   loserscore  String? @db.VarChar(255)
   winlimit    String? @db.VarChar(255)
-  gametime    String? @db.VarChar(255)
+  endtime     Int
   mapname     String? @db.VarChar(255)
   arenaname   String? @db.VarChar(255)
   id          Int     @id @default(autoincrement())
+  winnerclass String? @db.VarChar(64)
+  loserclass  String? @db.VarChar(64)
+  starttime   Int?
 }
 
 model mgemod_duels_2v2 {
-  winner      String? @db.VarChar(255)
-  winner2     String? @db.VarChar(255)
-  loser       String? @db.VarChar(255)
-  loser2      String? @db.VarChar(255)
-  winnerscore String? @db.VarChar(255)
-  loserscore  String? @db.VarChar(255)
-  winlimit    String? @db.VarChar(255)
-  gametime    String? @db.VarChar(255)
-  mapname     String? @db.VarChar(255)
-  arenaname   String? @db.VarChar(255)
-  id          Int     @id @default(autoincrement())
+  winner       String? @db.VarChar(255)
+  winner2      String? @db.VarChar(255)
+  loser        String? @db.VarChar(255)
+  loser2       String? @db.VarChar(255)
+  winnerscore  String? @db.VarChar(255)
+  loserscore   String? @db.VarChar(255)
+  winlimit     String? @db.VarChar(255)
+  endtime      Int
+  mapname      String? @db.VarChar(255)
+  arenaname    String? @db.VarChar(255)
+  id           Int     @id @default(autoincrement())
+  winnerclass  String? @db.VarChar(64)
+  winner2class String? @db.VarChar(64)
+  loserclass   String? @db.VarChar(64)
+  loser2class  String? @db.VarChar(64)
+  starttime    Int?
 }
 
 model mgemod_stats {
@@ -289,7 +297,7 @@ model sb_bans {
   created    Int     @default(0)
   ends       Int     @default(0)
   length     Int     @default(0)
-  reason     String  @db.VarChar(256)
+  reason     String  @db.Text
   aid        Int     @default(0)
   adminIp    String  @default("") @db.VarChar(128)
   sid        Int     @default(0)
@@ -300,11 +308,11 @@ model sb_bans {
   type       Int     @default(0) @db.TinyInt
   ureason    String? @db.Text
 
-  @@index([authid], map: "authid_2")
-  @@index([reason], map: "reason")
   @@index([sid], map: "sid")
   @@index([type, authid], map: "type_authid")
   @@index([type, ip], map: "type_ip")
+  @@fulltext([authid], map: "authid_2")
+  @@fulltext([reason], map: "reason")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
@@ -567,6 +575,89 @@ model zones {
   z2      Float
 }
 
+model bulletins_posts {
+  id         Int                  @id @default(autoincrement())
+  message    String               @db.VarChar(255)
+  type       bulletins_posts_type
+  created_at DateTime             @default(now()) @db.Timestamp(0)
+}
+
+model bulletins_reads {
+  bulletin_id Int
+  steam_id    String   @db.VarChar(32)
+  read_at     DateTime @default(now()) @db.Timestamp(0)
+
+  @@id([bulletin_id, steam_id])
+}
+
+model bulletins_subs {
+  steam_id   String   @id @db.VarChar(32)
+  subscribed Boolean? @default(true)
+}
+
+model mgemod_migrations {
+  id             Int     @id @default(autoincrement())
+  migration_name String? @unique(map: "migration_name") @db.VarChar(255)
+  executed_at    Int?
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model sb_comments {
+  cid        Int    @default(autoincrement())
+  bid        Int
+  type       String @db.VarChar(1)
+  aid        Int
+  commenttxt String @db.LongText
+  added      Int
+  editaid    Int?
+  edittime   Int?
+
+  @@index([cid], map: "cid")
+  @@fulltext([commenttxt], map: "commenttxt")
+  @@ignore
+}
+
+model tVip_logs {
+  id                 BigInt                  @id @default(autoincrement())
+  action_type        tVip_logs_action_type
+  timestamp          DateTime                @default(now()) @db.Timestamp(0)
+  target_name        String                  @db.VarChar(36)
+  target_steamid     String                  @db.VarChar(20)
+  admin_name         String                  @db.VarChar(36)
+  admin_steamid      String                  @db.VarChar(20)
+  duration           Int?
+  duration_type      tVip_logs_duration_type
+  payment_id         String?                 @db.VarChar(50)
+  payment_amount     Decimal?                @db.Decimal(10, 2)
+  payment_currency   String?                 @db.VarChar(3)
+  items_details      String?                 @db.Text
+  transaction_status String?                 @db.VarChar(20)
+}
+
+model tVip_vips {
+  id            BigInt   @id @default(autoincrement())
+  name          String   @db.VarChar(36)
+  steamid       String   @unique(map: "steamid") @db.VarChar(20)
+  startdate     DateTime @default(now()) @db.Timestamp(0)
+  enddate       DateTime @default(now()) @db.Timestamp(0)
+  admin_name    String   @db.VarChar(36)
+  admin_steamid String   @db.VarChar(20)
+}
+
+model tVip_web_admins {
+  id          BigInt   @id @default(autoincrement())
+  steam_id    String   @unique(map: "steam_id") @db.VarChar(20)
+  admin_name  String   @db.VarChar(36)
+  admin_level Int      @default(1)
+  timestamp   DateTime @default(now()) @db.Timestamp(0)
+}
+
+model tVip_web_roles {
+  id        BigInt   @id @default(autoincrement())
+  role_name String   @unique(map: "role_name") @db.VarChar(32)
+  timestamp DateTime @default(now()) @db.Timestamp(0)
+}
+
 enum sb_log_type {
   m
   w
@@ -586,4 +677,23 @@ enum sb_srvgroups_overrides_type {
 enum sb_srvgroups_overrides_access {
   allow
   deny
+}
+
+enum tVip_logs_action_type {
+  add
+  remove
+  extend
+  expire
+  payment_mp
+  payment_items
+}
+
+enum bulletins_posts_type {
+  global
+  optional
+}
+
+enum tVip_logs_duration_type {
+  MONTH
+  MINUTE
 }

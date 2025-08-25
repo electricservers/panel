@@ -1,8 +1,8 @@
 generator client {
-  provider = "prisma-client-js"
-  output   = "../node_modules/@prisma-br/client"
-  moduleFormat = "esm"
+  provider      = "prisma-client-js"
+  output        = "../node_modules/@prisma-br/client"
   binaryTargets = ["native", "linux-musl"]
+  moduleFormat  = "esm"
 }
 
 datasource db {
@@ -16,24 +16,32 @@ model mgemod_duels {
   winnerscore String? @db.VarChar(255)
   loserscore  String? @db.VarChar(255)
   winlimit    String? @db.VarChar(255)
-  gametime    String? @db.VarChar(255)
+  endtime     Int
   mapname     String? @db.VarChar(255)
   arenaname   String? @db.VarChar(255)
   id          Int     @id @default(autoincrement())
+  winnerclass String? @db.VarChar(64)
+  loserclass  String? @db.VarChar(64)
+  starttime   Int?
 }
 
 model mgemod_duels_2v2 {
-  winner      String? @db.VarChar(255)
-  winner2     String? @db.VarChar(255)
-  loser       String? @db.VarChar(255)
-  loser2      String? @db.VarChar(255)
-  winnerscore String? @db.VarChar(255)
-  loserscore  String? @db.VarChar(255)
-  winlimit    String? @db.VarChar(255)
-  gametime    String? @db.VarChar(255)
-  mapname     String? @db.VarChar(255)
-  arenaname   String? @db.VarChar(255)
-  id          Int     @id @default(autoincrement())
+  winner       String? @db.VarChar(255)
+  winner2      String? @db.VarChar(255)
+  loser        String? @db.VarChar(255)
+  loser2       String? @db.VarChar(255)
+  winnerscore  String? @db.VarChar(255)
+  loserscore   String? @db.VarChar(255)
+  winlimit     String? @db.VarChar(255)
+  endtime      Int
+  mapname      String? @db.VarChar(255)
+  arenaname    String? @db.VarChar(255)
+  id           Int     @id @default(autoincrement())
+  winnerclass  String? @db.VarChar(64)
+  winner2class String? @db.VarChar(64)
+  loserclass   String? @db.VarChar(64)
+  loser2class  String? @db.VarChar(64)
+  starttime    Int?
 }
 
 model mgemod_stats {
@@ -44,4 +52,10 @@ model mgemod_stats {
   losses     Int?
   lastplayed Int?
   hitblip    Int?
+}
+
+model mgemod_migrations {
+  id             Int     @id @default(autoincrement())
+  migration_name String? @unique(map: "migration_name") @db.VarChar(255)
+  executed_at    Int?
 }
