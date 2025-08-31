@@ -7,7 +7,7 @@ on:
     branches: [ main, master ]
 
 env:
-  IMAGE_NAME: maxijabase/electricsite
+  IMAGE_NAME: maxijabase/electricpanel
 
 jobs:
   build-and-push:
