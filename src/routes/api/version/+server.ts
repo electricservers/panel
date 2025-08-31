@@ -3,14 +3,18 @@ import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async () => {
   try {
-    // Get git commit count for master branch
-    const { execSync } = await import('child_process');
-    const commitCount = execSync('git rev-list --count master', { encoding: 'utf8' }).trim();
-    
-    return json({ version: commitCount });
+    // Try to import the build-time version first
+    const { VERSION } = await import('$lib/version.js');
+    return json({ version: VERSION });
   } catch (error) {
-    console.error('Error getting git commit count:', error);
-    // Fallback to a default version if git command fails
-    return json({ version: 'unknown' });
+    // Fallback to git command if version file doesn't exist (development)
+    try {
+      const { execSync } = await import('child_process');
+      const commitCount = execSync('git rev-list --count master', { encoding: 'utf8' }).trim();
+      return json({ version: commitCount });
+    } catch (gitError) {
+      console.error('Error getting version:', gitError);
+      return json({ version: 'unknown' });
+    }
   }
 };

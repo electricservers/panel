@@ -2,6 +2,9 @@
 FROM node:lts-alpine AS builder
 WORKDIR /app
 
+# Build argument for version
+ARG GIT_COMMIT_COUNT
+
 # Install OS deps for Prisma engines (glibc etc.) and build tooling
 RUN apk add --no-cache openssl
 
@@ -12,6 +15,9 @@ RUN npm i -g pnpm && pnpm install --frozen-lockfile
 
 # Copy source
 COPY . .
+
+# Generate version file with build-time version
+RUN echo "export const VERSION = '${GIT_COMMIT_COUNT}';" > src/lib/version.js
 
 # Build SvelteKit and generate Prisma clients
 # Note: build script already runs prisma generate for both schemas

@@ -26,7 +26,8 @@
     "knip:fix": "knip --fix",
     "prune": "ts-prune -p tsconfig.json",
     "unused:imports": "eslint . --ext .ts,.svelte --fix",
-    "unused:files": "unimported"
+    "unused:files": "unimported",
+    "docker:build": "docker build --build-arg GIT_COMMIT_COUNT=$(git rev-list --count master) -t maxijabase/electricpanel ."
   },
   "devDependencies": {
     "@playwright/test": "^1.54.2",
