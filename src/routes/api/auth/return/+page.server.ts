@@ -16,7 +16,13 @@ export const load = async ({ request, cookies }: PageServerLoadEvent) => {
     };
 
     const userJson = JSON.stringify(userWithRole);
-    cookies.set('client', userJson, { path: '/', httpOnly: true, secure: true, sameSite: 'strict' });
+    cookies.set('client', userJson, { 
+      path: '/', 
+      httpOnly: true, 
+      secure: true, 
+      sameSite: 'strict',
+      maxAge: 60 * 60 * 24 * 7 // 7 days in seconds
+    });
 
     // Read and clear returnTo cookie to avoid reuse
     const returnTo = cookies.get('returnTo') || '/';
