@@ -8,5 +8,6 @@
   <Avatar size="sm" src={$steamStore?.avatar} tabindex={0} />
 </button>
 <Dropdown placement="bottom-end">
+  <DropdownItem on:click={() => goto(`/mge/players/${$steamStore?.steamid}`)}>My Stats</DropdownItem>
   <DropdownItem on:click={() => goto('/api/auth/logout')}>Logout</DropdownItem>
 </Dropdown>
