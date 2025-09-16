@@ -49,6 +49,7 @@
   let activityTimes = $state<string[]>([]);
   let activityDays = $state(30);
   const lastSeenGlobal = $derived(Number(data.lastSeen ?? 0) || null);
+  const showAltNotice = $derived(Boolean(data.isAltOfViewerMain));
   function formatLastSeen(ts: number | null): string {
     if (!ts) return '—';
     const diffMs = Date.now() - ts * 1000;
@@ -209,6 +210,11 @@
     </div>
   </div>
   <div class="mt-3 flex flex-col gap-3">
+    {#if showAltNotice}
+      <div class="rounded-md border border-violet-300 bg-violet-50 p-3 text-violet-900 dark:border-violet-900/50 dark:bg-violet-950 dark:text-violet-100">
+        This account has been flagged as one of your alts. Its ELO may be reset to the server default.
+      </div>
+    {/if}
     {#if !existsInAny}
       <div class="rounded-md border border-rose-300 bg-rose-50 p-3 text-rose-900 dark:border-rose-900/50 dark:bg-rose-950 dark:text-rose-100">Player does not exist in any region.</div>
     {:else if !existsInCurrent && existsInOther}
