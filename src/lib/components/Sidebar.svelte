@@ -60,7 +60,11 @@
   const whoisItem: NavItem = {
     name: 'Whois',
     icon: SearchOutline,
-    href: '/whois'
+    href: '#',
+    children: [
+      { name: 'Search', href: '/whois', icon: SearchOutline },
+      { name: 'Alt Link', href: '/whois/alt', icon: UsersGroupOutline }
+    ]
   };
 
   const adminItem: NavItem = {

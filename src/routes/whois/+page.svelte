@@ -143,7 +143,7 @@
 </script>
 
 <div class="p-4">
-  <div class="flex items-end justify-between gap-2">
+  <div class="flex items-end justify-between gap-2 mb-4">
     <div>
       <Title>Whois</Title>
     </div>
