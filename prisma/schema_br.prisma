@@ -11,37 +11,49 @@ datasource db {
 }
 
 model mgemod_duels {
-  winner      String? @db.VarChar(255)
-  loser       String? @db.VarChar(255)
-  winnerscore String? @db.VarChar(255)
-  loserscore  String? @db.VarChar(255)
-  winlimit    String? @db.VarChar(255)
-  endtime     Int
-  mapname     String? @db.VarChar(255)
-  arenaname   String? @db.VarChar(255)
-  id          Int     @id @default(autoincrement())
-  winnerclass String? @db.VarChar(64)
-  loserclass  String? @db.VarChar(64)
-  starttime   Int?
+  winner              String? @db.VarChar(255)
+  loser               String? @db.VarChar(255)
+  winnerscore         String? @db.VarChar(255)
+  loserscore          String? @db.VarChar(255)
+  winlimit            String? @db.VarChar(255)
+  endtime             Int
+  mapname             String? @db.VarChar(255)
+  arenaname           String? @db.VarChar(255)
+  id                  Int     @id @default(autoincrement())
+  winnerclass         String? @db.VarChar(64)
+  loserclass          String? @db.VarChar(64)
+  starttime           Int?
+  winner_previous_elo Int?
+  winner_new_elo      Int?
+  loser_previous_elo  Int?
+  loser_new_elo       Int?
 }
 
 model mgemod_duels_2v2 {
-  winner       String? @db.VarChar(255)
-  winner2      String? @db.VarChar(255)
-  loser        String? @db.VarChar(255)
-  loser2       String? @db.VarChar(255)
-  winnerscore  String? @db.VarChar(255)
-  loserscore   String? @db.VarChar(255)
-  winlimit     String? @db.VarChar(255)
-  endtime      Int
-  mapname      String? @db.VarChar(255)
-  arenaname    String? @db.VarChar(255)
-  id           Int     @id @default(autoincrement())
-  winnerclass  String? @db.VarChar(64)
-  winner2class String? @db.VarChar(64)
-  loserclass   String? @db.VarChar(64)
-  loser2class  String? @db.VarChar(64)
-  starttime    Int?
+  winner               String? @db.VarChar(255)
+  winner2              String? @db.VarChar(255)
+  loser                String? @db.VarChar(255)
+  loser2               String? @db.VarChar(255)
+  winnerscore          String? @db.VarChar(255)
+  loserscore           String? @db.VarChar(255)
+  winlimit             String? @db.VarChar(255)
+  endtime              Int
+  mapname              String? @db.VarChar(255)
+  arenaname            String? @db.VarChar(255)
+  id                   Int     @id @default(autoincrement())
+  winnerclass          String? @db.VarChar(64)
+  winner2class         String? @db.VarChar(64)
+  loserclass           String? @db.VarChar(64)
+  loser2class          String? @db.VarChar(64)
+  starttime            Int?
+  winner_previous_elo  Int?
+  winner_new_elo       Int?
+  winner2_previous_elo Int?
+  winner2_new_elo      Int?
+  loser_previous_elo   Int?
+  loser_new_elo        Int?
+  loser2_previous_elo  Int?
+  loser2_new_elo       Int?
 }
 
 model mgemod_stats {
@@ -58,4 +70,29 @@ model mgemod_migrations {
   id             Int     @id @default(autoincrement())
   migration_name String? @unique(map: "migration_name") @db.VarChar(255)
   executed_at    Int?
+}
+
+model bulletins_posts {
+  id         Int                  @id @default(autoincrement())
+  message    String               @db.VarChar(255)
+  type       bulletins_posts_type
+  created_at DateTime             @default(now()) @db.Timestamp(0)
+}
+
+model bulletins_reads {
+  bulletin_id Int
+  steam_id    String   @db.VarChar(32)
+  read_at     DateTime @default(now()) @db.Timestamp(0)
+
+  @@id([bulletin_id, steam_id])
+}
+
+model bulletins_subs {
+  steam_id   String @id @db.VarChar(32)
+  subscribed Int?   @default(1)
+}
+
+enum bulletins_posts_type {
+  global
+  optional
 }
