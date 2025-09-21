@@ -8,6 +8,8 @@
   let profiles: Record<string, { avatar: string; avatarmedium: string; avatarfull: string; personaname?: string }> = $state({});
   let loadingProfiles = $state(false);
   let errorMsg: string | null = $state(null);
+  let eloData: Record<string, { ar: number | null; br: number | null }> = $state({});
+  let loadingElo = $state(false);
 
   async function loadProfiles() {
     try {
@@ -43,8 +45,62 @@
     return `https://steamcommunity.com/profiles/${id}`;
   }
 
+  function formatElo(elo: { ar: number | null; br: number | null }): string {
+    const parts = [];
+    if (elo.ar !== null) parts.push(`AR: ${elo.ar}`);
+    if (elo.br !== null) parts.push(`BR: ${elo.br}`);
+    if (parts.length === 0) return 'No ELO';
+    return parts.join(' | ');
+  }
+
+  async function loadEloData() {
+    try {
+      loadingElo = true;
+      const ids = new Set<string>();
+      for (const g of data.groups || []) {
+        ids.add(g.main);
+        for (const a of g.alts) ids.add(a);
+      }
+      if (ids.size === 0) {
+        eloData = {};
+        return;
+      }
+      
+      // Call our utility function via a custom API endpoint
+      const steamIds = Array.from(ids);
+      const promises = steamIds.map(async (steamid) => {
+        try {
+          const resp = await fetch(`/api/mge/rank?steamid=${encodeURIComponent(steamid)}&db=ar`);
+          const arData = resp.ok ? await resp.json() : null;
+          const resp2 = await fetch(`/api/mge/rank?steamid=${encodeURIComponent(steamid)}&db=br`);
+          const brData = resp2.ok ? await resp2.json() : null;
+          
+          return {
+            steamid,
+            ar: arData?.items?.[0]?.rating || null,
+            br: brData?.items?.[0]?.rating || null
+          };
+        } catch {
+          return { steamid, ar: null, br: null };
+        }
+      });
+      
+      const results = await Promise.all(promises);
+      const newEloData: Record<string, { ar: number | null; br: number | null }> = {};
+      for (const result of results) {
+        newEloData[result.steamid] = { ar: result.ar, br: result.br };
+      }
+      eloData = newEloData;
+    } catch (e: any) {
+      console.error('Failed to load ELO data:', e);
+    } finally {
+      loadingElo = false;
+    }
+  }
+
   $effect(() => {
     loadProfiles();
+    loadEloData();
   });
 </script>
 
@@ -81,6 +137,11 @@
             <div class="min-w-0">
               <a href={profileUrl(g.main)} target="_blank" rel="noreferrer" class="font-semibold text-blue-600 hover:underline dark:text-blue-400">{pf(g.main)?.personaname || g.main}</a>
               <div class="font-mono truncate text-xs text-gray-500">{g.main}</div>
+              {#if eloData[g.main]}
+                <div class="text-sm text-blue-600 dark:text-blue-400 font-medium">{formatElo(eloData[g.main])}</div>
+              {:else if loadingElo}
+                <div class="h-4 w-24 animate-pulse rounded bg-gray-200 dark:bg-gray-700"></div>
+              {/if}
             </div>
           </div>
 
@@ -101,6 +162,11 @@
                     <div class="min-w-0">
                       <a href={profileUrl(alt)} target="_blank" rel="noreferrer" class="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400">{pf(alt)?.personaname || alt}</a>
                       <div class="font-mono truncate text-xs text-gray-500">{alt}</div>
+                      {#if eloData[alt]}
+                        <div class="text-xs text-blue-600 dark:text-blue-400 font-medium">{formatElo(eloData[alt])}</div>
+                      {:else if loadingElo}
+                        <div class="h-3 w-20 animate-pulse rounded bg-gray-200 dark:bg-gray-700"></div>
+                      {/if}
                     </div>
                   </div>
                   <div class="flex items-center gap-2">

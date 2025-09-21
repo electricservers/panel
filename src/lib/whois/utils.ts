@@ -133,3 +133,63 @@ export function stringSimilarity(a: string, b: string): number {
   const lev = dp[s1.length][s2.length];
   return 1 - lev / Math.max(s1.length, s2.length);
 }
+
+export async function getEloForSteamIds(steamids: string[]): Promise<Record<string, { ar: number | null; br: number | null }>> {
+  if (steamids.length === 0) return {};
+
+  const { default: prismaArg } = await import('$lib/prisma/prismaArg');
+  const { default: prismaBr } = await import('$lib/prisma/prismaBr');
+  const { ID } = await import('@node-steam/id');
+
+  const eloMap: Record<string, { ar: number | null; br: number | null }> = {};
+
+  // Convert steamids to steam2 format for database lookup
+  const steam2Ids: string[] = [];
+  const steam64ToSteam2Map: Record<string, string> = {};
+
+  for (const steamid of steamids) {
+    try {
+      const steam64 = toSteam64FromAny(steamid);
+      if (steam64) {
+        const id = new ID(steam64);
+        const steam2 = id.getSteamID2();
+        steam2Ids.push(steam2);
+        steam64ToSteam2Map[steam64] = steam2;
+        eloMap[steamid] = { ar: null, br: null };
+      }
+    } catch {
+      eloMap[steamid] = { ar: null, br: null };
+    }
+  }
+
+  if (steam2Ids.length === 0) return eloMap;
+
+  try {
+    // Fetch ELO data from both regions
+    const [arStats, brStats] = await Promise.all([
+      prismaArg.mgemod_stats.findMany({
+        where: { steamid: { in: steam2Ids } },
+        select: { steamid: true, rating: true }
+      }),
+      prismaBr.mgemod_stats.findMany({
+        where: { steamid: { in: steam2Ids } },
+        select: { steamid: true, rating: true }
+      })
+    ]);
+
+    // Map results back to original steamids
+    for (const [originalSteamid, steam2] of Object.entries(steam64ToSteam2Map)) {
+      const arStat = arStats.find(s => s.steamid === steam2);
+      const brStat = brStats.find(s => s.steamid === steam2);
+      
+      eloMap[originalSteamid] = {
+        ar: arStat?.rating ?? null,
+        br: brStat?.rating ?? null
+      };
+    }
+  } catch (error) {
+    console.error('Error fetching ELO data:', error);
+  }
+
+  return eloMap;
+}

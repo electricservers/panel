@@ -1,7 +1,7 @@
 import prismaArg from '$lib/prisma/prismaArg';
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { allIdVariantsForSteam64, normalizeSubject, toSteam64FromAny } from '$lib/whois/utils';
+import { allIdVariantsForSteam64, normalizeSubject, toSteam64FromAny, getEloForSteamIds } from '$lib/whois/utils';
 import { resolveVanityTo64 } from '$lib/steam/resolve';
 
 export const GET: RequestHandler = async (event) => {
@@ -40,11 +40,14 @@ export const GET: RequestHandler = async (event) => {
     // Fast path: check if there are any sessions first
     const totalSessions = await prismaArg.whois_logs.count({ where: { steam_id: { in: variants } } });
     if (totalSessions === 0) {
+      // Still fetch ELO data even if no whois logs exist
+      const eloData = await getEloForSteamIds([normalized.value]);
       return json(
         {
           type: 'steam',
           steamid: normalized.value,
           exists: false,
+          elo: eloData[normalized.value] || { ar: null, br: null },
           summary: {
             firstSeen: null,
             lastSeen: null,
@@ -108,11 +111,15 @@ export const GET: RequestHandler = async (event) => {
     const permanentName = (permName?.name ?? '').trim();
     const knownFiltered = permanentName ? knownNames.filter((n) => (n ?? '').trim().toLowerCase() !== permanentName.toLowerCase()) : knownNames;
 
+    // Fetch ELO data for the main steamid
+    const eloData = await getEloForSteamIds([normalized.value]);
+
     return json(
       {
         type: 'steam',
         steamid: normalized.value,
         exists: true,
+        elo: eloData[normalized.value] || { ar: null, br: null },
         summary: {
           firstSeen: firstLast[0] || null,
           lastSeen,
@@ -159,6 +166,10 @@ export const GET: RequestHandler = async (event) => {
     })
   ).then((arr) => arr.filter(Boolean));
 
+  // Fetch ELO data for all accounts on this IP
+  const accountSteamIds = accounts.map(acc => acc?.steamid64).filter(Boolean) as string[];
+  const accountEloData = await getEloForSteamIds(accountSteamIds);
+
   return json(
     {
       type: 'ip',
@@ -169,7 +180,10 @@ export const GET: RequestHandler = async (event) => {
         totalSessions: await prismaArg.whois_logs.count({ where: { ip: normalized.value } }),
         distinctAccounts: distinctAccounts.map((r) => r.steam_id).filter(Boolean)
       },
-      accounts,
+      accounts: accounts.map(acc => ({
+        ...acc,
+        elo: acc?.steamid64 ? accountEloData[acc.steamid64] || { ar: null, br: null } : { ar: null, br: null }
+      })),
       logs: logsByIp
     },
     { headers: { 'cache-control': 'no-store' } }

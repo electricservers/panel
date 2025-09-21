@@ -1,7 +1,7 @@
 import prismaArg from '$lib/prisma/prismaArg';
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { allIdVariantsForSteam64, extractSteamId64, stringSimilarity, toSteam64FromAny } from '$lib/whois/utils';
+import { allIdVariantsForSteam64, extractSteamId64, stringSimilarity, toSteam64FromAny, getEloForSteamIds } from '$lib/whois/utils';
 import { resolveVanityTo64 } from '$lib/steam/resolve';
 
 export const GET: RequestHandler = async (event) => {
@@ -110,5 +110,15 @@ export const GET: RequestHandler = async (event) => {
     .filter(Boolean)
     .sort((a: any, b: any) => b.score - a.score);
 
-  return json({ steamid, candidates }, { headers: { 'cache-control': 'no-store' } });
+  // Fetch ELO data for all candidates
+  const candidateSteamIds = candidates.map((c: any) => c.steamid64).filter(Boolean);
+  const candidateEloData = await getEloForSteamIds(candidateSteamIds);
+
+  // Add ELO data to candidates
+  const candidatesWithElo = candidates.map((c: any) => ({
+    ...c,
+    elo: c.steamid64 ? candidateEloData[c.steamid64] || { ar: null, br: null } : { ar: null, br: null }
+  }));
+
+  return json({ steamid, candidates: candidatesWithElo }, { headers: { 'cache-control': 'no-store' } });
 };

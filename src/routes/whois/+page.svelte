@@ -140,6 +140,14 @@
       return d.toString();
     }
   }
+
+  function formatElo(elo: { ar: number | null; br: number | null }): string {
+    const parts = [];
+    if (elo.ar !== null) parts.push(`AR: ${elo.ar}`);
+    if (elo.br !== null) parts.push(`BR: ${elo.br}`);
+    if (parts.length === 0) return 'No ELO';
+    return parts.join(' | ');
+  }
 </script>
 
 <div class="p-4">
@@ -193,6 +201,9 @@
                   >{result.names.permanent}</span>
               {/if}
               <div class="font-mono truncate text-sm text-gray-500">{result.steamid}</div>
+              {#if result.elo}
+                <div class="text-sm text-blue-600 dark:text-blue-400 font-medium">{formatElo(result.elo)}</div>
+              {/if}
             </div>
           </div>
 
@@ -284,6 +295,9 @@
                       {/if}
                       <div class="font-mono truncate text-xs text-gray-500">{a.steamid64 || a.steamidRaw}</div>
                       <div class="mt-1 text-xs text-gray-600 dark:text-gray-300">Score {(a.score * 100).toFixed(0)}% · {a.label}</div>
+                      {#if a.elo}
+                        <div class="mt-1 text-xs text-blue-600 dark:text-blue-400 font-medium">{formatElo(a.elo)}</div>
+                      {/if}
                       <div class="mt-1 flex flex-wrap gap-1">
                         {#each a.sharedIps || [] as ip}
                           <span class="rounded bg-gray-100 px-1.5 py-0.5 dark:bg-gray-700">{ip}</span>
@@ -387,6 +401,9 @@
                         >{profileFor(acc.steamid64)?.personaname || acc.steamid64 || acc.steam_id_raw}</a>
                     {/if}
                     <div class="font-mono truncate text-xs text-gray-500">{acc.steamid64 || acc.steam_id_raw}</div>
+                    {#if acc.elo}
+                      <div class="mt-1 text-xs text-blue-600 dark:text-blue-400 font-medium">{formatElo(acc.elo)}</div>
+                    {/if}
                     <div class="mt-1 grid grid-cols-2 gap-3 text-xs text-gray-600 dark:text-gray-300">
                       <div>
                         <div class="text-[11px] text-gray-500">First seen here</div>
