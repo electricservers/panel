@@ -2,7 +2,7 @@
   import UserMenu from '../../routes/utils/widgets/UserMenu.svelte';
   import { Avatar, Button, DarkMode, NavBrand, NavHamburger, Navbar, P, Dropdown, DropdownItem } from 'flowbite-svelte';
   import { steamStore } from '$lib/stores/steamStore';
-  import { goto } from '$app/navigation';
+  import { page } from '$app/stores';
   import { onMount } from 'svelte';
   import { regionStore } from '$lib/stores/regionStore';
   import { siteSettingsStore, loadSiteSettings } from '$lib/stores/siteSettingsStore';
@@ -87,11 +87,13 @@
         <P>{$steamStore.personaname ?? ''}</P>
         <UserMenu />
       {:else}
-        <Button
-          on:click={() => {
-            const current = typeof window !== 'undefined' ? window.location.pathname + window.location.search + window.location.hash : '/';
-            goto(`/api/auth/login?returnTo=${encodeURIComponent(current)}`);
-          }}>Login with Steam</Button>
+        <nav class="flex items-center gap-3">
+          <!-- existing nav items -->
+          <!-- Admin-only: Revert ELO -->
+          {#if $page?.data?.user?.role === 'owner'}
+            <a href="/whois/revert-elo" class="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">Revert ELO</a>
+          {/if}
+        </nav>
       {/if}
     </div>
   </NavContainer>

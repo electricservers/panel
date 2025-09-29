@@ -57,15 +57,16 @@
     { name: 'Versus', href: '/mge/versus', icon: VersusOutline }
   ];
 
-  const whoisItem: NavItem = {
+  let whoisItem = $derived({
     name: 'Whois',
     icon: SearchOutline,
     href: '#',
     children: [
       { name: 'Search', href: '/whois', icon: SearchOutline },
-      { name: 'Alt Link', href: '/whois/alt', icon: UsersGroupOutline }
+      { name: 'Alt Link', href: '/whois/alt', icon: UsersGroupOutline },
+      ...($steamStore?.role === 'owner' ? [{ name: 'Revert ELO', href: '/whois/revert-elo', icon: CogOutline }] : [])
     ]
-  };
+  });
 
   const adminItem: NavItem = {
     name: 'Admin',
