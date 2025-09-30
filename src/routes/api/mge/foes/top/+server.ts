@@ -37,18 +37,24 @@ export const GET: RequestHandler = async (event) => {
   const winsWhere: Prisma.mgemod_duelsWhereInput = { ...baseWhere, winner: steamid };
   const lossesWhere: Prisma.mgemod_duelsWhereInput = { ...baseWhere, loser: steamid };
 
-  // @ts-expect-error Prisma groupBy typing in this environment requires extra args
-  const winsRows: FoeRow[] = await client.mgemod_duels.groupBy({
-    by: ['loser'],
-    where: winsWhere,
-    _count: { _all: true }
-  });
-  // @ts-expect-error see above
-  const lossesRows: FoeRow[] = await client.mgemod_duels.groupBy({
-    by: ['winner'],
-    where: lossesWhere,
-    _count: { _all: true }
-  });
+  let winsRows: FoeRow[] = [];
+  let lossesRows: FoeRow[] = [];
+  try {
+    // @ts-expect-error Prisma groupBy typing in this environment requires extra args
+    winsRows = await client.mgemod_duels.groupBy({
+      by: ['loser'],
+      where: winsWhere,
+      _count: { _all: true }
+    });
+    // @ts-expect-error see above
+    lossesRows = await client.mgemod_duels.groupBy({
+      by: ['winner'],
+      where: lossesWhere,
+      _count: { _all: true }
+    });
+  } catch {
+    return new Response(JSON.stringify({ error: 'db_unavailable', region: db }), { status: 503, headers: { 'content-type': 'application/json' } });
+  }
 
   const winsMap = new Map<string, number>();
   const lossesMap = new Map<string, number>();

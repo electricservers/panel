@@ -57,7 +57,9 @@ export const GET: RequestHandler = async (event) => {
   let ranking: any[];
   let total = 0;
   let position: number | undefined = undefined;
-  switch (query.get('db')) {
+  const dbSel = query.get('db');
+  try {
+  switch (dbSel) {
     case 'ar':
       if (isDerived) {
         const all = await prismaArg.mgemod_stats.findMany({ where });
@@ -230,6 +232,9 @@ export const GET: RequestHandler = async (event) => {
       break;
     default:
       return error(400, "wrong db supplied (only 'ar' or 'br' accepted)");
+  }
+  } catch {
+    return new Response(JSON.stringify({ error: 'db_unavailable', region: dbSel }), { status: 503, headers: { 'content-type': 'application/json' } });
   }
   if (query.has('withTotal') || includeRankPosition) {
     const payload: any = { items: ranking } as { items: any[]; total?: number; position?: number | null };

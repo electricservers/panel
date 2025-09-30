@@ -15,26 +15,51 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 	let existsInBr = false;
 	let lastSeenAr: number | null = null;
 	let lastSeenBr: number | null = null;
+	let arAvailable = true;
+	let brAvailable = true;
+
 	try {
 		const id2 = new ID(params.steamid).getSteamID2();
-		const [arCount, brCount, arLast, brLast] = await Promise.all([
-			prismaArg.mgemod_stats.count({ where: { steamid: id2 } }),
-			prismaBr.mgemod_stats.count({ where: { steamid: id2 } }),
-			prismaArg.mgemod_duels.findFirst({
-				where: { OR: [{ winner: id2 }, { loser: id2 }] },
-				orderBy: { id: 'desc' },
-				select: { endtime: true }
-			}),
-			prismaBr.mgemod_duels.findFirst({
-				where: { OR: [{ winner: id2 }, { loser: id2 }] },
-				orderBy: { id: 'desc' },
-				select: { endtime: true }
-			})
+
+		// Query each region independently so one outage doesn't mask the other
+		const [arRes, brRes] = await Promise.allSettled([
+			(async () => {
+				const [count, last] = await Promise.all([
+					prismaArg.mgemod_stats.count({ where: { steamid: id2 } }),
+					prismaArg.mgemod_duels.findFirst({
+						where: { OR: [{ winner: id2 }, { loser: id2 }] },
+						orderBy: { id: 'desc' },
+						select: { endtime: true }
+					})
+				]);
+				return { count, last };
+			})(),
+			(async () => {
+				const [count, last] = await Promise.all([
+					prismaBr.mgemod_stats.count({ where: { steamid: id2 } }),
+					prismaBr.mgemod_duels.findFirst({
+						where: { OR: [{ winner: id2 }, { loser: id2 }] },
+						orderBy: { id: 'desc' },
+						select: { endtime: true }
+					})
+				]);
+				return { count, last };
+			})()
 		]);
-		existsInAr = (arCount ?? 0) > 0;
-		existsInBr = (brCount ?? 0) > 0;
-		lastSeenAr = arLast?.endtime ? Number(arLast.endtime) : null;
-		lastSeenBr = brLast?.endtime ? Number(brLast.endtime) : null;
+
+		if (arRes.status === 'fulfilled') {
+			existsInAr = (arRes.value.count ?? 0) > 0;
+			lastSeenAr = arRes.value.last?.endtime ? Number(arRes.value.last.endtime) : null;
+		} else {
+			arAvailable = false;
+		}
+
+		if (brRes.status === 'fulfilled') {
+			existsInBr = (brRes.value.count ?? 0) > 0;
+			lastSeenBr = brRes.value.last?.endtime ? Number(brRes.value.last.endtime) : null;
+		} else {
+			brAvailable = false;
+		}
 	} catch {}
 
 	// Determine if viewed profile is an alt of the logged-in user's main
@@ -71,7 +96,9 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		lastSeenAr,
 		lastSeenBr,
 		lastSeen: Math.max(lastSeenAr ?? 0, lastSeenBr ?? 0) || null,
-		isAltOfViewerMain
+		isAltOfViewerMain,
+		arAvailable,
+		brAvailable
 	};
 };
 

@@ -39,13 +39,17 @@ export const GET: RequestHandler = async (event) => {
   } satisfies Prisma.mgemod_duelsFindManyArgs;
 
   let rows: { endtime: number | null }[] = [];
-  switch (db) {
-    case 'ar':
-      rows = await prismaArg.mgemod_duels.findMany(findManyParams);
-      break;
-    case 'br':
-      rows = await prismaBr.mgemod_duels.findMany(findManyParams);
-      break;
+  try {
+    switch (db) {
+      case 'ar':
+        rows = await prismaArg.mgemod_duels.findMany(findManyParams);
+        break;
+      case 'br':
+        rows = await prismaBr.mgemod_duels.findMany(findManyParams);
+        break;
+    }
+  } catch {
+    return new Response(JSON.stringify({ error: 'db_unavailable', region: db }), { status: 503, headers: { 'content-type': 'application/json' } });
   }
 
   let gametimes = rows.map((r) => (r.endtime == null ? null : String(r.endtime))).filter((v): v is string => Boolean(v));

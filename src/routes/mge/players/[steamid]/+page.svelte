@@ -24,10 +24,14 @@
 
   let existsInAr = $state(Boolean(data.existsInAr));
   let existsInBr = $state(Boolean(data.existsInBr));
+  let arAvailable = $state<boolean>(data?.arAvailable ?? true);
+  let brAvailable = $state<boolean>(data?.brAvailable ?? true);
   const existsInAny = $derived(existsInAr || existsInBr);
   const existsInCurrent = $derived(currentRegion === 'ar' ? existsInAr : existsInBr);
   const otherRegion = $derived<Region>(currentRegion === 'ar' ? 'br' : 'ar');
   const existsInOther = $derived(otherRegion === 'ar' ? existsInAr : existsInBr);
+  const currentRegionAvailable = $derived(currentRegion === 'ar' ? arAvailable : brAvailable);
+  const otherRegionAvailable = $derived(otherRegion === 'ar' ? arAvailable : brAvailable);
 
   let pageSize = $state(5);
   let currentPage = $state(1);
@@ -70,6 +74,10 @@
     avatarUrl = undefined;
     const params = new URLSearchParams({ db, steamid: id, take: '1', withRankPosition: '1' });
     const resp = await fetch(`/api/mge/rank?${params.toString()}`);
+    if (resp.status === 503) {
+      if (db === 'ar') arAvailable = false; else brAvailable = false;
+      return;
+    }
     const arr = await resp.json();
     const payload = Array.isArray(arr) ? { items: arr, position: null } : arr;
     const player = Array.isArray(payload.items) && payload.items.length > 0 ? payload.items[0] : null;
@@ -111,6 +119,12 @@
     if (outcome !== 'all') params.set('outcome', outcome);
     if (withTotal) params.set('withTotal', '1');
     const result = await fetch(`/api/mge/games?${params.toString()}`);
+    if (result.status === 503) {
+      if (db === 'ar') arAvailable = false; else brAvailable = false;
+      games = [];
+      if (withTotal) totalItems = 0;
+      return;
+    }
     const payload = await result.json();
     const items: MgeDuel[] = Array.isArray(payload) ? payload : payload.items;
     totalItems = Array.isArray(payload) ? totalItems : (payload.total ?? totalItems);
@@ -128,7 +142,10 @@
     try {
       const params = new URLSearchParams({ db, steamid: id, take: '2000', days: String(activityDays) });
       const resp = await fetch(`/api/mge/activity?${params.toString()}`);
-      if (resp.ok) {
+      if (resp.status === 503) {
+        if (db === 'ar') arAvailable = false; else brAvailable = false;
+        activityTimes = [];
+      } else if (resp.ok) {
         const payload = await resp.json();
         activityTimes = Array.isArray(payload?.gametimes) ? payload.gametimes : [];
       } else {
@@ -215,8 +232,15 @@
         This account has been flagged as one of your alts. Its ELO may be reset to the server default.
       </div>
     {/if}
-    {#if !existsInAny}
-      <div class="rounded-md border border-rose-300 bg-rose-50 p-3 text-rose-900 dark:border-rose-900/50 dark:bg-rose-950 dark:text-rose-100">Player does not exist in any region.</div>
+    {#if !currentRegionAvailable}
+      <div class="rounded-md border border-amber-300 bg-amber-50 p-3 text-amber-900 dark:border-amber-900/50 dark:bg-amber-950 dark:text-amber-100">
+        {currentRegion === 'ar' ? 'Argentina' : 'Brasil'} database is currently unavailable.
+        {#if otherRegionAvailable}
+          <button class="ml-1 underline" onclick={() => regionStore.set(otherRegion)}>Switch to {otherRegion === 'ar' ? 'Argentina' : 'Brasil'}</button>
+        {/if}
+      </div>
+    {:else if !existsInAny && (arAvailable || brAvailable)}
+      <div class="rounded-md border border-rose-300 bg-rose-50 p-3 text-rose-900 dark:border-rose-900/50 dark:bg-rose-950 dark:text-rose-100">Player does not exist in any available region.</div>
     {:else if !existsInCurrent && existsInOther}
       <div class="rounded-md border border-amber-300 bg-amber-50 p-3 text-amber-900 dark:border-amber-900/50 dark:bg-amber-950 dark:text-amber-100">
         No stats in {currentRegion === 'ar' ? 'Argentina' : 'Brasil'}.

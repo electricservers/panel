@@ -69,24 +69,31 @@ export const GET: RequestHandler = async (event) => {
   const client = db === 'ar' ? prismaArg : prismaBr;
 
   // Group by arena for totals, wins and losses
-  // @ts-expect-error Prisma groupBy typing in this environment requires extra args
-  const total: ArenaRow[] = await client.mgemod_duels.groupBy({
-    by: ['arenaname'],
-    where: totalWhere,
-    _count: { _all: true }
-  });
-  // @ts-expect-error see above
-  const winsRows: ArenaRow[] = await client.mgemod_duels.groupBy({
-    by: ['arenaname'],
-    where: winsWhere,
-    _count: { _all: true }
-  });
-  // @ts-expect-error see above
-  const lossesRows: ArenaRow[] = await client.mgemod_duels.groupBy({
-    by: ['arenaname'],
-    where: lossesWhere,
-    _count: { _all: true }
-  });
+  let total: ArenaRow[] = [];
+  let winsRows: ArenaRow[] = [];
+  let lossesRows: ArenaRow[] = [];
+  try {
+    // @ts-expect-error Prisma groupBy typing in this environment requires extra args
+    total = await client.mgemod_duels.groupBy({
+      by: ['arenaname'],
+      where: totalWhere,
+      _count: { _all: true }
+    });
+    // @ts-expect-error see above
+    winsRows = await client.mgemod_duels.groupBy({
+      by: ['arenaname'],
+      where: winsWhere,
+      _count: { _all: true }
+    });
+    // @ts-expect-error see above
+    lossesRows = await client.mgemod_duels.groupBy({
+      by: ['arenaname'],
+      where: lossesWhere,
+      _count: { _all: true }
+    });
+  } catch {
+    return new Response(JSON.stringify({ error: 'db_unavailable', region: db }), { status: 503, headers: { 'content-type': 'application/json' } });
+  }
 
   const winsMap: Record<string, number> = {};
   winsRows.forEach((r) => {

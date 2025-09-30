@@ -7,6 +7,7 @@
   import { ID } from '@node-steam/id';
 
   let currentRegion: Region = $state('ar');
+  let currentRegionAvailable = $state<boolean>(true);
   // remove unused loading flag
   let games = $state<MgeDuel[]>([]);
   let totalItems = $state(0);
@@ -56,7 +57,10 @@
   async function fetchArenas(db: Region) {
     try {
       const res = await fetch(`/api/mge/games/arenas?db=${db}`);
-      if (res.ok) {
+      if (res.status === 503) {
+        currentRegionAvailable = false;
+        arenas = [];
+      } else if (res.ok) {
         const payload = await res.json();
         arenas = Array.isArray(payload) ? payload : (payload.items ?? []);
       }
@@ -84,6 +88,12 @@
     if (outcome !== 'all') params.set('outcome', outcome);
     if (withTotal) params.set('withTotal', '1');
     const res = await fetch(`/api/mge/games?${params.toString()}`);
+    if (res.status === 503) {
+      currentRegionAvailable = false;
+      games = [];
+      if (withTotal) totalItems = 0;
+      return;
+    }
     const payload = await res.json();
     games = Array.isArray(payload) ? payload : payload.items;
     totalItems = Array.isArray(payload) ? totalItems : (payload.total ?? totalItems);
@@ -98,6 +108,7 @@
     const unreg = regionStore.subscribe((r) => {
       if (currentRegion !== r) {
         currentRegion = r;
+        currentRegionAvailable = true;
         resetAndLoad(r);
       }
     });
@@ -113,6 +124,14 @@
 
 <div class="p-4">
   <Title>Latest games</Title>
+
+  {#if !currentRegionAvailable}
+    <div class="mt-2 text-center">
+      <div class="inline-block rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-amber-900 dark:border-amber-900/50 dark:bg-amber-950 dark:text-amber-100">
+        {currentRegion === 'ar' ? 'Argentina' : 'Brasil'} database is currently unavailable.
+      </div>
+    </div>
+  {/if}
 
   <!-- Filters (organized card) -->
   <div class="mt-3 flex justify-center">

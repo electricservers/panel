@@ -106,7 +106,9 @@ export const GET: RequestHandler = async (event) => {
   } satisfies Prisma.mgemod_duelsFindManyArgs;
   let gamesRaw: mgemod_duels[];
   let total = 0;
-  switch (query.get('db')) {
+  const dbSel = query.get('db');
+  try {
+  switch (dbSel) {
     case 'ar':
       if (!additionalIdFilter && !q) {
         gamesRaw = await prismaArg.mgemod_duels.findMany(findManyParams);
@@ -172,6 +174,13 @@ export const GET: RequestHandler = async (event) => {
       break;
     default:
       return error(400, "wrong db supplied (only 'ar' or 'br' accepted)");
+  }
+  } catch (e) {
+    // Region database likely unavailable; return 503 so clients can distinguish
+    return new Response(JSON.stringify({ error: 'db_unavailable', region: dbSel }), {
+      status: 503,
+      headers: { 'content-type': 'application/json' }
+    });
   }
 
   const steamIDs = Array.from(new Set(gamesRaw.flatMap((game) => [game.winner, game.loser]).filter((id): id is string => Boolean(id))));
