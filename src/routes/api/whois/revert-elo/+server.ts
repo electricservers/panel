@@ -3,6 +3,7 @@ import { json } from '@sveltejs/kit';
 import prismaArg from '$lib/prisma/prismaArg';
 import prismaBr from '$lib/prisma/prismaBr';
 import { ID } from '@node-steam/id';
+import { EloReversion } from '$lib/models/eloReversion';
 
 type Region = 'ar' | 'br';
 
@@ -46,6 +47,13 @@ export const POST: RequestHandler = async (event) => {
   const scope = (body?.scope as 'all' | 'wins' | 'losses') || 'all';
 
   const db = pickDb(region);
+  // Check if this account has previous reversion history in this region
+  let priorReversions = 0;
+  try {
+    priorReversions = await EloReversion.countDocuments({ region, targetSteam2: steam2 }).exec();
+  } catch {
+    // ignore mongo errors, UI will not show prior banner
+  }
 
   // Build where clause for candidate duels
   const where: any = {};
@@ -84,28 +92,70 @@ export const POST: RequestHandler = async (event) => {
   });
 
   // Prepare changes: for each duel, if the target is winner, set stats.rating back to winner_previous_elo; if loser, revert loser_previous_elo
-  type Change = { id: number; target: 'winner' | 'loser'; from: number | null; to: number | null };
+  // Also provide opponent, outcome and delta for better UI context
+  type Change = {
+    id: number;
+    target: 'winner' | 'loser';
+    opponent: string;
+    outcome: 'win' | 'loss';
+    from: number | null;
+    to: number | null;
+    delta: number | null;
+  };
   const changes: Change[] = [];
   for (const d of duels) {
     if (d.winner === steam2) {
-      changes.push({ id: d.id, target: 'winner', from: d.winner_new_elo ?? null, to: d.winner_previous_elo ?? null });
+      const from = d.winner_new_elo ?? null;
+      const to = d.winner_previous_elo ?? null;
+      const delta = typeof d.winner_new_elo === 'number' && typeof d.winner_previous_elo === 'number' ? d.winner_new_elo - d.winner_previous_elo : null;
+      changes.push({ id: d.id, target: 'winner', opponent: d.loser, outcome: 'win', from, to, delta });
     } else if (d.loser === steam2) {
-      changes.push({ id: d.id, target: 'loser', from: d.loser_new_elo ?? null, to: d.loser_previous_elo ?? null });
+      const from = d.loser_new_elo ?? null;
+      const to = d.loser_previous_elo ?? null;
+      const delta = typeof d.loser_new_elo === 'number' && typeof d.loser_previous_elo === 'number' ? d.loser_new_elo - d.loser_previous_elo : null;
+      changes.push({ id: d.id, target: 'loser', opponent: d.winner, outcome: 'loss', from, to, delta });
     }
   }
 
-  // Consolidate to one final rating per player (the target) after all selected matches: last change's `to` becomes the desired rating.
-  // Since we are reverting specific matches, the safest is to compute the minimal `to` in chronological order.
-  // We already order desc; reverse to chronological.
-  const ordered = [...changes].reverse();
-  let finalRating: number | null = null;
-  for (const c of ordered) {
-    if (typeof c.to === 'number') finalRating = c.to;
+  // NEW: Aggregate opponent deltas only where opponent ELO history is present, and decide target final rating (reset to default)
+  // Default ELO rating to reset target to
+  const DEFAULT_ELO = 1600;
+
+  // Build per-opponent delta map: new - previous across selected matches where opponent history exists
+  const opponentDeltaMap = new Map<string, number>();
+  for (const d of duels) {
+    const targetWasWinner = d.winner === steam2;
+    const opponentId = targetWasWinner ? d.loser : d.winner;
+    // opponent previous/new
+    const oppPrev = targetWasWinner ? d.loser_previous_elo : d.winner_previous_elo;
+    const oppNew = targetWasWinner ? d.loser_new_elo : d.winner_new_elo;
+    if (typeof oppPrev === 'number' && typeof oppNew === 'number') {
+      const delta = oppNew - oppPrev;
+      opponentDeltaMap.set(opponentId, (opponentDeltaMap.get(opponentId) ?? 0) + delta);
+    }
   }
 
-  // Read current rating
+  // Read current rating for target and opponents to prepare preview
   const statsRow = await (db as any).mgemod_stats.findUnique({ where: { steamid: steam2 }, select: { rating: true } });
   const currentRating: number | null = statsRow?.rating ?? null;
+
+  const opponentIds = Array.from(opponentDeltaMap.keys());
+  let opponentStats: Array<{ steamid: string; rating: number | null }> = [];
+  if (opponentIds.length > 0) {
+    const rows = await (db as any).mgemod_stats.findMany({ where: { steamid: { in: opponentIds } }, select: { steamid: true, rating: true } });
+    opponentStats = rows.map((r: any) => ({ steamid: r.steamid, rating: r.rating ?? null }));
+  }
+
+  const opponents: Array<{ steamid2: string; currentRating: number | null; delta: number; finalRating: number | null }> = opponentIds.map((sid) => {
+    const current = opponentStats.find((r) => r.steamid === sid)?.rating ?? null;
+    const delta = opponentDeltaMap.get(sid) ?? 0;
+    // Revert by subtracting the delta from current
+    const final = typeof current === 'number' ? current - delta : null;
+    return { steamid2: sid, currentRating: current, delta, finalRating: final };
+  });
+
+  // Target final rating is always DEFAULT_ELO per new rules
+  const finalRating = DEFAULT_ELO as number;
 
   const summary = {
     region,
@@ -113,21 +163,59 @@ export const POST: RequestHandler = async (event) => {
     matchesConsidered: duels.length,
     changes,
     currentRating,
-    finalRating
+    finalRating,
+    opponents,
+    opponentsCount: opponents.length,
+    opponentsTotalDelta: opponents.reduce((acc, o) => acc + o.delta, 0)
   };
 
   if (!apply) {
-    return json({ ok: true, dryRun: true, ...summary });
+    return json({ ok: true, dryRun: true, priorReversions, ...summary });
   }
 
-  // Apply: set the stats.rating to finalRating if present
-  if (typeof finalRating === 'number') {
-    await (db as any).$transaction([
-      (db as any).mgemod_stats.update({ where: { steamid: steam2 }, data: { rating: finalRating } })
-    ]);
+  // Apply: set the target's rating to DEFAULT_ELO and update opponents by subtracting their aggregated deltas
+  const tx: any[] = [];
+  tx.push((db as any).mgemod_stats.update({ where: { steamid: steam2 }, data: { rating: finalRating } }));
+  for (const opp of opponents) {
+    if (typeof opp.currentRating === 'number' && typeof opp.finalRating === 'number' && opp.delta !== 0) {
+      tx.push((db as any).mgemod_stats.update({ where: { steamid: opp.steamid2 }, data: { rating: opp.finalRating } }));
+    }
+  }
+  if (tx.length > 0) {
+    await (db as any).$transaction(tx);
   }
 
-  return json({ ok: true, applied: true, ...summary });
+  // Persist reversion record to Mongo
+  try {
+    const actor = event.locals.user as any;
+    const actorSteam64 = actor?.steamid ?? null;
+    const actorName = actor?.personaname ?? null;
+    await EloReversion.create({
+      region,
+      targetSteam2: steam2,
+      targetSteam64: (() => { try { return new ID(steam2).get64(); } catch { return null; } })(),
+      actorSteam64,
+      actorName,
+      request: {
+        scope,
+        filters,
+        matchIds
+      },
+      summary: {
+        currentRatingBefore: currentRating,
+        finalRatingApplied: finalRating,
+        matchesConsidered: duels.length,
+        opponentsCount: opponents.length,
+        opponentsTotalDelta: opponents.reduce((acc, o) => acc + o.delta, 0)
+      },
+      opponents: opponents,
+      changes: changes
+    });
+  } catch (e) {
+    console.error('Failed to persist EloReversion:', e);
+  }
+
+  return json({ ok: true, applied: true, priorReversions, ...summary });
 };
 
 

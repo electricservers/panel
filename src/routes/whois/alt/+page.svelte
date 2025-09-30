@@ -232,6 +232,16 @@
                       <input type="hidden" name="main" value={g.main} />
                       <button name="/delete_alt" formaction="?/delete_alt" class="rounded bg-red-600 px-3 py-1 text-xs text-white">Delete</button>
                     </form>
+                    <a
+                      class="rounded bg-emerald-600 px-3 py-1 text-xs text-white"
+                      href={`/whois/revert-elo?steamid=${encodeURIComponent(alt)}&region=${encodeURIComponent('ar')}&auto=1`}
+                      title="Analyze ELO reversion (AR)"
+                      >Revert (AR)</a>
+                    <a
+                      class="rounded bg-indigo-600 px-3 py-1 text-xs text-white"
+                      href={`/whois/revert-elo?steamid=${encodeURIComponent(alt)}&region=${encodeURIComponent('br')}&auto=1`}
+                      title="Analyze ELO reversion (BR)"
+                      >Revert (BR)</a>
                   </div>
                 </div>
               {/each}

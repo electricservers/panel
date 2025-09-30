@@ -7,6 +7,7 @@
   import { regionStore } from '$lib/stores/regionStore';
   import { siteSettingsStore, loadSiteSettings } from '$lib/stores/siteSettingsStore';
   import { ChevronDownOutline } from 'flowbite-svelte-icons';
+  import { goto } from '$app/navigation';
 
   interface Props {
     fluid?: boolean;
@@ -87,13 +88,11 @@
         <P>{$steamStore.personaname ?? ''}</P>
         <UserMenu />
       {:else}
-        <nav class="flex items-center gap-3">
-          <!-- existing nav items -->
-          <!-- Admin-only: Revert ELO -->
-          {#if $page?.data?.user?.role === 'owner'}
-            <a href="/whois/revert-elo" class="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">Revert ELO</a>
-          {/if}
-        </nav>
+        <Button
+          on:click={() => {
+            const current = typeof window !== 'undefined' ? window.location.pathname + window.location.search + window.location.hash : '/';
+            goto(`/api/auth/login?returnTo=${encodeURIComponent(current)}`);
+          }}>Login with Steam</Button>
       {/if}
     </div>
   </NavContainer>
