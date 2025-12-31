@@ -6,10 +6,6 @@ import { ID } from '@node-steam/id';
 import { toSteam64FromAny, allIdVariantsForSteam64 } from '$lib/whois/utils';
 
 export const load: PageServerLoad = async ({ params, locals, url }) => {
-	if (!locals.user) {
-		const returnTo = encodeURIComponent(url.pathname + url.search);
-		throw redirect(302, `/api/auth/login?returnTo=${returnTo}`);
-	}
 
 	let existsInAr = false;
 	let existsInBr = false;
@@ -65,9 +61,11 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 	// Determine if viewed profile is an alt of the logged-in user's main
 	let isAltOfViewerMain = false;
 	try {
-		const viewer64 = toSteam64FromAny(String(locals.user?.steamid || ''));
-		const viewed64 = toSteam64FromAny(String(params.steamid));
-		if (viewer64 && viewed64) {
+		// Only check alt relationships if user is logged in
+		if (locals.user?.steamid) {
+			const viewer64 = toSteam64FromAny(String(locals.user.steamid));
+			const viewed64 = toSteam64FromAny(String(params.steamid));
+			if (viewer64 && viewed64) {
 			const viewerVariants = allIdVariantsForSteam64(viewer64);
 			const viewerAltRow = await prismaArg.whois_alt_links.findFirst({
 				where: { steam_id: { in: viewerVariants } },
@@ -86,6 +84,7 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 				select: { steam_id: true }
 			});
 			isAltOfViewerMain = Boolean(link);
+			}
 		}
 	} catch {}
 

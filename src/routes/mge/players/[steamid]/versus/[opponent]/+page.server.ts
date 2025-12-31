@@ -3,9 +3,6 @@ import { ID } from '@node-steam/id';
 import { redirect } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
-	if (!locals.user) {
-		throw redirect(302, '/api/auth/login');
-	}
 
 	let a = params.steamid;
 	let b = params.opponent;
