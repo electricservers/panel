@@ -9,7 +9,7 @@ ARG GIT_COMMIT_COUNT
 RUN apk add --no-cache openssl
 
 # Copy manifests and install deps
-COPY package.json pnpm-lock.yaml* .npmrc* ./
+COPY package.json pnpm-lock.yaml ./
 # Use pnpm with the existing lockfile for deterministic installs
 RUN npm i -g pnpm && pnpm install --frozen-lockfile
 
