@@ -1,4 +1,6 @@
 onlyBuiltDependencies:
-  - '@prisma/client'
-  - '@prisma/engines'
+  - "@prisma/client"
+  - "@prisma/engines"
+  - esbuild
+  - oxc-resolver
   - prisma
