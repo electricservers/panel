@@ -11,7 +11,7 @@ RUN apk add --no-cache openssl
 # Copy manifests and install deps
 COPY package.json pnpm-lock.yaml ./
 # Use pnpm with the existing lockfile for deterministic installs
-RUN npm i -g pnpm && pnpm install --frozen-lockfile
+RUN npm i -g pnpm && pnpm install --frozen-lockfile && pnpm approve-builds --all
 RUN pnpm approve-builds --all
 
 # Copy source
