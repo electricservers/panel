@@ -1,8 +1,17 @@
 services:
-  electricpanel-app:
-    image: electricpanel
-    container_name: electricpanel-app
-    env_file: .env
+  app:
+    build: .
     ports:
-      - "${HOST_PORT:-3000}:${API_PORT:-3000}"
+      - '3000:3000'
+    env_file:
+      - .env
+    environment:
+      # Overrides whatever PANEL_DB_URL is in .env so the panel SQLite file
+      # always lands in the mounted volume below, regardless of local dev value.
+      PANEL_DB_URL: file:./data/panel.db
+    volumes:
+      - panel-data:/app/data
     restart: unless-stopped
+
+volumes:
+  panel-data:

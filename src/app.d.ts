@@ -1,11 +1,17 @@
-import type { SteamProfile } from '$lib/steam/config';
+// See https://svelte.dev/docs/kit/types#app.d.ts
+// for information about these interfaces
+import type { SessionUser } from '$lib/server/session';
 
 declare global {
-  namespace App {
-    interface Locals {
-      user: SteamProfile | null;
-    }
-  }
+	namespace App {
+		// interface Error {}
+		interface Locals {
+			user: SessionUser | null;
+		}
+		// interface PageData {}
+		// interface PageState {}
+		// interface Platform {}
+	}
 }
 
 export {};

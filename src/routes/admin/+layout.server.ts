@@ -1,9 +1,8 @@
+import { requireRole } from '$lib/server/require-role';
 import type { LayoutServerLoad } from './$types';
-import { redirect, error } from '@sveltejs/kit';
 
-export const load: LayoutServerLoad = async (event) => {
-  const user = event.locals.user as { steamid: string; role?: string } | null;
-  if (!user) throw redirect(302, '/');
-  if (user.role !== 'owner') throw error(403, 'Forbidden');
-  return { user };
+/** Owner-only, per docs/modules/auth.md's permission table — admin does not get this UI. */
+export const load: LayoutServerLoad = ({ locals }) => {
+	requireRole(locals, ['owner']);
+	return {};
 };

@@ -1,190 +1,135 @@
-import type { Actions, PageServerLoad } from './$types';
-import { redirect, error, fail } from '@sveltejs/kit';
-import prismaArg from '$lib/prisma/prismaArg';
-import { toSteam64FromAny, allIdVariantsForSteam64 } from '$lib/whois/utils';
+import { fail } from '@sveltejs/kit';
+import { requireRole } from '$lib/server/require-role';
+import { requireModule } from '$lib/server/require-module';
+import { fanOut, listSources, sourceHas } from '$lib/server/sources/registry';
+import { whoisFor } from '$lib/server/sources/whois';
+import type { AltGroup } from '$lib/whois/alt-group';
+import type { Source } from '$lib/server/sources/types';
+import type { PageServerLoad } from './$types';
 
-type AltLink = {
-  steam_id: string;
-  main_steam_id: string | null;
-  linked_at: Date;
-  linked_by: string | null;
-};
+async function loadAltGroups(source: Source): Promise<AltGroup[]> {
+	const adapter = whoisFor(source.id);
+	const links = await adapter.listAltLinks();
 
-function isValidSteam64(id: string | null | undefined): id is string {
-  return !!id && /^\d{17}$/.test(id);
+	const byMain = new Map<string, AltGroup>();
+	for (const link of links) {
+		if (!link.mainSteamId) continue;
+		const group = byMain.get(link.mainSteamId) ?? {
+			sourceId: source.id,
+			mainSteamId: link.mainSteamId,
+			mainPermName: null,
+			alts: []
+		};
+		group.alts.push({ steamid: link.steamid, linkedAt: link.linkedAt, linkedBy: link.linkedBy });
+		byMain.set(link.mainSteamId, group);
+	}
+
+	const groups = Array.from(byMain.values());
+	const permNames = await Promise.all(
+		groups.map((group) => adapter.getPermName(group.mainSteamId))
+	);
+	groups.forEach((group, i) => {
+		group.mainPermName = permNames[i];
+	});
+
+	return groups.sort((a, b) =>
+		(a.mainPermName ?? a.mainSteamId).localeCompare(b.mainPermName ?? b.mainSteamId)
+	);
 }
 
-export const load: PageServerLoad = async (event) => {
-  const user = event.locals.user as { steamid: string; role?: string } | null;
+function readAltMutationForm(form: FormData) {
+	return {
+		sourceId: String(form.get('sourceId') ?? ''),
+		steamid: String(form.get('steamid') ?? '').trim(),
+		mainSteamId: String(form.get('mainSteamId') ?? '').trim()
+	};
+}
 
-  if (!user) throw redirect(302, '/');
-  if (user.role !== 'owner') throw error(403, 'Forbidden');
+async function upsertAlt(form: FormData, linkedBy: string) {
+	const { sourceId, steamid, mainSteamId } = readAltMutationForm(form);
+	if (!sourceId || !sourceHas(sourceId, 'whois')) {
+		return fail(400, { message: 'Unknown whois source.' });
+	}
+	if (!steamid || !mainSteamId) {
+		return fail(400, { message: 'Alt and main SteamIDs are required.' });
+	}
 
-  // Fetch all rows and normalize to 64-bit IDs for grouping/display
-  const rows = (await prismaArg.whois_alt_links.findMany()) as unknown as AltLink[];
+	try {
+		await whoisFor(sourceId).upsertAltLink({ steamid, mainSteamId, linkedBy });
+	} catch (err) {
+		return fail(400, { message: err instanceof Error ? err.message : 'Failed to link alt.' });
+	}
+	return { success: true };
+}
 
-  const normalized = rows
-    .map((r) => {
-      const main64 = r.main_steam_id ? toSteam64FromAny(r.main_steam_id) : null;
-      const alt64 = toSteam64FromAny(r.steam_id);
-      return {
-        steam_id_64: alt64,
-        main_steam_id_64: main64,
-        linked_at: r.linked_at,
-        linked_by: r.linked_by || null
-      };
-    })
-    .filter((r) => !!r.steam_id_64) as Array<{
-      steam_id_64: string;
-      main_steam_id_64: string | null;
-      linked_at: Date;
-      linked_by: string | null;
-    }>;
+export const load: PageServerLoad = ({ locals }) => {
+	requireModule('whois');
+	requireRole(locals, ['admin', 'owner']);
 
-  const mainsSet = new Set<string>();
-  for (const r of normalized) {
-    if (r.main_steam_id_64 && isValidSteam64(r.main_steam_id_64)) mainsSet.add(r.main_steam_id_64);
-  }
-  const altIds = new Set(normalized.filter((r) => r.main_steam_id_64).map((r) => r.steam_id_64));
-  for (const r of normalized) {
-    if (!altIds.has(r.steam_id_64) && isValidSteam64(r.steam_id_64)) mainsSet.add(r.steam_id_64);
-  }
-
-  const mains = Array.from(mainsSet);
-  // Resolve permanames for mains in a single query using all ID variants
-  const mainToVariantsMap = new Map<string, string[]>();
-  const allVariantIds = new Set<string>();
-  for (const m of mains) {
-    const variants = allIdVariantsForSteam64(m);
-    mainToVariantsMap.set(m, variants);
-    for (const v of variants) allVariantIds.add(v);
-  }
-  const permRows = await prismaArg.whois_permname.findMany({ where: { steam_id: { in: Array.from(allVariantIds) } } });
-  const variantToPermName: Record<string, string> = {};
-  for (const row of permRows) {
-    const n = (row.name ?? '').trim();
-    if (!n) continue;
-    variantToPermName[row.steam_id] = n;
-  }
-
-  const groups = mains.map((main) => {
-    const variants = mainToVariantsMap.get(main) || [];
-    const permName = variants.map((v) => variantToPermName[v]).find((x) => !!x) || null;
-    return {
-      main,
-      permName,
-      alts: normalized.filter((r) => r.main_steam_id_64 === main).map((r) => r.steam_id_64)
-    };
-  });
-
-  // also return ungrouped: mains with no explicit alts
-  return { user, groups };
+	const sources = listSources({ capability: 'whois', enabled: true });
+	return {
+		sources,
+		altGroups: fanOut(sources, loadAltGroups)
+	};
 };
 
-export const actions: Actions = {
-  add_main: async ({ request, locals }) => {
-    const user = locals.user as { steamid: string; role?: string } | null;
-    if (!user || user.role !== 'owner') return fail(403, { message: 'Forbidden' });
-    const form = await request.formData();
-    const mainIn = String(form.get('main') || '').trim();
-    const main = toSteam64FromAny(mainIn);
-    if (!main) return fail(400, { message: 'Invalid Steam ID' });
+export const actions = {
+	createPermname: async ({ request, locals }) => {
+		requireModule('whois');
+		requireRole(locals, ['admin', 'owner']);
+		const form = await request.formData();
+		const sourceId = String(form.get('sourceId') ?? '');
+		const steamid = String(form.get('steamid') ?? '').trim();
+		const name = String(form.get('name') ?? '').trim();
 
-    // Validate that this main has a permaname association; if missing, ask UI to prompt creation
-    const variants = allIdVariantsForSteam64(main);
-    const existingPerm = await prismaArg.whois_permname.findFirst({ where: { steam_id: { in: variants } } });
-    if (!existingPerm) {
-      return fail(404, { code: 'PERMNAME_NOT_FOUND', steamid: main, message: 'Permanent name not found for this Steam ID' });
-    }
+		if (!sourceId || !sourceHas(sourceId, 'whois')) {
+			return fail(400, { message: 'Unknown whois source.' });
+		}
+		if (!steamid || !name) {
+			return fail(400, { message: 'SteamID and name are required.' });
+		}
 
-    // Ensure a placeholder row exists so the main appears as its own group when it has no alts
-    await prismaArg.whois_alt_links.upsert({
-      where: { steam_id: main },
-      update: {},
-      create: { steam_id: main, main_steam_id: null, linked_by: user.steamid }
-    });
+		try {
+			await whoisFor(sourceId).setPermName(steamid, name);
+		} catch (err) {
+			return fail(400, { message: err instanceof Error ? err.message : 'Failed to set name.' });
+		}
+		return { success: true };
+	},
 
-    return { ok: true };
-  },
+	addAlt: async ({ request, locals }) => {
+		requireModule('whois');
+		const user = requireRole(locals, ['admin', 'owner']);
+		return upsertAlt(await request.formData(), user.steamId);
+	},
 
-  add_alt: async ({ request, locals }) => {
-    const user = locals.user as { steamid: string; role?: string } | null;
-    if (!user || user.role !== 'owner') return fail(403, { message: 'Forbidden' });
-    const form = await request.formData();
-    const mainIn = String(form.get('main') || '').trim();
-    const altIn = String(form.get('alt') || '').trim();
-    const main = toSteam64FromAny(mainIn);
-    const alt = toSteam64FromAny(altIn);
-    if (!main || !alt) return fail(400, { message: 'Invalid Steam ID' });
-    if (main === alt) return fail(400, { message: 'Alt cannot equal main' });
+	editAlt: async ({ request, locals }) => {
+		requireModule('whois');
+		const user = requireRole(locals, ['admin', 'owner']);
+		return upsertAlt(await request.formData(), user.steamId);
+	},
 
-    // Prevent linking an account as alt if it is already a main for other alts
-    const altVariants = allIdVariantsForSteam64(alt);
-    const existingAsMain = await prismaArg.whois_alt_links.findFirst({ where: { main_steam_id: { in: altVariants } } });
-    if (existingAsMain) {
-      return fail(400, { code: 'ALT_IS_MAIN', message: 'This account is already marked as a main in the link system' });
-    }
+	deleteAlt: async ({ request, locals }) => {
+		requireModule('whois');
+		requireRole(locals, ['admin', 'owner']);
+		const form = await request.formData();
+		const sourceId = String(form.get('sourceId') ?? '');
+		const steamid = String(form.get('steamid') ?? '').trim();
 
-    await prismaArg.whois_alt_links.upsert({
-      where: { steam_id: alt },
-      update: { main_steam_id: main, linked_by: user.steamid },
-      create: { steam_id: alt, main_steam_id: main, linked_by: user.steamid }
-    });
-    return { ok: true };
-  },
+		if (!sourceId || !sourceHas(sourceId, 'whois')) {
+			return fail(400, { message: 'Unknown whois source.' });
+		}
+		if (!steamid) {
+			return fail(400, { message: 'SteamID is required.' });
+		}
 
-  edit_alt: async ({ request, locals }) => {
-    const user = locals.user as { steamid: string; role?: string } | null;
-    if (!user || user.role !== 'owner') return fail(403, { message: 'Forbidden' });
-    const form = await request.formData();
-    const altIn = String(form.get('alt') || '').trim();
-    const mainIn = String(form.get('main') || '').trim();
-    const alt = toSteam64FromAny(altIn);
-    const main = toSteam64FromAny(mainIn);
-    if (!alt || !main) return fail(400, { message: 'Invalid Steam ID' });
-    await prismaArg.whois_alt_links.update({
-      where: { steam_id: alt },
-      data: { main_steam_id: main, linked_by: user.steamid }
-    });
-    return { ok: true };
-  },
-
-  create_permname: async ({ request, locals }) => {
-    const user = locals.user as { steamid: string; role?: string } | null;
-    if (!user || user.role !== 'owner') return fail(403, { message: 'Forbidden' });
-    const form = await request.formData();
-    const steamIn = String(form.get('steamid') || '').trim();
-    const nameIn = String(form.get('name') || '').trim();
-    const steam64 = toSteam64FromAny(steamIn);
-    if (!steam64) return fail(400, { message: 'Invalid Steam ID' });
-
-    await prismaArg.whois_permname.upsert({
-      where: { steam_id: steam64 },
-      update: { name: nameIn || null },
-      create: { steam_id: steam64, name: nameIn || null }
-    });
-
-    // Also ensure the main appears as a group immediately
-    await prismaArg.whois_alt_links.upsert({
-      where: { steam_id: steam64 },
-      update: {},
-      create: { steam_id: steam64, main_steam_id: null, linked_by: user.steamid }
-    });
-
-    return { ok: true, steamid: steam64 };
-  },
-
-  delete_alt: async ({ request, locals }) => {
-    const user = locals.user as { steamid: string; role?: string } | null;
-    if (!user || user.role !== 'owner') return fail(403, { message: 'Forbidden' });
-    const form = await request.formData();
-    const altIn = String(form.get('alt') || '').trim();
-    const alt64 = toSteam64FromAny(altIn);
-    if (!alt64) return fail(400, { message: 'Invalid Steam ID' });
-    const variants = allIdVariantsForSteam64(alt64);
-    await prismaArg.whois_alt_links.deleteMany({ where: { steam_id: { in: variants } } });
-    return { ok: true };
-  }
+		try {
+			await whoisFor(sourceId).deleteAltLink(steamid);
+		} catch (err) {
+			return fail(400, {
+				message: err instanceof Error ? err.message : 'Failed to delete alt link.'
+			});
+		}
+		return { success: true };
+	}
 };
-
-

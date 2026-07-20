@@ -1,104 +1,66 @@
+import { error } from '@sveltejs/kit';
+import { resolveMgeSourceId } from '$lib/server/sources/resolve-source';
+import { mgeFor } from '$lib/server/sources/mge';
+import { listSources, fanOut } from '$lib/server/sources/registry';
+import { getSteamProfiles } from '$lib/server/steam-profiles';
+import { withDuelAvatars } from '$lib/server/duel-avatars';
+import { toSteamId64, tryParseSteamId } from '$lib/mge/steam-id';
+import { parseDateRange } from '$lib/mge/date-range';
+import { requireModule } from '$lib/server/require-module';
 import type { PageServerLoad } from './$types';
-import { redirect } from '@sveltejs/kit';
-import prismaArg from '$lib/prisma/prismaArg';
-import prismaBr from '$lib/prisma/prismaBr';
-import { ID } from '@node-steam/id';
-import { toSteam64FromAny, allIdVariantsForSteam64 } from '$lib/whois/utils';
 
-export const load: PageServerLoad = async ({ params, locals, url }) => {
+const TOP_FOES_TAKE = 5;
+const ARENAS_TAKE = 5;
 
-	let existsInAr = false;
-	let existsInBr = false;
-	let lastSeenAr: number | null = null;
-	let lastSeenBr: number | null = null;
-	let arAvailable = true;
-	let brAvailable = true;
+export const load: PageServerLoad = ({ params, url }) => {
+	requireModule('mgemod');
+	const parsed = tryParseSteamId(params.steamid);
+	if (!parsed) {
+		throw error(400, `"${params.steamid}" is not a valid SteamID.`);
+	}
 
-	try {
-		const id2 = new ID(params.steamid).getSteamID2();
+	const sourceId = resolveMgeSourceId(url);
+	const adapter = mgeFor(sourceId);
+	const { from, to } = parseDateRange(url);
 
-		// Query each region independently so one outage doesn't mask the other
-		const [arRes, brRes] = await Promise.allSettled([
-			(async () => {
-				const [count, last] = await Promise.all([
-					prismaArg.mgemod_stats.count({ where: { steamid: id2 } }),
-					prismaArg.mgemod_duels.findFirst({
-						where: { OR: [{ winner: id2 }, { loser: id2 }] },
-						orderBy: { id: 'desc' },
-						select: { endtime: true }
-					})
-				]);
-				return { count, last };
-			})(),
-			(async () => {
-				const [count, last] = await Promise.all([
-					prismaBr.mgemod_stats.count({ where: { steamid: id2 } }),
-					prismaBr.mgemod_duels.findFirst({
-						where: { OR: [{ winner: id2 }, { loser: id2 }] },
-						orderBy: { id: 'desc' },
-						select: { endtime: true }
-					})
-				]);
-				return { count, last };
-			})()
-		]);
+	const player = adapter.getPlayer(parsed.steam2).then(async (summary) => {
+		if (!summary) return summary;
+		const avatars = await getSteamProfiles([parsed.steam64]);
+		return { ...summary, avatarUrl: avatars.get(parsed.steam64)?.avatarmedium };
+	});
+	const games = adapter.getGames({ steamid: parsed.steam2, take: 15 }).then(withDuelAvatars);
 
-		if (arRes.status === 'fulfilled') {
-			existsInAr = (arRes.value.count ?? 0) > 0;
-			lastSeenAr = arRes.value.last?.endtime ? Number(arRes.value.last.endtime) : null;
-		} else {
-			arAvailable = false;
-		}
+	const topFoes = adapter
+		.getTopFoes(parsed.steam2, { take: TOP_FOES_TAKE, from, to })
+		.then(async (foes) => {
+			const avatars = await getSteamProfiles(foes.map((foe) => toSteamId64(foe.steamid)));
+			return foes.map((foe) => ({
+				...foe,
+				avatarUrl: avatars.get(toSteamId64(foe.steamid))?.avatarmedium
+			}));
+		});
+	const activity = adapter.getActivity(parsed.steam2, { from, to });
+	const mostPlayedArenas = adapter.getMostPlayedArenas(parsed.steam2, {
+		take: ARENAS_TAKE,
+		from,
+		to
+	});
 
-		if (brRes.status === 'fulfilled') {
-			existsInBr = (brRes.value.count ?? 0) > 0;
-			lastSeenBr = brRes.value.last?.endtime ? Number(brRes.value.last.endtime) : null;
-		} else {
-			brAvailable = false;
-		}
-	} catch {}
-
-	// Determine if viewed profile is an alt of the logged-in user's main
-	let isAltOfViewerMain = false;
-	try {
-		// Only check alt relationships if user is logged in
-		if (locals.user?.steamid) {
-			const viewer64 = toSteam64FromAny(String(locals.user.steamid));
-			const viewed64 = toSteam64FromAny(String(params.steamid));
-			if (viewer64 && viewed64) {
-			const viewerVariants = allIdVariantsForSteam64(viewer64);
-			const viewerAltRow = await prismaArg.whois_alt_links.findFirst({
-				where: { steam_id: { in: viewerVariants } },
-				select: { main_steam_id: true }
-			});
-			const viewerMain64 = viewerAltRow?.main_steam_id ? toSteam64FromAny(viewerAltRow.main_steam_id) || viewer64 : viewer64;
-
-			const viewedVariants = allIdVariantsForSteam64(viewed64);
-			const viewerMainVariants = allIdVariantsForSteam64(viewerMain64);
-
-			const link = await prismaArg.whois_alt_links.findFirst({
-				where: {
-					steam_id: { in: viewedVariants },
-					main_steam_id: { in: viewerMainVariants }
-				},
-				select: { steam_id: true }
-			});
-			isAltOfViewerMain = Boolean(link);
-			}
-		}
-	} catch {}
+	const otherMgeSources = listSources({ capability: 'mgemod', enabled: true }).filter(
+		(source) => source.id !== sourceId
+	);
+	const presence = fanOut(otherMgeSources, (source) => mgeFor(source.id).exists(parsed.steam2));
 
 	return {
-		id: params.steamid,
-		existsInAr,
-		existsInBr,
-		lastSeenAr,
-		lastSeenBr,
-		lastSeen: Math.max(lastSeenAr ?? 0, lastSeenBr ?? 0) || null,
-		isAltOfViewerMain,
-		arAvailable,
-		brAvailable
+		sourceId,
+		sources: listSources({ capability: 'mgemod', enabled: true }),
+		steam64: parsed.steam64,
+		steam2: parsed.steam2,
+		player,
+		games,
+		topFoes,
+		activity,
+		mostPlayedArenas,
+		presence
 	};
 };
-
-

@@ -1,0 +1,27 @@
+---
+description: Core project conventions for the Electric Panel rewrite
+alwaysApply: true
+---
+
+# Electric Panel
+
+Spec-driven rewrite. Implement against `docs/` (start at [docs/README.md](../../docs/README.md)), not against the old panel's code. When product intent changes, update the relevant doc first, then code.
+
+## Hard rules
+
+- Package manager is **bun**. Never suggest npm/pnpm/yarn commands.
+- No Flowbite, no admin-dashboard template patterns. UI is shadcn-svelte (Bits UI) + Tailwind 4, themed for a game panel per [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md).
+- No hardcoded regions. Never introduce `'ar' | 'br'` unions, `prismaArg`/`prismaBr`, or `case 'ar':` branching. Use `SourceId` + the source registry ([docs/modules/sources.md](../../docs/modules/sources.md)).
+- Panel app state (users, roles, settings) lives in local SQLite, not MongoDB.
+- No ELO reversion feature. It was intentionally dropped.
+- Every route with data must follow skeletons-first loading ([docs/modules/loading.md](../../docs/modules/loading.md)): paint shell + skeletons immediately, never block navigation on a full-await `load`.
+- Route handlers and `load` functions stay thin; business logic lives in adapters/services, not inline in `+page.server.ts`.
+
+## Definition of done
+
+Before considering a change finished:
+
+1. It matches an existing spec in `docs/`, or the spec was updated first.
+2. `bun run check` passes.
+3. Svelte code was validated with the Svelte MCP `svelte-autofixer` tool.
+4. No unused MySQL/Prisma/Mongo/ELO code paths were reintroduced.

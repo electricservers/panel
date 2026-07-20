@@ -1,14 +1,51 @@
-import type { mgemod_duels } from '@prisma-arg/client';
+import { resolveMgeSourceId } from '$lib/server/sources/resolve-source';
+import { mgeFor } from '$lib/server/sources/mge';
+import { listSources } from '$lib/server/sources/registry';
+import { parseDateRange } from '$lib/mge/date-range';
+import { withDuelAvatars } from '$lib/server/duel-avatars';
+import { requireModule } from '$lib/server/require-module';
 import type { PageServerLoad } from './$types';
 
-export const load = (async (event: any) => {
-  // Default server render uses the current region from cookie if available; fallback to 'ar'
-  const region = event.cookies.get('region') ?? 'ar';
-  const response = await event.fetch(`/api/mge/games?db=${region}`);
-  if (response.status === 503) {
-    // Mark no games but include flag so client can present message and allow switching
-    return { games: [], dbUnavailable: region } as { games: mgemod_duels[]; dbUnavailable: 'ar' | 'br' };
-  }
-  const games: mgemod_duels[] = await response.json();
-  return { games };
-}) satisfies PageServerLoad;
+const PAGE_SIZE = 30;
+
+export const load: PageServerLoad = async ({ url }) => {
+	requireModule('mgemod');
+	const sourceId = resolveMgeSourceId(url);
+	const adapter = mgeFor(sourceId);
+
+	const q = url.searchParams.get('q')?.trim() || undefined;
+	const arena = url.searchParams.get('arena')?.trim() || undefined;
+	const outcomeParam = url.searchParams.get('outcome');
+	const outcome = outcomeParam === 'win' || outcomeParam === 'loss' ? outcomeParam : undefined;
+	const { from, to } = parseDateRange(url);
+	const page = Math.max(1, Number(url.searchParams.get('page')) || 1);
+
+	const games = adapter
+		.getGames({
+			q,
+			arena,
+			outcome,
+			from,
+			to,
+			take: PAGE_SIZE,
+			skip: (page - 1) * PAGE_SIZE
+		})
+		.then(withDuelAvatars);
+
+	return {
+		sourceId,
+		sources: listSources({ capability: 'mgemod', enabled: true }),
+		arenas: await adapter.getArenas(),
+		games,
+		filters: {
+			q,
+			arena,
+			outcome,
+			days: url.searchParams.get('days') ?? undefined,
+			from: url.searchParams.get('from') ?? undefined,
+			to: url.searchParams.get('to') ?? undefined,
+			page,
+			pageSize: PAGE_SIZE
+		}
+	};
+};

@@ -1,95 +1,29 @@
 # Electric Panel
 
-Web panel for TF2 MGE stats, rankings, and admin tools. Built with SvelteKit, Tailwind CSS, Flowbite-Svelte, Prisma, and MySQL backends for multiple regions.
+Rewrite of the Electric Servers TF2 panel (SvelteKit 2, Svelte 5, Tailwind 4).
 
-### Features
-- Player profiles with rank, win/loss, activity heatmap, arenas, and top foes
-- Head-to-head comparison and match history
-- Regional data (Argentina, Brasil) with quick switching
-- Steam OpenID login and profile integration
-- Admin pages for users, modules, and settings
+Product and architecture specs live in [docs/](./docs/README.md). Start there before adding features.
 
-### Tech stack
-- SvelteKit 2, Svelte 5, Vite 5
-- Tailwind CSS 3, Flowbite-Svelte
-- Prisma 6 with two MySQL datasources (`@prisma-arg`, `@prisma-br`)
-- MongoDB for users/sessions and settings
+## Developing
 
-## Getting started
-
-### Prereqs
-- Node 20+
-- pnpm 9+
-- MySQL databases for both regions
-- MongoDB
-- Steam API key
-
-### Install
 ```powershell
-pnpm install
+bun install
+bun run dev
 ```
 
-### Configure environment
-Set environment variables via your shell, `.env`, or container environment.
+## Building
 
-- DATABASE_URL_1: MySQL connection string for Argentina (used by `@prisma-arg`)
-- DATABASE_URL_2: MySQL connection string for Brasil (used by `@prisma-br`)
-- MONGODB_URI: Mongo connection string (e.g. mongodb://user:pass@host:27017/panel?authSource=admin)
-- STEAM_API_KEY: Steam Web API key
-
-Example `.env`:
-```env
-DATABASE_URL_1="mysql://user:pass@host:3306/db_arg"
-DATABASE_URL_2="mysql://user:pass@host:3306/db_br"
-MONGODB_URI="mongodb://user:pass@mongo:27017/panel?authSource=admin"
-STEAM_API_KEY="your_steam_api_key"
-```
-
-### Generate Prisma clients
 ```powershell
-pnpm prisma generate --schema prisma/schema_br.prisma
-pnpm prisma generate --schema prisma/schema_arg.prisma
+bun run build
+bun run preview
 ```
 
-### Run in development
+## Deploying (Docker)
+
+The app runs on `@sveltejs/adapter-node`. Copy [.env.example](./.env.example) to `.env` and fill in real values first — `SESSION_SECRET`, `STEAM_API_KEY`, `STEAM_REALM`, `STEAM_RETURN_URL`, and one `SOURCE_*_URL` per MySQL source you'll add from `/admin/sources`.
+
 ```powershell
-pnpm dev
+docker compose up --build -d
 ```
 
-App listens on http://localhost:5173 by default (Vite dev server).
-
-### Typecheck and lint
-```powershell
-pnpm check
-pnpm lint
-```
-
-## Build
-The build script generates both Prisma clients and compiles the app.
-```powershell
-pnpm build
-```
-
-### Preview production build
-```powershell
-pnpm preview
-```
-
-## Docker
-
-Build and run the image:
-```powershell
-docker build -t electricpanel .
-docker run -p 3000:3000 `
-  -e HOST=0.0.0.0 -e PORT=3000 `
-  -e MONGODB_URI="mongodb://user:pass@mongo:27017/panel?authSource=admin" `
-  -e STEAM_API_KEY=your_steam_api_key `
-  -e DATABASE_URL_1="mysql://user:pass@host:3306/db_arg" `
-  -e DATABASE_URL_2="mysql://user:pass@host:3306/db_br" `
-  --name electricpanel-app electricpanel
-```
-
-Or use docker-compose (edit placeholders first):
-```powershell
-docker compose up -d --build | cat
-```
+This builds the image, starts the app on port 3000, and persists the panel SQLite file in a named volume mounted at `/app/data` (`PANEL_DB_URL=file:./data/panel.db`), so it survives container recreation. Game data (MySQL) is never in this volume — it's connected to from the DSNs your `.env` supplies.

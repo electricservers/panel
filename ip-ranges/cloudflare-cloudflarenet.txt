@@ -1,0 +1,3 @@
+# ARIN CLOUDFLARENET (AS13335). Covers CDN edge and unpublished WARP egress
+# (e.g. 104.28.x). Cloudflare's published ips-v4 stops before 104.28.x.
+104.16.0.0/12

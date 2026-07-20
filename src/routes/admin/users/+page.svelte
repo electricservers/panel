@@ -1,105 +1,56 @@
 <script lang="ts">
-  import type { PageData } from './$types';
-  import Title from '$lib/components/Title.svelte';
-  let { data } = $props<{ data: PageData }>();
+	import { enhance } from '$app/forms';
+	import * as Table from '$lib/components/ui/table/index.js';
+	import Button from '$lib/components/ui/button/button.svelte';
 
-  let users = $state(data.users || ([] as { steamId: string; role: string }[]));
-  let steamIdInput = $state('');
-  let roleInput = $state<'owner' | 'admin' | 'user'>('user');
-  let busy = $state(false);
-  let errorMsg: string | null = $state(null);
+	const ROLES = ['user', 'admin', 'owner'] as const;
 
-  async function refresh() {
-    const r = await fetch('/api/admin/users');
-    const j = await r.json();
-    if (r.ok) users = j.users;
-  }
-
-  async function upsert() {
-    errorMsg = null;
-    busy = true;
-    try {
-      const r = await fetch('/api/admin/users', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ steamId: steamIdInput.trim(), role: roleInput }) });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j?.error || 'Request failed');
-      steamIdInput = '';
-      await refresh();
-    } catch (e: any) {
-      errorMsg = e?.message || 'Failed';
-    } finally {
-      busy = false;
-    }
-  }
-
-  async function remove(steamId: string) {
-    if (!confirm(`Remove explicit role for ${steamId}?`)) return;
-    busy = true;
-    try {
-      const r = await fetch(`/api/admin/users?steamId=${encodeURIComponent(steamId)}`, { method: 'DELETE' });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j?.error || 'Request failed');
-      await refresh();
-    } catch (e) {
-      // ignore
-    } finally {
-      busy = false;
-    }
-  }
+	let { data, form } = $props();
 </script>
 
-<Title>Manage users</Title>
+<div class="flex flex-col gap-4">
+	<h1 class="font-heading text-2xl font-semibold tracking-tight">Users</h1>
 
-<div class="mt-4 grid gap-4">
-  <div class="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
-    <div class="grid grid-cols-1 items-end gap-3 md:grid-cols-5">
-      <div class="md:col-span-3">
-        <label class="mb-1 block text-sm font-medium" for="steamid">SteamID64</label>
-        <input id="steamid" class="w-full rounded border-gray-300 dark:border-gray-700 dark:bg-gray-800" bind:value={steamIdInput} placeholder="7656119xxxxxxxxxx" />
-      </div>
-      <div>
-        <label class="mb-1 block text-sm font-medium" for="role">Role</label>
-        <select id="role" class="w-full rounded border-gray-300 dark:border-gray-700 dark:bg-gray-800" bind:value={roleInput}>
-          <option value="user">user</option>
-          <option value="admin">admin</option>
-          <option value="owner">owner</option>
-        </select>
-      </div>
-      <div>
-        <button class="w-full rounded bg-blue-600 py-2 text-white disabled:opacity-50" disabled={busy} onclick={upsert}>Save</button>
-      </div>
-    </div>
-    {#if errorMsg}
-      <div class="mt-2 text-sm text-red-600">{errorMsg}</div>
-    {/if}
-  </div>
+	{#if form?.message}
+		<p class="rounded-md border border-danger/40 px-3 py-2 text-sm text-danger">
+			{form.message}
+		</p>
+	{/if}
 
-  <div class="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
-    <div class="mb-2 text-sm font-medium">Explicit role assignments</div>
-    {#if users?.length}
-      <div class="overflow-x-auto">
-        <table class="min-w-full text-sm">
-          <thead class="text-left text-gray-500">
-            <tr>
-              <th class="py-2 pr-4">SteamID64</th>
-              <th class="py-2 pr-4">Role</th>
-              <th class="py-2 pr-4">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {#each users as u}
-              <tr class="border-t border-gray-200 dark:border-gray-700">
-                <td class="font-mono py-2 pr-4">{u.steamId}</td>
-                <td class="py-2 pr-4">{u.role}</td>
-                <td class="py-2 pr-4">
-                  <button class="rounded bg-red-600 px-2 py-1 text-white" disabled={busy} onclick={() => remove(u.steamId)}>Remove</button>
-                </td>
-              </tr>
-            {/each}
-          </tbody>
-        </table>
-      </div>
-    {:else}
-      <div class="text-gray-500">No assignments yet</div>
-    {/if}
-  </div>
+	{#if data.users.length === 0}
+		<p class="text-sm text-muted-foreground">No one has logged in yet.</p>
+	{:else}
+		<Table.Root>
+			<Table.Header>
+				<Table.Row>
+					<Table.Head>Name</Table.Head>
+					<Table.Head>SteamID</Table.Head>
+					<Table.Head>Role</Table.Head>
+					<Table.Head></Table.Head>
+				</Table.Row>
+			</Table.Header>
+			<Table.Body>
+				{#each data.users as user (user.steamId)}
+					<Table.Row>
+						<Table.Cell class="font-medium">{user.name ?? 'Unknown'}</Table.Cell>
+						<Table.Cell class="font-mono text-xs text-muted-foreground">{user.steamId}</Table.Cell>
+						<Table.Cell colspan={2}>
+							<form method="POST" action="?/updateRole" use:enhance class="flex items-center gap-2">
+								<input type="hidden" name="steamId" value={user.steamId} />
+								<select
+									name="role"
+									class="h-8 rounded-lg border border-input bg-transparent px-2 text-sm"
+								>
+									{#each ROLES as role (role)}
+										<option value={role} selected={role === user.role}>{role}</option>
+									{/each}
+								</select>
+								<Button type="submit" variant="outline" size="sm">Save</Button>
+							</form>
+						</Table.Cell>
+					</Table.Row>
+				{/each}
+			</Table.Body>
+		</Table.Root>
+	{/if}
 </div>

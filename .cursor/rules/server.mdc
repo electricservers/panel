@@ -1,0 +1,14 @@
+---
+description: Server-side data access conventions (sources, sessions, panel DB)
+globs: **/*.server.ts,src/lib/server/**/*.ts
+alwaysApply: false
+---
+
+# Server-side conventions
+
+- Game data access always goes through `getSource(id)` / adapters (`MgeAdapter`, `WhoisAdapter`). Never import a raw per-region client.
+- Any DTO built from game data carries `sourceId` ([docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md)).
+- Multi-source calls use the `fanOut` helper and return per-source `{ sourceId, ok, data | error }`; one failing source must not fail the whole request.
+- Panel state (users, roles, settings) reads/writes go through `$lib/server/db` repositories backed by SQLite, never a remote database.
+- Session reads/writes go through `$lib/server/session`; never trust unsigned cookie data for role checks.
+- In `load` functions: only fast, synchronous-ish work (auth check, parse params, resolve `sourceId`) blocks the response. Slow adapter/DB/Steam calls are returned as promises for the client to await per [docs/modules/loading.md](../../docs/modules/loading.md).
