@@ -27,3 +27,12 @@ docker compose up --build -d
 ```
 
 This builds the image, starts the app on port 3000, and persists the panel SQLite file in a named volume mounted at `/app/data` (`PANEL_DB_URL=file:./data/panel.db`), so it survives container recreation. Game data (MySQL) is never in this volume — it's connected to from the DSNs your `.env` supplies.
+
+### Railway / fresh hosts
+
+Your local `data/panel.db` is **not** uploaded with the image. A new deploy starts with an empty panel DB (no owners, no sources, default site settings).
+
+1. Mount a **persistent volume** at `/app/data` and keep `PANEL_DB_URL=file:./data/panel.db` so users/sources survive redeploys.
+2. Set `OWNER_STEAM_ID` to your Steam64. Log in once; that account becomes `owner`.
+3. Set each source's MySQL URL env vars (`SOURCE_*_URL`), then recreate sources from `/admin/sources` (the `dsnEnv` pointer only, never the DSN itself in SQLite).
+4. Point `STEAM_REALM` / `STEAM_RETURN_URL` at the public Railway URL.

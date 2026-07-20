@@ -1,4 +1,5 @@
 import { desc, eq } from 'drizzle-orm';
+import { env } from '$env/dynamic/private';
 import { getDb } from './client';
 import { users } from './schema';
 import type { PanelRole } from '$lib/server/session';
@@ -20,21 +21,28 @@ export function findUserBySteamId(steamId: string) {
 	return row ?? null;
 }
 
+/** True when `steamId` matches the optional `OWNER_STEAM_ID` bootstrap env var. */
+function isBootstrapOwner(steamId: string): boolean {
+	const ownerId = env.OWNER_STEAM_ID?.trim();
+	return Boolean(ownerId) && ownerId === steamId;
+}
+
 /**
  * Creates the user with default role `user` on first login, or refreshes
  * their cached name/avatar on subsequent logins. Role is never overwritten
- * here — it only changes through admin action.
+ * here except when `OWNER_STEAM_ID` matches (fresh-deploy bootstrap).
  */
 export function upsertUserOnLogin(profile: SteamProfile) {
 	const db = getDb();
 	const now = new Date();
 	const existing = findUserBySteamId(profile.steamId);
+	const bootstrapOwner = isBootstrapOwner(profile.steamId);
 
 	if (!existing) {
 		db.insert(users)
 			.values({
 				steamId: profile.steamId,
-				role: 'user',
+				role: bootstrapOwner ? 'owner' : 'user',
 				name: profile.name,
 				avatar: profile.avatar,
 				createdAt: now,
@@ -45,7 +53,12 @@ export function upsertUserOnLogin(profile: SteamProfile) {
 	}
 
 	db.update(users)
-		.set({ name: profile.name, avatar: profile.avatar, updatedAt: now })
+		.set({
+			name: profile.name,
+			avatar: profile.avatar,
+			updatedAt: now,
+			...(bootstrapOwner && existing.role !== 'owner' ? { role: 'owner' as const } : {})
+		})
 		.where(eq(users.steamId, profile.steamId))
 		.run();
 	return findUserBySteamId(profile.steamId)!;

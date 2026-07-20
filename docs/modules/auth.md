@@ -21,6 +21,7 @@ Steam identity for the panel, plus SQLite-backed roles.
 - Steam OpenID establishes `steamId` (prefer Steam64 in app code).
 - Display name / avatar refreshed via Steam Web API when needed; cache lightly.
 - On first login, create a panel `User` row in SQLite with default role `user` if missing.
+- Optional bootstrap: if `OWNER_STEAM_ID` (Steam64) is set in the environment and matches the logging-in user, their role is set to `owner`. Used for fresh deploys where the panel SQLite file is empty (local `data/panel.db` is never uploaded). Safe to leave set permanently; it only promotes that SteamID, never demotes anyone else.
 
 ## Session
 
