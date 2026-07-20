@@ -20,7 +20,7 @@
 	const selectClass = 'h-8 rounded-lg border border-input bg-transparent px-2 text-sm';
 </script>
 
-<div class="mx-auto flex w-full max-w-3xl flex-col gap-4">
+<div class="mx-auto flex w-full max-w-5xl flex-col gap-4">
 	<h1 class="font-heading text-2xl font-semibold tracking-tight">Games</h1>
 
 	<form method="GET" class="flex flex-wrap items-end gap-2">

@@ -22,6 +22,14 @@ Requires source capability: `mgemod`.
 
 Typical tables: `mgemod_stats`, `mgemod_duels` (and later `mgemod_duels_2v2` only if productized).
 
+## Name encoding
+
+Player display names live only in `mgemod_stats.name` (duels store SteamIDs). Historical rows may contain Windows-1252 mojibake from MySQL connections that were not `utf8mb4`.
+
+- **Read path:** adapters run `maybeFixMojibake` (`src/lib/mge/mojibake.ts`) on names and duel map/arena strings so the UI can still show recoverable garbled rows. The heuristic also accepts Latin-1 C1 controls (`U+0080` to `U+009F`) that appear in phonetic/small-cap names when UTF-8 was decoded as Latin-1 instead of Windows-1252.
+- **Plugin:** MGEMod must call `Database.SetCharset("utf8mb4")` after MySQL connect so new writes stay correct (requires SourceMod 1.10+).
+- **One-time repair:** `bun run db:fix-mojibake` dry-runs repairs against every enabled `mgemod` source in the panel SQLite `sources` table (resolves each `dsn_env`). Pass `--apply` to write. Override discovery with `--dsn-env SOURCE_*_URL` (repeatable).
+
 ## User stories
 
 1. As a player, I switch source and see that ladder’s ranking.

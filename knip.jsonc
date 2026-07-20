@@ -7,5 +7,6 @@
 	"ignore": ["src/lib/components/ui/**"],
 	// One-time, manually-invoked migration script (`bun run scripts/import-panel-sources.ts`),
 	// never imported by app code — see docs/modules/admin.md.
+	// `scripts/fix-mgemod-mojibake.ts` is already an entry via package.json `db:fix-mojibake`.
 	"entry": ["scripts/import-panel-sources.ts"]
 }

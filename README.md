@@ -36,3 +36,14 @@ Your local `data/panel.db` is **not** uploaded with the image. A new deploy star
 2. Set `OWNER_STEAM_ID` to your Steam64. Log in once; that account becomes `owner`.
 3. Set each source's MySQL URL env vars (`SOURCE_*_URL`), then recreate sources from `/admin/sources` (the `dsnEnv` pointer only, never the DSN itself in SQLite).
 4. Point `STEAM_REALM` / `STEAM_RETURN_URL` at the public Railway URL.
+
+### Repairing garbled MGEMod names
+
+If `mgemod_stats.name` (or duel map/arena strings) were written through a non-utf8mb4 MySQL connection, dry-run then apply:
+
+```powershell
+bun run db:fix-mojibake
+bun run db:fix-mojibake -- --apply
+```
+
+Requires `PANEL_DB_URL` plus each source's `SOURCE_*_URL`, or pass `--dsn-env SOURCE_ELECTRIC_AR_URL` explicitly. See [docs/modules/mge.md](./docs/modules/mge.md).
