@@ -1,12 +1,17 @@
 <script lang="ts">
 	import PlayerAvatar from '$lib/components/mge/player-avatar.svelte';
-	import { steamProfileUrl } from '$lib/mge/steam-id';
+	import { toSteamId64 } from '$lib/mge/steam-id';
 	import type { VersusSide, VersusSummary } from '$lib/server/versus-summary';
 
 	let { a, b, summary }: { a: VersusSide; b: VersusSide; summary: VersusSummary } = $props();
 
-	const aSteam = $derived(steamProfileUrl(a.steam2));
-	const bSteam = $derived(steamProfileUrl(b.steam2));
+	function profileHref(steam2: string): string {
+		try {
+			return `/mge/players/${toSteamId64(steam2)}`;
+		} catch {
+			return '#';
+		}
+	}
 
 	function formatRelative(date: Date | null): string {
 		if (!date) return '—';
@@ -29,29 +34,19 @@
 
 <div class="flex flex-col gap-6 rounded-lg border border-border bg-card p-6">
 	<div class="grid grid-cols-1 items-center gap-4 md:grid-cols-[1fr_auto_1fr]">
-		<div class="flex items-center gap-3 md:justify-end md:text-right">
+		<a href={profileHref(a.steam2)} class="flex items-center gap-3 md:justify-end md:text-right">
 			<div class="min-w-0 md:order-1">
-				{#if aSteam}
-					<a
-						href={aSteam}
-						target="_blank"
-						rel="noopener noreferrer"
-						class="truncate font-medium text-foreground hover:text-brand hover:underline"
-					>
-						{a.name}
-					</a>
-				{:else}
-					<p class="truncate font-medium text-foreground">{a.name}</p>
-				{/if}
+				<p class="truncate font-medium text-foreground hover:text-brand hover:underline">
+					{a.name}
+				</p>
 			</div>
 			<PlayerAvatar
 				name={a.name}
 				avatarUrl={a.avatarUrl}
-				steamid={a.steam2}
 				size="lg"
 				class="ring-2 ring-success/60"
 			/>
-		</div>
+		</a>
 
 		<div class="text-center">
 			<p class="text-xs tracking-wide text-muted-foreground uppercase">Head to head</p>
@@ -65,29 +60,14 @@
 			</p>
 		</div>
 
-		<div class="flex items-center gap-3">
-			<PlayerAvatar
-				name={b.name}
-				avatarUrl={b.avatarUrl}
-				steamid={b.steam2}
-				size="lg"
-				class="ring-2 ring-danger/60"
-			/>
+		<a href={profileHref(b.steam2)} class="flex items-center gap-3">
+			<PlayerAvatar name={b.name} avatarUrl={b.avatarUrl} size="lg" class="ring-2 ring-danger/60" />
 			<div class="min-w-0">
-				{#if bSteam}
-					<a
-						href={bSteam}
-						target="_blank"
-						rel="noopener noreferrer"
-						class="truncate font-medium text-foreground hover:text-brand hover:underline"
-					>
-						{b.name}
-					</a>
-				{:else}
-					<p class="truncate font-medium text-foreground">{b.name}</p>
-				{/if}
+				<p class="truncate font-medium text-foreground hover:text-brand hover:underline">
+					{b.name}
+				</p>
 			</div>
-		</div>
+		</a>
 	</div>
 
 	<div>

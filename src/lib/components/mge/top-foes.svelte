@@ -1,6 +1,6 @@
 <script lang="ts">
 	import PlayerAvatar from '$lib/components/mge/player-avatar.svelte';
-	import { steamProfileUrl, toSteamId64 } from '$lib/mge/steam-id';
+	import { toSteamId64 } from '$lib/mge/steam-id';
 	import type { FoeRow } from '$lib/server/sources/mgemod/types';
 
 	let {
@@ -10,7 +10,7 @@
 	}: {
 		foes: (FoeRow & { avatarUrl?: string })[];
 		sourceId: string;
-		/** Steam64 of the profile owner, so the record links to head-to-head. */
+		/** Steam64 of the profile owner, so links point at the head-to-head page. */
 		perspective: string;
 	} = $props();
 </script>
@@ -22,29 +22,18 @@
 	{:else}
 		<ul class="flex flex-col gap-3">
 			{#each foes as foe (foe.steamid)}
-				{@const steam = steamProfileUrl(foe.steamid)}
-				<li class="flex items-center gap-3">
-					<PlayerAvatar name={foe.name} avatarUrl={foe.avatarUrl} steamid={foe.steamid} size="sm" />
-					{#if steam}
-						<a
-							href={steam}
-							target="_blank"
-							rel="noopener noreferrer"
-							class="flex-1 truncate text-sm font-medium hover:text-brand hover:underline"
-						>
-							{foe.name}
-						</a>
-					{:else}
-						<span class="flex-1 truncate text-sm font-medium">{foe.name}</span>
-					{/if}
+				<li>
 					<a
 						href="/mge/players/{perspective}/versus/{toSteamId64(foe.steamid)}?source={sourceId}"
-						class="text-xs text-muted-foreground hover:text-brand"
-						title="Head to head"
+						class="flex items-center gap-3 hover:text-brand"
 					>
-						<span class="text-success">{foe.wins}W</span>
-						·
-						<span class="text-danger">{foe.losses}L</span>
+						<PlayerAvatar name={foe.name} avatarUrl={foe.avatarUrl} size="sm" />
+						<span class="flex-1 truncate text-sm font-medium">{foe.name}</span>
+						<span class="text-xs text-muted-foreground">
+							<span class="text-success">{foe.wins}W</span>
+							·
+							<span class="text-danger">{foe.losses}L</span>
+						</span>
 					</a>
 				</li>
 			{/each}

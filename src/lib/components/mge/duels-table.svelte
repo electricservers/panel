@@ -3,7 +3,7 @@
 	import OutcomeBadge from '$lib/components/mge/outcome-badge.svelte';
 	import PlayerAvatar from '$lib/components/mge/player-avatar.svelte';
 	import { formatDateTime } from '$lib/format-date';
-	import { steamProfileUrl, toSteamId2 } from '$lib/mge/steam-id';
+	import { toSteamId2, toSteamId64 } from '$lib/mge/steam-id';
 	import type { DuelWithAvatars } from '$lib/server/duel-avatars';
 
 	let {
@@ -16,8 +16,12 @@
 
 	const perspectiveId2 = $derived(perspective ? toSteamId2(perspective) : undefined);
 
-	function steamHref(steamid2: string): string | null {
-		return steamProfileUrl(steamid2);
+	function profileHref(steamid2: string): string {
+		try {
+			return `/mge/players/${toSteamId64(steamid2)}`;
+		} catch {
+			return '#';
+		}
 	}
 
 	function outcomeFor(duel: DuelWithAvatars): 'win' | 'loss' | null {
@@ -46,8 +50,6 @@
 		</Table.Header>
 		<Table.Body>
 			{#each duels as duel (duel.id + duel.sourceId)}
-				{@const winnerSteam = steamHref(duel.winner)}
-				{@const loserSteam = steamHref(duel.loser)}
 				<Table.Row>
 					{#if perspectiveId2}
 						<Table.Cell>
@@ -57,44 +59,22 @@
 						</Table.Cell>
 					{/if}
 					<Table.Cell>
-						<div class="flex items-center gap-2 font-medium text-foreground">
-							<PlayerAvatar
-								name={duel.winnerName}
-								avatarUrl={duel.winnerAvatarUrl}
-								steamid={duel.winner}
-								size="sm"
-							/>
-							{#if winnerSteam}
-								<a
-									href={winnerSteam}
-									target="_blank"
-									rel="noopener noreferrer"
-									class="hover:text-brand hover:underline">{duel.winnerName}</a
-								>
-							{:else}
-								{duel.winnerName}
-							{/if}
-						</div>
+						<a
+							href={profileHref(duel.winner)}
+							class="flex items-center gap-2 font-medium text-foreground hover:text-brand hover:underline"
+						>
+							<PlayerAvatar name={duel.winnerName} avatarUrl={duel.winnerAvatarUrl} size="sm" />
+							{duel.winnerName}
+						</a>
 					</Table.Cell>
 					<Table.Cell>
-						<div class="flex items-center gap-2">
-							<PlayerAvatar
-								name={duel.loserName}
-								avatarUrl={duel.loserAvatarUrl}
-								steamid={duel.loser}
-								size="sm"
-							/>
-							{#if loserSteam}
-								<a
-									href={loserSteam}
-									target="_blank"
-									rel="noopener noreferrer"
-									class="hover:text-brand hover:underline">{duel.loserName}</a
-								>
-							{:else}
-								{duel.loserName}
-							{/if}
-						</div>
+						<a
+							href={profileHref(duel.loser)}
+							class="flex items-center gap-2 hover:text-brand hover:underline"
+						>
+							<PlayerAvatar name={duel.loserName} avatarUrl={duel.loserAvatarUrl} size="sm" />
+							{duel.loserName}
+						</a>
 					</Table.Cell>
 					<Table.Cell class="text-muted-foreground">{duel.arenaNameCanonical || '—'}</Table.Cell>
 					<Table.Cell class="text-right text-muted-foreground">
