@@ -29,6 +29,11 @@ function toUnixSeconds(date: Date): number {
 	return Math.floor(date.getTime() / 1000);
 }
 
+/** Guards against `Invalid Date` (e.g. from unparseable query params) reaching a SQL param as `NaN`. */
+function isValidDate(date: Date | undefined): date is Date {
+	return date instanceof Date && !Number.isNaN(date.getTime());
+}
+
 function displayName(raw: string | null | undefined, steamid: string): string {
 	return maybeFixMojibake(raw) || `Unknown (${steamid})`;
 }
@@ -109,16 +114,16 @@ export function buildMgeAdapter(source: Source): MgeAdapter {
 			);
 		}
 
-		if (query.from) conditions.push(gte(mgemodDuels.endtime, toUnixSeconds(query.from)));
-		if (query.to) conditions.push(lte(mgemodDuels.endtime, toUnixSeconds(query.to)));
+		if (isValidDate(query.from)) conditions.push(gte(mgemodDuels.endtime, toUnixSeconds(query.from)));
+		if (isValidDate(query.to)) conditions.push(lte(mgemodDuels.endtime, toUnixSeconds(query.to)));
 
 		return conditions.length > 0 ? and(...conditions) : undefined;
 	}
 
 	function dateWindow(from?: Date, to?: Date): SQL[] {
 		const conditions: SQL[] = [];
-		if (from) conditions.push(gte(mgemodDuels.endtime, toUnixSeconds(from)));
-		if (to) conditions.push(lte(mgemodDuels.endtime, toUnixSeconds(to)));
+		if (isValidDate(from)) conditions.push(gte(mgemodDuels.endtime, toUnixSeconds(from)));
+		if (isValidDate(to)) conditions.push(lte(mgemodDuels.endtime, toUnixSeconds(to)));
 		return conditions;
 	}
 
