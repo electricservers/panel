@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	import Input from '$lib/components/ui/input/input.svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
+	import * as Select from '$lib/components/ui/select/index.js';
 	import DuelsTable from '$lib/components/mge/duels-table.svelte';
 	import DuelsTableSkeleton from '$lib/components/mge/duels-table-skeleton.svelte';
 	import { DATE_RANGE_PRESETS } from '$lib/mge/date-range';
@@ -17,7 +18,10 @@
 		return `?${params.toString()}`;
 	}
 
-	const selectClass = 'h-8 rounded-lg border border-input bg-transparent px-2 text-sm';
+	const outcomeLabels: Record<string, string> = { win: 'Win', loss: 'Loss' };
+
+	let arenaValue = $derived(data.filters.arena ?? '');
+	let outcomeValue = $derived(data.filters.outcome ?? '');
 </script>
 
 <div class="mx-auto flex w-full max-w-5xl flex-col gap-4">
@@ -36,24 +40,34 @@
 			/>
 		</div>
 		<div class="flex flex-col gap-1">
-			<label for="arena" class="text-xs text-muted-foreground">Arena</label>
-			<select id="arena" name="arena" class={selectClass}>
-				<option value="" selected={!data.filters.arena}>Any</option>
-				{#each data.arenas as arenaName (arenaName)}
-					<option value={arenaName} selected={data.filters.arena === arenaName}>{arenaName}</option>
-				{/each}
-				{#if data.filters.arena && !data.arenas.includes(data.filters.arena)}
-					<option value={data.filters.arena} selected>{data.filters.arena}</option>
-				{/if}
-			</select>
+			<label for="arena-trigger" class="text-xs text-muted-foreground">Arena</label>
+			<Select.Root type="single" name="arena" bind:value={arenaValue}>
+				<Select.Trigger id="arena-trigger" class="w-40">
+					<span class="min-w-0 flex-1 truncate text-left">{arenaValue || 'Any'}</span>
+				</Select.Trigger>
+				<Select.Content>
+					<Select.Item value="" label="Any" />
+					{#each data.arenas as arenaName (arenaName)}
+						<Select.Item value={arenaName} label={arenaName} />
+					{/each}
+					{#if data.filters.arena && !data.arenas.includes(data.filters.arena)}
+						<Select.Item value={data.filters.arena} label={data.filters.arena} />
+					{/if}
+				</Select.Content>
+			</Select.Root>
 		</div>
 		<div class="flex flex-col gap-1">
-			<label for="outcome" class="text-xs text-muted-foreground">Outcome</label>
-			<select id="outcome" name="outcome" class={selectClass}>
-				<option value="" selected={!data.filters.outcome}>Any</option>
-				<option value="win" selected={data.filters.outcome === 'win'}>Win</option>
-				<option value="loss" selected={data.filters.outcome === 'loss'}>Loss</option>
-			</select>
+			<label for="outcome-trigger" class="text-xs text-muted-foreground">Outcome</label>
+			<Select.Root type="single" name="outcome" bind:value={outcomeValue}>
+				<Select.Trigger id="outcome-trigger" class="w-24">
+					<span class="min-w-0 flex-1 truncate text-left">{outcomeLabels[outcomeValue] ?? 'Any'}</span>
+				</Select.Trigger>
+				<Select.Content>
+					<Select.Item value="" label="Any" />
+					<Select.Item value="win" label="Win" />
+					<Select.Item value="loss" label="Loss" />
+				</Select.Content>
+			</Select.Root>
 		</div>
 		<div class="flex flex-col gap-1">
 			<label for="from" class="text-xs text-muted-foreground">From</label>
