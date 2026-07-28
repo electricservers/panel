@@ -1,6 +1,11 @@
 services:
   app:
-    build: .
+    build:
+      context: .
+      additional_contexts:
+        # Sibling checkout of demostf/steam-audio-codec (voice-processor CLI).
+        codec: ../steam-audio-codec
+      dockerfile: Dockerfile
     ports:
       - '3000:3000'
     env_file:
@@ -9,6 +14,10 @@ services:
       # Overrides whatever PANEL_DB_URL is in .env so the panel SQLite file
       # always lands in the mounted volume below, regardless of local dev value.
       PANEL_DB_URL: file:./data/panel.db
+      # Large enough for SourceTV .dem uploads (adapter-node default is 512K).
+      BODY_SIZE_LIMIT: 200M
+      VOICE_PROCESSOR_PATH: /usr/local/bin/voice-processor
+      VOICE_DATA_DIR: /app/data/voice
     volumes:
       - panel-data:/app/data
     restart: unless-stopped

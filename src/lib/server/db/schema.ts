@@ -51,3 +51,24 @@ export const moduleToggles = sqliteTable('module_toggles', {
 });
 
 export type ModuleToggleRow = typeof moduleToggles.$inferSelect;
+
+export const voiceDemos = sqliteTable('voice_demos', {
+	id: text('id').primaryKey(),
+	originalFilename: text('original_filename').notNull(),
+	uploaderSteamId: text('uploader_steam_id').notNull(),
+	status: text('status', {
+		enum: ['uploaded', 'processing', 'processed', 'failed']
+	})
+		.notNull()
+		.default('uploaded'),
+	map: text('map'),
+	durationSeconds: integer('duration_seconds'),
+	errorMessage: text('error_message'),
+	/** Approximate end of recording (usually the .dem file's last-modified time). */
+	recordedAt: integer('recorded_at', { mode: 'timestamp' }),
+	uploadedAt: integer('uploaded_at', { mode: 'timestamp' }).notNull(),
+	processedAt: integer('processed_at', { mode: 'timestamp' })
+});
+
+export type VoiceDemoRow = typeof voiceDemos.$inferSelect;
+export type NewVoiceDemoRow = typeof voiceDemos.$inferInsert;

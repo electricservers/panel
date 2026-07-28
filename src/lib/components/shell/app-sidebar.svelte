@@ -41,18 +41,16 @@
 			: [{ href: '/', label: 'Home' }]
 	);
 
-	const staffLinks = $derived(
-		whoisEnabled
-			? [
-					{ href: '/whois', label: 'Search' },
-					{ href: '/whois/alt', label: 'Alt links' }
-				]
-			: []
-	);
+	const staffLinks = $derived.by(() => {
+		const links: { href: string; label: string }[] = [];
+		if (whoisEnabled) {
+			links.push({ href: '/whois', label: 'Search' }, { href: '/whois/alt', label: 'Alt links' });
+		}
+		links.push({ href: '/voice', label: 'Voice' });
+		return links;
+	});
 
-	const isStaff = $derived(
-		(user?.role === 'admin' || user?.role === 'owner') && staffLinks.length > 0
-	);
+	const isStaff = $derived(user?.role === 'admin' || user?.role === 'owner');
 	const isOwner = $derived(user?.role === 'owner');
 
 	const adminLinks = [

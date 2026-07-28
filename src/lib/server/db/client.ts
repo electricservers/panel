@@ -61,8 +61,29 @@ export function getDb() {
 			capability TEXT PRIMARY KEY,
 			enabled INTEGER NOT NULL DEFAULT 1,
 			updated_at INTEGER NOT NULL
+		);
+
+		CREATE TABLE IF NOT EXISTS voice_demos (
+			id TEXT PRIMARY KEY,
+			original_filename TEXT NOT NULL,
+			uploader_steam_id TEXT NOT NULL,
+			status TEXT NOT NULL DEFAULT 'uploaded',
+			map TEXT,
+			duration_seconds INTEGER,
+			error_message TEXT,
+			recorded_at INTEGER,
+			uploaded_at INTEGER NOT NULL,
+			processed_at INTEGER
 		)
 	`);
+
+	// Existing DBs created before recorded_at: add the column if missing.
+	const voiceCols = sqlite
+		.prepare(`PRAGMA table_info(voice_demos)`)
+		.all() as Array<{ name: string }>;
+	if (voiceCols.length > 0 && !voiceCols.some((col) => col.name === 'recorded_at')) {
+		sqlite.exec(`ALTER TABLE voice_demos ADD COLUMN recorded_at INTEGER`);
+	}
 
 	db = drizzle(sqlite, { schema });
 	return db;

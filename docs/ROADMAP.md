@@ -62,6 +62,15 @@ Ordered milestones for the rewrite. Each milestone should leave the app usable o
 
 **Exit:** app builds and runs from a container with a persisted SQLite volume; every push/PR runs `check` + `lint` + `knip` + `build`; multi-source partial failures (Whois search/alt, MGE presence badges) share one `source-error.svelte` treatment instead of bespoke per-page markup; the M0 `demo/loading` scaffold page is gone. Done 2026-07-20.
 
+## M6 — Voice reconstruction (staff)
+
+- [x] `docs/modules/voice.md` + `voice_demos` SQLite table
+- [x] `voice-processor` Rust CLI (from steam-audio-codec) with per-utterance WAVs + manifest
+- [x] Staff `/voice` upload/list/process + `/voice/[id]` timeline playback
+- [x] Docker multi-stage build ships the CLI binary beside the Node app
+
+**Exit:** staff can upload a TF2 demo, process voice, and replay a chronological reconstruction with a glowing speaker sidebar. Auth is existing Steam roles only.
+
 ## Explicitly later
 
 - Named seasons / frozen period leaderboards
@@ -69,6 +78,8 @@ Ordered milestones for the rewrite. Each milestone should leave the app usable o
 - Global alt graph across sources
 - Additional capabilities (sourcebans, vip, …)
 - 2v2 MGE, tf2pickup
+- Automatic demo transfer from game servers
+- Voice module async job queue / text-chat correlation
 
 ## Explicitly out
 
@@ -100,3 +111,4 @@ Ordered milestones for the rewrite. Each milestone should leave the app usable o
 | 2026-07-20 | Deploy target is Docker only (`adapter-node`), no Railway/Nixpacks config; both Dockerfile stages pin `node:22-bookworm-slim` so the `better-sqlite3` native addon built at build time stays glibc-compatible at runtime                                                                                                                            |
 | 2026-07-20 | CI hygiene gate runs sequentially on every push/PR to `master`: `check` → `lint` → `knip` → `build`; no test framework added in M5                                                                                                                                                                                                                  |
 | 2026-07-20 | Multi-source partial failures (Whois search/alt, MGE presence badges) render through one shared `source-error.svelte` (`panel`/`inline`/`badge` variants); user-facing copy stays generic, raw adapter errors only surface via `title` for staff                                                                                                    |
+| 2026-07-27 | Voice reconstruction is a staff module (`/voice`), not a MySQL `Capability`; processing is a panel-agnostic `voice-processor` CLI spawned as a subprocess, with demos/WAVs on the SQLite volume under `/app/data/voice`                                                                                                                             |

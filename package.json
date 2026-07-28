@@ -51,6 +51,7 @@
 		"mode-watcher": "^1.1.0",
 		"mysql2": "^3.15.2",
 		"node-steam-openid": "^2.0.0",
-		"undici": "^8.8.0"
+		"undici": "^8.8.0",
+		"wavesurfer-multitrack": "^0.4.12"
 	}
 }

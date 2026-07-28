@@ -30,12 +30,12 @@
 		moduleToggles={data.moduleToggles}
 		siteName={data.settings.siteName}
 	/>
-	<Sidebar.Inset>
+	<Sidebar.Inset class="min-w-0 overflow-x-hidden">
 		<header class="flex h-12 items-center justify-between gap-2 border-b px-3">
 			<Sidebar.Trigger />
 			<ModeToggle />
 		</header>
-		<div class="flex flex-1 flex-col px-4 py-8">
+		<div class="flex min-w-0 flex-1 flex-col overflow-x-hidden px-4 py-8">
 			{@render children()}
 		</div>
 	</Sidebar.Inset>
