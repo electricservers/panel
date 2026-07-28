@@ -138,7 +138,7 @@ Server enforces the same rules as the nav. No “visible but 403” mismatch.
 
 ## Deployment
 
-Multi-stage Dockerfile: Rust builder compiles `voice-processor` from the sibling `steam-audio-codec` source (build context / copied in), copies the binary into the existing `node:22-bookworm-slim` runtime image. No second compose service.
+`bin/voice-processor` is a prebuilt Linux x86_64 (glibc/bookworm) CLI committed to this repo. The Dockerfile copies it into the runtime image — no Rust toolchain or sibling `steam-audio-codec` checkout at image-build time. Rebuild the binary from `steam-audio-codec` when the decoder changes, then replace `bin/voice-processor`. Local Windows dev can point `VOICE_PROCESSOR_PATH` at a `.exe` build instead.
 
 ## Acceptance checks
 

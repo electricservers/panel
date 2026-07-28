@@ -2,9 +2,6 @@ services:
   app:
     build:
       context: .
-      additional_contexts:
-        # Sibling checkout of demostf/steam-audio-codec (voice-processor CLI).
-        codec: ../steam-audio-codec
       dockerfile: Dockerfile
     ports:
       - '3000:3000'
