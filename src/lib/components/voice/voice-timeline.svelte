@@ -48,6 +48,8 @@
 	let mutedIds = new SvelteSet<string>();
 	let soloIds = new SvelteSet<string>();
 	let multitrack = $state<MultiTrack | null>(null);
+	/** Parallel to Multitrack row order: owning speaker for mute/solo. */
+	let clipSteamIds = $state<string[]>([]);
 
 	const mutedCount = $derived(mutedIds.size);
 	const soloCount = $derived(soloIds.size);
@@ -127,8 +129,9 @@
 
 	function applyTrackVolumes(mt: MultiTrack | null = multitrack) {
 		if (!mt) return;
-		for (let index = 0; index < tracks.length; index++) {
-			mt.setTrackVolume(index, trackVolume(tracks[index].steamId));
+		const owners = clipSteamIds;
+		for (let index = 0; index < owners.length; index++) {
+			mt.setTrackVolume(index, trackVolume(owners[index]));
 		}
 	}
 
@@ -203,45 +206,64 @@
 				tracks = built;
 				mutedIds.clear();
 				soloIds.clear();
-				localMt = MultiTrack.create(
-					built.map((track, index) => ({
-						id: track.steamId,
-						url: track.url,
-						startPosition: 0,
-						draggable: false,
-						options: {
-							height: 48,
-							waveColor: colorFor(index),
-							progressColor: colorFor(index),
-							normalize: true
-						}
-					})),
-					{
-						container: host,
-						minPxPerSec: 12,
-						cursorWidth: 2,
-						cursorColor: 'var(--brand)',
-						trackBackground: 'transparent',
-						trackBorderColor: 'var(--border)',
-						timelineOptions: {
-							height: 20,
-							formatTimeCallback: (seconds: number) => {
-								if (startedAt == null) {
-									const total = Math.max(0, Math.floor(seconds));
-									const hours = Math.floor(total / 3600);
-									const minutes = Math.floor((total % 3600) / 60);
-									return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-								}
-								const at = new Date(startedAt + seconds * 1000);
-								return at.toLocaleTimeString(undefined, {
-									hour: '2-digit',
-									minute: '2-digit',
-									hour12: false
-								});
+
+				const mtTracks: Array<{
+					id: string;
+					url: string;
+					startPosition: number;
+					draggable: boolean;
+					options: {
+						height: number;
+						waveColor: string;
+						progressColor: string;
+						normalize: boolean;
+					};
+				}> = [];
+				const owners: string[] = [];
+				built.forEach((track, speakerIndex) => {
+					track.clips.forEach((clip, clipIndex) => {
+						owners.push(track.steamId);
+						mtTracks.push({
+							id: `${track.steamId}:${clipIndex}`,
+							url: clip.url,
+							startPosition: clip.startPosition,
+							draggable: false,
+							options: {
+								height: 48,
+								waveColor: colorFor(speakerIndex),
+								progressColor: colorFor(speakerIndex),
+								normalize: true
 							}
+						});
+					});
+				});
+				clipSteamIds = owners;
+
+				localMt = MultiTrack.create(mtTracks, {
+					container: host,
+					minPxPerSec: 12,
+					cursorWidth: 2,
+					cursorColor: 'var(--brand)',
+					trackBackground: 'transparent',
+					trackBorderColor: 'var(--border)',
+					timelineOptions: {
+						height: 20,
+						formatTimeCallback: (seconds: number) => {
+							if (startedAt == null) {
+								const total = Math.max(0, Math.floor(seconds));
+								const hours = Math.floor(total / 3600);
+								const minutes = Math.floor((total % 3600) / 60);
+								return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+							}
+							const at = new Date(startedAt + seconds * 1000);
+							return at.toLocaleTimeString(undefined, {
+								hour: '2-digit',
+								minute: '2-digit',
+								hour12: false
+							});
 						}
 					}
-				);
+				});
 				multitrack = localMt;
 				applyPlaybackRate(localMt, untrack(() => playbackRate));
 				applyTrackVolumes(localMt);
