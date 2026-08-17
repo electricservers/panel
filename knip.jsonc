@@ -4,7 +4,7 @@
 	// every part, including pieces we haven't wired up yet, e.g. AvatarGroup).
 	// Re-running the shadcn CLI would restore any of these, so they're vendor
 	// surface, not app dead code, and are excluded from unused files/exports.
-	"ignore": ["src/lib/components/ui/**"],
+	"ignore": ["src/lib/components/ui/**", "src/**/*.test.ts"],
 	// One-time, manually-invoked migration script (`bun run scripts/import-panel-sources.ts`),
 	// never imported by app code — see docs/modules/admin.md.
 	// `scripts/fix-mgemod-mojibake.ts` is already an entry via package.json `db:fix-mojibake`.
