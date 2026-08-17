@@ -43,8 +43,12 @@
 		action="?/upload"
 		enctype="multipart/form-data"
 		class="flex flex-col gap-3 rounded-lg border border-border p-4 sm:flex-row sm:items-end"
-		use:enhance={() => {
+		use:enhance={({ formData }) => {
 			uploading = true;
+			const file = formData.get('demo');
+			if (file instanceof File && file.lastModified > 0) {
+				formData.set('lastModified', String(file.lastModified));
+			}
 			return async ({ update }) => {
 				await update();
 				uploading = false;

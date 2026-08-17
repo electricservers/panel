@@ -4,6 +4,7 @@ import { requireRole } from '$lib/server/require-role';
 import { insertVoiceDemo, listVoiceDemos } from '$lib/server/voice/db';
 import { ensureVoiceDemoDir, getVoiceSourcePath } from '$lib/server/voice/paths';
 import { processVoiceDemo } from '$lib/server/voice/process';
+import { parseBrowserLastModified } from '$lib/voice/session-clock';
 import type { Actions, PageServerLoad } from './$types';
 
 const MAX_DEMO_BYTES = 200 * 1024 * 1024;
@@ -34,10 +35,7 @@ export const actions: Actions = {
 		ensureVoiceDemoDir(id);
 		const bytes = Buffer.from(await file.arrayBuffer());
 		await writeFile(getVoiceSourcePath(id), bytes);
-		const recordedAt =
-			typeof file.lastModified === 'number' && file.lastModified > 0
-				? new Date(file.lastModified)
-				: null;
+		const recordedAt = parseBrowserLastModified(form.get('lastModified'));
 		insertVoiceDemo({
 			id,
 			originalFilename: file.name,
