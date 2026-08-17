@@ -25,6 +25,7 @@ Staff reconstruction of TF2 voice chat from SourceTV (or client) demo files.
 2. As staff, I click Process and wait for the CLI to finish; status becomes `processed` (or `failed`).
 3. As staff, I open a processed demo and hear a chronological reconstruction of voice chat, with speakers lighting up as the playhead crosses their segments.
 4. As staff, I see in-game names (not bare SteamID64s) wherever the demo's userinfo table has them.
+5. As staff, I can tell who owns each timeline lane without using the sidebar, and jump to that player's next utterance from the playhead.
 
 ## Architecture
 
@@ -44,6 +45,8 @@ voice-processor <demo.dem> [output_dir]
 → writes <steam_id>_<n>.wav segments + manifest.json into output_dir
 → exit 0 on success
 ```
+
+The reconstruction UI draws speaker lanes from `manifest.json` immediately. Clip WAVs are fetched and decoded in the background with the Web Audio API, then scheduled at `start_seconds`. The browser does not mix speakers into continuous buffers.
 
 ## Storage
 
@@ -67,11 +70,16 @@ SQLite table `voice_demos` (panel DB):
 | `map`               | from manifest, nullable until processed               |
 | `duration_seconds`  | from manifest, nullable until processed               |
 | `error_message`     | set on `failed`                                       |
-| `recorded_at`       | approx. recording end (`.dem` last-modified time)     |
+| `recorded_at`       | approx. recording end (browser `File.lastModified`)   |
 | `uploaded_at`       | timestamp                                             |
 | `processed_at`      | timestamp, nullable                                   |
 
-Timeline HH:mm labels use `recorded_at - duration` as session start (browser local timezone). TF2 demo headers do not store absolute wall-clock time, so this is approximate.
+TF2 demo headers do not store absolute wall-clock time. Timeline HH:mm labels (browser local timezone) pick a session start in this order:
+
+1. A timestamp embedded in the original filename (SourceTV `auto-YYYY-MM-DD-HH-mm-ss` and compact `YYYYMMDD-HHMMSS` forms). That value is the recording _start_.
+2. Otherwise `recorded_at - duration`, treating `recorded_at` as the recording _end_.
+
+`recorded_at` must come from the browser `File.lastModified` sent as a form field. Multipart `File.lastModified` on the server is the upload time, not the demo's disk date. If the staff copied or downloaded the `.dem` later, (2) can still be hours off. Filename timestamps survive that.
 
 ## Manifest shape
 
@@ -133,7 +141,12 @@ Server enforces the same rules as the nav. No “visible but 403” mismatch.
 ## UI
 
 - List page: table of demos (filename, map, duration, status, uploaded at) + upload control + Process / View actions.
-- Reconstruction page: `wavesurfer.js` + `wavesurfer-multitrack` (one track per speaker, clips at `start_seconds`); speaker sidebar highlights whoever is talking at the current playhead.
+- Reconstruction page: a manifest-driven HTML timeline (one lane per speaker, utterance bars from `start_seconds` / `end_seconds`). Playback schedules the per-utterance WAVs with the Web Audio API (lookahead decode, no mixed buffer). The speaker sidebar highlights whoever is talking at the current playhead.
+- Each lane has a pinned identity gutter (avatar + in-game name) that stays visible while the timeline scrolls. Clicking a lane label or a speaker name in the sidebar seeks to that player's next clip from the playhead.
+- The sidebar has a name/SteamID filter so staff can isolate a player in a busy demo.
+- Playback may autoscroll to keep the playhead in view. Manual horizontal scroll detaches that follow so staff can inspect another part of the demo while audio keeps running. Follow cursor reattaches.
+- Timeline ruler times are local HH:mm inferred from the filename when possible, otherwise from the file date. The status line names which heuristic was used.
+- The reconstruction view must paint lanes from the manifest immediately. Do not block the page on decoding or mixing audio.
 - Chrome: existing shadcn-svelte primitives (`Button`, `Table`, `Badge`, bordered panels). No CapCut-style video editor.
 
 ## Deployment
@@ -146,4 +159,8 @@ Server enforces the same rules as the nav. No “visible but 403” mismatch.
 - Upload of a real TF2 STV demo creates a row and `source.dem` on disk.
 - Process writes `manifest.json` with a `players` map and at least one segment when voice is present.
 - Reconstruction page plays clips in timeline order and lights the matching speaker row while that clip is under the playhead.
+- Each timeline lane shows a pinned avatar and in-game name aligned with that lane.
+- Clicking a speaker identity seeks to that player's next utterance after the playhead (wrapping to their first clip).
+- During playback, manual horizontal scroll is not pulled back to the playhead.
+- Opening a processed demo shows speaker lanes immediately. Playback does not wait for every WAV to decode.
 - The Rust binary has no dependency on panel SQLite, Steam session, or Axum.
