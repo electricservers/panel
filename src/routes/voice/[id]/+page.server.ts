@@ -29,23 +29,11 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		return {
 			demo: { ...demo, recordedAt },
 			manifest: null,
-			sessionStartedAtMs: null as number | null,
 			speakerAvatars: {} as Record<string, string>
 		};
 	}
 	try {
 		const manifest = await readVoiceManifest(demo.id);
-		const durationSeconds = Math.max(
-			manifest.duration_seconds,
-			...manifest.segments.map((segment) => segment.end_seconds),
-			0
-		);
-		// File mtime is treated as approximate recording end; subtract duration
-		// to get the wall-clock start for HH:mm timeline labels.
-		const sessionStartedAtMs =
-			recordedAt != null
-				? recordedAt.getTime() - Math.round(durationSeconds * 1000)
-				: null;
 
 		const profiles = await getSteamProfiles(Object.keys(manifest.players));
 		const speakerAvatars: Record<string, string> = {};
@@ -56,7 +44,6 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		return {
 			demo: { ...demo, recordedAt },
 			manifest,
-			sessionStartedAtMs,
 			speakerAvatars
 		};
 	} catch {

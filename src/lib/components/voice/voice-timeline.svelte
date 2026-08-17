@@ -1,22 +1,26 @@
 <script lang="ts">
-	import { browser } from '$app/environment';
 	import { untrack } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
-	import MultiTrack from 'wavesurfer-multitrack';
 	import HeadphonesIcon from '@lucide/svelte/icons/headphones';
 	import PauseIcon from '@lucide/svelte/icons/pause';
 	import PlayIcon from '@lucide/svelte/icons/play';
 	import Volume2Icon from '@lucide/svelte/icons/volume-2';
 	import VolumeXIcon from '@lucide/svelte/icons/volume-x';
+	import SearchIcon from '@lucide/svelte/icons/search';
+	import LocateFixedIcon from '@lucide/svelte/icons/locate-fixed';
 	import type { VoiceManifest } from '$lib/voice/types';
+	import { VoicePlayer } from '$lib/voice/player';
 	import {
 		activeSteamIds,
-		buildSpeakerTracks,
-		revokeSpeakerTracks,
+		demoDuration,
+		groupSpeakerTracks,
+		nextUtteranceStart,
 		type SpeakerTrack
-	} from '$lib/voice/build-tracks';
+	} from '$lib/voice/tracks';
+	import { formatClockLabel, inferSessionStartMs } from '$lib/voice/session-clock';
 	import Badge from '$lib/components/ui/badge/badge.svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
+	import Input from '$lib/components/ui/input/input.svelte';
 	import PlayerAvatar from '$lib/components/mge/player-avatar.svelte';
 	import { steamProfileUrl } from '$lib/mge/steam-id';
 	import { cn } from '$lib/utils.js';
@@ -24,36 +28,81 @@
 	let {
 		demoId,
 		manifest,
-		sessionStartedAtMs = null,
+		filename,
+		recordedAtMs = null,
 		speakerAvatars = {}
 	}: {
 		demoId: string;
 		manifest: VoiceManifest;
-		/** Epoch ms for demo t=0 (wall clock). Null falls back to relative HH:mm. */
-		sessionStartedAtMs?: number | null;
-		/** Steam64 → medium avatar URL from GetPlayerSummaries. */
+		filename: string;
+		recordedAtMs?: number | null;
 		speakerAvatars?: Record<string, string>;
 	} = $props();
 
 	const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 2] as const;
+	const PX_PER_SEC = 12;
+	const LANE_HEIGHT = 48;
+	const RULER_HEIGHT = 20;
 
-	let container: HTMLDivElement | undefined = $state();
-	let tracks = $state<SpeakerTrack[]>([]);
-	let loading = $state(true);
-	let loadError = $state<string | null>(null);
 	let playing = $state(false);
+	let buffering = $state(false);
 	let currentTime = $state(0);
 	let playbackRate = $state(1);
-	let active = $state<Set<string>>(new Set());
+	let decodedCount = $state(0);
+	let totalCount = $state(0);
 	let mutedIds = new SvelteSet<string>();
 	let soloIds = new SvelteSet<string>();
-	let multitrack = $state<MultiTrack | null>(null);
-	/** Parallel to Multitrack row order: owning speaker for mute/solo. */
-	let clipSteamIds = $state<string[]>([]);
+	let player: VoicePlayer | null = null;
+	let scroller: HTMLDivElement | null = null;
+	let speakerQuery = $state('');
+	let focusedSteamId = $state<string | null>(null);
+	let followPlayhead = $state(true);
+	let suppressUserScrollUntil = 0;
 
+	const tracks = $derived.by(() => groupSpeakerTracks(manifest));
+	const duration = $derived.by(() => demoDuration(manifest));
+	const sessionClock = $derived.by(() =>
+		inferSessionStartMs({
+			filename,
+			recordedAtMs,
+			durationSeconds: duration
+		})
+	);
+	const sessionStartMs = $derived(sessionClock?.startMs ?? null);
+	const clockHint = $derived(
+		sessionClock?.source === 'filename'
+			? 'Clock from the demo filename'
+			: sessionClock?.source === 'mtime'
+				? 'Approximate clock from the file date'
+				: 'Elapsed time from the start of the demo'
+	);
+	const contentWidth = $derived(Math.max(duration * PX_PER_SEC, 120));
+	const active = $derived.by(() => activeSteamIds(tracks, currentTime));
 	const mutedCount = $derived(mutedIds.size);
 	const soloCount = $derived(soloIds.size);
 	const anySolo = $derived(soloCount > 0);
+	const speakerFilter = $derived(speakerQuery.trim().toLowerCase());
+	const visibleTracks = $derived.by(() => {
+		if (!speakerFilter) return tracks;
+		return tracks.filter(
+			(track) =>
+				track.name.toLowerCase().includes(speakerFilter) ||
+				track.steamId.toLowerCase().includes(speakerFilter)
+		);
+	});
+	const colorIndexBySteam = $derived.by(() => {
+		const map: Record<string, number> = {};
+		tracks.forEach((track, index) => {
+			map[track.steamId] = index;
+		});
+		return map;
+	});
+	const ticks = $derived.by(() => {
+		const step = duration > 1800 ? 120 : duration > 600 ? 60 : duration > 120 ? 15 : 10;
+		const out: number[] = [];
+		for (let t = 0; t <= duration; t += step) out.push(t);
+		return out;
+	});
 
 	const colors = [
 		'hsl(220 90% 56%)',
@@ -75,48 +124,6 @@
 		return `${m}:${rem.toString().padStart(2, '0')}`;
 	}
 
-	function formatClockLabel(offsetSeconds: number) {
-		if (sessionStartedAtMs == null) {
-			const total = Math.max(0, Math.floor(offsetSeconds));
-			const hours = Math.floor(total / 3600);
-			const minutes = Math.floor((total % 3600) / 60);
-			return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-		}
-		const at = new Date(sessionStartedAtMs + offsetSeconds * 1000);
-		return at.toLocaleTimeString(undefined, {
-			hour: '2-digit',
-			minute: '2-digit',
-			hour12: false
-		});
-	}
-
-	function applyPlaybackRate(mt: MultiTrack | null, rate: number) {
-		if (!mt) return;
-		const audios = (mt as unknown as { audios?: Array<{ playbackRate?: number; preservesPitch?: boolean }> })
-			.audios;
-		if (!audios) return;
-		for (const audio of audios) {
-			if (!audio || typeof audio.playbackRate !== 'number') continue;
-			audio.playbackRate = rate;
-			if ('preservesPitch' in audio) audio.preservesPitch = true;
-		}
-	}
-
-	function togglePlay() {
-		if (!multitrack || loading || loadError) return;
-		if (multitrack.isPlaying()) multitrack.pause();
-		else {
-			applyPlaybackRate(multitrack, playbackRate);
-			multitrack.play();
-		}
-		playing = multitrack.isPlaying();
-	}
-
-	function setSpeed(rate: number) {
-		playbackRate = rate;
-		applyPlaybackRate(multitrack, rate);
-	}
-
 	function trackVolume(steamId: string): number {
 		if (mutedIds.has(steamId)) return 0;
 		if (anySolo && !soloIds.has(steamId)) return 0;
@@ -127,44 +134,138 @@
 		return trackVolume(steamId) > 0;
 	}
 
-	function applyTrackVolumes(mt: MultiTrack | null = multitrack) {
-		if (!mt) return;
-		const owners = clipSteamIds;
-		for (let index = 0; index < owners.length; index++) {
-			mt.setTrackVolume(index, trackVolume(owners[index]));
+	function matchesFilter(track: SpeakerTrack): boolean {
+		if (!speakerFilter) return true;
+		return (
+			track.name.toLowerCase().includes(speakerFilter) ||
+			track.steamId.toLowerCase().includes(speakerFilter)
+		);
+	}
+
+	function markProgrammaticScroll() {
+		suppressUserScrollUntil = performance.now() + 120;
+	}
+
+	function setScrollerLeft(value: number) {
+		const el = scroller;
+		if (!el) return;
+		markProgrammaticScroll();
+		el.scrollLeft = value;
+	}
+
+	function scrollTimeIntoView(seconds: number) {
+		const el = scroller;
+		if (!el) return;
+		const x = seconds * PX_PER_SEC;
+		const margin = Math.min(160, el.clientWidth * 0.25);
+		setScrollerLeft(Math.max(0, x - margin));
+	}
+
+	function keepPlayheadVisible() {
+		if (!followPlayhead) return;
+		const el = scroller;
+		if (!el) return;
+		const x = currentTime * PX_PER_SEC;
+		const left = el.scrollLeft;
+		const right = left + el.clientWidth;
+		const margin = Math.min(120, el.clientWidth * 0.2);
+		if (x > right - margin || x < left + 8) {
+			setScrollerLeft(Math.max(0, x - margin));
 		}
+	}
+
+	function onTimelineScroll() {
+		if (performance.now() < suppressUserScrollUntil) return;
+		followPlayhead = false;
+	}
+
+	function onTimelineWheel() {
+		followPlayhead = false;
+	}
+
+	function resumeFollow() {
+		followPlayhead = true;
+		scrollTimeIntoView(currentTime);
+	}
+
+	function syncFromPlayer(p: VoicePlayer) {
+		currentTime = p.getCurrentTime();
+		playing = p.playing;
+		buffering = p.buffering;
+		decodedCount = p.decodedCount;
+		totalCount = p.totalCount;
+		if (p.playing) keepPlayheadVisible();
+	}
+
+	async function togglePlay() {
+		if (!player || tracks.length === 0) return;
+		await player.toggle();
+		syncFromPlayer(player);
+	}
+
+	function setSpeed(rate: number) {
+		playbackRate = rate;
+		player?.setRate(rate);
+	}
+
+	function seekTo(seconds: number) {
+		if (!player) return;
+		followPlayhead = true;
+		player.seek(seconds);
+		currentTime = player.getCurrentTime();
+	}
+
+	function jumpToSpeaker(track: SpeakerTrack) {
+		const start = nextUtteranceStart(track, currentTime);
+		if (start == null) return;
+		focusedSteamId = track.steamId;
+		seekTo(start);
+		scrollTimeIntoView(start);
 	}
 
 	function toggleMute(steamId: string) {
 		if (mutedIds.has(steamId)) mutedIds.delete(steamId);
 		else mutedIds.add(steamId);
-		applyTrackVolumes();
+		player?.setMuted(mutedIds);
 	}
 
 	function toggleSolo(steamId: string) {
 		if (soloIds.has(steamId)) soloIds.delete(steamId);
 		else soloIds.add(steamId);
-		applyTrackVolumes();
+		player?.setSolo(soloIds);
 	}
 
 	function clearMutes() {
 		mutedIds.clear();
-		applyTrackVolumes();
+		player?.setMuted(mutedIds);
 	}
 
 	function clearSolos() {
 		soloIds.clear();
-		applyTrackVolumes();
+		player?.setSolo(soloIds);
 	}
 
 	function unmuteAll() {
 		mutedIds.clear();
 		soloIds.clear();
-		applyTrackVolumes();
+		player?.setMuted(mutedIds);
+		player?.setSolo(soloIds);
+	}
+
+	function onTimelineClick(event: MouseEvent) {
+		const target = event.currentTarget;
+		if (!(target instanceof HTMLElement)) return;
+		const rect = target.getBoundingClientRect();
+		const x = event.clientX - rect.left;
+		seekTo(x / PX_PER_SEC);
+		const hit = event.target;
+		if (hit instanceof HTMLElement && hit.dataset.steamId) {
+			focusedSteamId = hit.dataset.steamId;
+		}
 	}
 
 	function onWindowKeydown(event: KeyboardEvent) {
-		if (event.code !== 'Space' && event.key !== ' ') return;
+		if (event.defaultPrevented) return;
 		const target = event.target;
 		if (target instanceof HTMLElement) {
 			const tag = target.tagName;
@@ -178,156 +279,193 @@
 				return;
 			}
 		}
-		event.preventDefault();
-		togglePlay();
+		if (event.code === 'Space' || event.key === ' ') {
+			event.preventDefault();
+			void togglePlay();
+			return;
+		}
+		if (event.key === 'ArrowLeft') {
+			event.preventDefault();
+			seekTo(currentTime - 5);
+			return;
+		}
+		if (event.key === 'ArrowRight') {
+			event.preventDefault();
+			seekTo(currentTime + 5);
+		}
 	}
 
-	$effect(() => {
-		if (!browser || !container) return;
+	function attachTimeline(demo: string, speakerTracks: SpeakerTrack[], total: number) {
+		return (node: HTMLDivElement) => {
+			scroller = node;
+			const p = new VoicePlayer({
+				demoId: demo,
+				tracks: speakerTracks,
+				duration: total
+			});
+			p.setRate(untrack(() => playbackRate));
+			p.setMuted(untrack(() => mutedIds));
+			p.setSolo(untrack(() => soloIds));
+			p.prefetch();
+			player = p;
 
-		const host = container;
-		const startedAt = sessionStartedAtMs;
-		let cancelled = false;
-		let localTracks: SpeakerTrack[] = [];
-		let localMt: MultiTrack | null = null;
-		let raf = 0;
-
-		loading = true;
-		loadError = null;
-
-		void (async () => {
-			try {
-				const built = await buildSpeakerTracks(demoId, manifest);
-				if (cancelled) {
-					revokeSpeakerTracks(built);
-					return;
-				}
-				localTracks = built;
-				tracks = built;
-				mutedIds.clear();
-				soloIds.clear();
-
-				const mtTracks: Array<{
-					id: string;
-					url: string;
-					startPosition: number;
-					draggable: boolean;
-					options: {
-						height: number;
-						waveColor: string;
-						progressColor: string;
-						normalize: boolean;
-					};
-				}> = [];
-				const owners: string[] = [];
-				built.forEach((track, speakerIndex) => {
-					track.clips.forEach((clip, clipIndex) => {
-						owners.push(track.steamId);
-						mtTracks.push({
-							id: `${track.steamId}:${clipIndex}`,
-							url: clip.url,
-							startPosition: clip.startPosition,
-							draggable: false,
-							options: {
-								height: 48,
-								waveColor: colorFor(speakerIndex),
-								progressColor: colorFor(speakerIndex),
-								normalize: true
-							}
-						});
-					});
-				});
-				clipSteamIds = owners;
-
-				localMt = MultiTrack.create(mtTracks, {
-					container: host,
-					minPxPerSec: 12,
-					cursorWidth: 2,
-					cursorColor: 'var(--brand)',
-					trackBackground: 'transparent',
-					trackBorderColor: 'var(--border)',
-					timelineOptions: {
-						height: 20,
-						formatTimeCallback: (seconds: number) => {
-							if (startedAt == null) {
-								const total = Math.max(0, Math.floor(seconds));
-								const hours = Math.floor(total / 3600);
-								const minutes = Math.floor((total % 3600) / 60);
-								return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-							}
-							const at = new Date(startedAt + seconds * 1000);
-							return at.toLocaleTimeString(undefined, {
-								hour: '2-digit',
-								minute: '2-digit',
-								hour12: false
-							});
-						}
-					}
-				});
-				multitrack = localMt;
-				applyPlaybackRate(localMt, untrack(() => playbackRate));
-				applyTrackVolumes(localMt);
-				localMt.on('canplay', () => {
-					if (!cancelled) applyTrackVolumes(localMt);
-				});
-
-				const tick = () => {
-					if (!localMt || cancelled) return;
-					currentTime = localMt.getCurrentTime();
-					active = activeSteamIds(localTracks, currentTime);
-					playing = localMt.isPlaying();
-					raf = requestAnimationFrame(tick);
-				};
+			let raf = 0;
+			const tick = () => {
+				syncFromPlayer(p);
 				raf = requestAnimationFrame(tick);
-			} catch (err) {
-				if (!cancelled) {
-					loadError = err instanceof Error ? err.message : 'Failed to build timeline.';
-				}
-			} finally {
-				if (!cancelled) loading = false;
-			}
-		})();
+			};
+			raf = requestAnimationFrame(tick);
 
-		return () => {
-			cancelled = true;
-			cancelAnimationFrame(raf);
-			localMt?.destroy();
-			multitrack = null;
-			revokeSpeakerTracks(localTracks);
+			return () => {
+				cancelAnimationFrame(raf);
+				p.destroy();
+				if (player === p) player = null;
+				if (scroller === node) scroller = null;
+			};
 		};
-	});
+	}
 </script>
 
 <svelte:window onkeydown={onWindowKeydown} />
 
-<div class="flex min-w-0 w-full max-w-full flex-col gap-4 lg:flex-row">
+<div class="flex w-full max-w-full min-w-0 flex-col gap-4 lg:flex-row">
 	<div class="min-w-0 flex-1 space-y-3 overflow-hidden">
 		<div class="flex flex-wrap items-center gap-2">
-			<span class="text-sm text-muted-foreground tabular-nums">
-				{formatClockLabel(currentTime)}
+			<span class="text-sm text-muted-foreground tabular-nums" title={clockHint}>
+				{formatClockLabel(currentTime, sessionStartMs)}
 				<span class="text-muted-foreground/70">
-					({formatElapsed(currentTime)} / {formatElapsed(manifest.duration_seconds)})
+					({formatElapsed(currentTime)} / {formatElapsed(duration)})
 				</span>
 			</span>
-			{#if loading}
-				<span class="text-sm text-muted-foreground">Building speaker tracks…</span>
+			<span class="text-xs text-muted-foreground/80">{clockHint}</span>
+			{#if decodedCount < totalCount}
+				<span class="text-sm text-muted-foreground">
+					Loading audio {decodedCount}/{totalCount}
+				</span>
 			{/if}
+			{#if buffering}
+				<span class="text-sm text-muted-foreground">Buffering…</span>
+			{/if}
+			<Button
+				type="button"
+				size="xs"
+				variant={followPlayhead ? 'secondary' : 'outline'}
+				onclick={resumeFollow}
+				aria-pressed={followPlayhead}
+				title="Keep the playhead in view while playing"
+			>
+				<LocateFixedIcon class="size-3.5" />
+				{followPlayhead ? 'Following' : 'Follow cursor'}
+			</Button>
 		</div>
-		{#if loadError}
-			<p class="text-sm text-destructive">{loadError}</p>
-		{/if}
-		<!-- Outer shell owns the viewport width; Multitrack expands the inner
-		     node to the full timeline, so scroll stays inside this box only. -->
-		<div class="min-h-40 w-full max-w-full overflow-x-auto rounded-lg border border-border bg-muted/20 p-2">
-			<div bind:this={container} class="min-w-0"></div>
+		<div
+			class="min-h-40 w-full max-w-full overflow-x-auto rounded-lg border border-border bg-muted/20"
+			onscroll={onTimelineScroll}
+			onwheel={onTimelineWheel}
+			{@attach attachTimeline(demoId, tracks, duration)}
+		>
+			<div class="flex w-max min-w-full">
+				<div
+					class="sticky left-0 z-20 w-44 shrink-0 border-r border-border bg-background shadow-[4px_0_12px_-8px_hsl(0_0%_0%_/_0.45)]"
+				>
+					<div
+						class="flex items-center border-b border-border px-2 text-[10px] text-muted-foreground"
+						style:height="{RULER_HEIGHT}px"
+					>
+						Speakers
+					</div>
+					{#each tracks as track, index (track.steamId)}
+						{@const isActive = active.has(track.steamId)}
+						{@const audible = isAudible(track.steamId)}
+						{@const dimmed = !matchesFilter(track) || !audible}
+						{@const focused = focusedSteamId === track.steamId}
+						<button
+							type="button"
+							class={cn(
+								'flex w-full items-center gap-2 border-b border-border/70 px-2 text-left last:border-b-0',
+								isActive && audible && 'bg-brand/10',
+								focused && 'ring-1 ring-brand/50 ring-inset',
+								dimmed && 'opacity-40'
+							)}
+							style:height="{LANE_HEIGHT}px"
+							onclick={() => jumpToSpeaker(track)}
+							title="{track.name} · {track.segments.length} clips. Jump to next clip."
+						>
+							<span
+								class="inline-flex shrink-0 rounded-full p-px"
+								style:background={colorFor(index)}
+							>
+								<PlayerAvatar
+									name={track.name}
+									avatarUrl={speakerAvatars[track.steamId]}
+									size="sm"
+								/>
+							</span>
+							<span class="min-w-0 truncate text-xs font-medium">{track.name}</span>
+						</button>
+					{/each}
+				</div>
+				<div
+					class="relative cursor-pointer select-none"
+					style:width="{contentWidth}px"
+					style:min-height="{RULER_HEIGHT + tracks.length * LANE_HEIGHT}px"
+					role="slider"
+					aria-label="Voice timeline"
+					aria-valuemin={0}
+					aria-valuemax={Math.round(duration)}
+					aria-valuenow={Math.round(currentTime)}
+					tabindex="0"
+					onclick={onTimelineClick}
+					onkeydown={onWindowKeydown}
+				>
+					<div class="relative border-b border-border" style:height="{RULER_HEIGHT}px">
+						{#each ticks as tick (tick)}
+							<span
+								class="absolute top-0 text-[10px] leading-5 text-muted-foreground tabular-nums"
+								style:left="{tick * PX_PER_SEC}px"
+							>
+								{formatClockLabel(tick, sessionStartMs)}
+							</span>
+						{/each}
+					</div>
+					{#each tracks as track, index (track.steamId)}
+						<div
+							class={cn(
+								'relative border-b border-border/70 last:border-b-0',
+								focusedSteamId === track.steamId && 'bg-brand/5'
+							)}
+							style:height="{LANE_HEIGHT}px"
+							style:opacity={!matchesFilter(track) || !isAudible(track.steamId) ? '0.35' : '1'}
+						>
+							{#each track.segments as segment (`${segment.file}:${segment.start_seconds}`)}
+								<div
+									class="absolute top-2 bottom-2 rounded-sm"
+									style:left="{segment.start_seconds * PX_PER_SEC}px"
+									style:width="{Math.max(
+										3,
+										(segment.end_seconds - segment.start_seconds) * PX_PER_SEC
+									)}px"
+									style:background={colorFor(index)}
+									data-steam-id={track.steamId}
+									title="{track.name} · {formatElapsed(segment.start_seconds)}"
+								></div>
+							{/each}
+						</div>
+					{/each}
+					<div
+						class="pointer-events-none absolute top-0 bottom-0 z-10 w-0.5 bg-brand"
+						style:left="{currentTime * PX_PER_SEC}px"
+					></div>
+				</div>
+			</div>
 		</div>
 
 		<div
 			class="grid grid-cols-1 items-center gap-3 rounded-lg border border-border bg-muted/10 px-3 py-3 sm:grid-cols-[1fr_auto_1fr]"
 		>
-			<div class="hidden tabular-nums text-sm text-muted-foreground sm:block">
+			<div class="hidden text-sm text-muted-foreground tabular-nums sm:block">
 				{formatElapsed(currentTime)}
-				<span class="text-muted-foreground/70">/ {formatElapsed(manifest.duration_seconds)}</span>
+				<span class="text-muted-foreground/70">/ {formatElapsed(duration)}</span>
 			</div>
 
 			<Button
@@ -336,7 +474,7 @@
 				size="icon-lg"
 				class="mx-auto rounded-full"
 				onclick={togglePlay}
-				disabled={loading || !!loadError}
+				disabled={tracks.length === 0}
 				aria-label={playing ? 'Pause (Space)' : 'Play (Space)'}
 				title="Space"
 			>
@@ -360,7 +498,7 @@
 						variant={playbackRate === rate ? 'secondary' : 'ghost'}
 						class={cn('min-w-10 tabular-nums', playbackRate === rate && 'ring-1 ring-border')}
 						onclick={() => setSpeed(rate)}
-						disabled={loading || !!loadError}
+						disabled={tracks.length === 0}
 						aria-pressed={playbackRate === rate}
 					>
 						{rate === 1 ? '1×' : `${rate}×`}
@@ -376,16 +514,20 @@
 		<div class="flex items-center justify-between gap-2">
 			<h2 class="font-heading text-sm font-semibold tracking-tight">Speakers</h2>
 			{#if mutedCount > 0 || soloCount > 0}
-				<Button
-					type="button"
-					variant="ghost"
-					size="xs"
-					onclick={unmuteAll}
-					disabled={loading || !!loadError}
-				>
-					Reset audio
-				</Button>
+				<Button type="button" variant="ghost" size="xs" onclick={unmuteAll}>Reset audio</Button>
 			{/if}
+		</div>
+		<div class="relative">
+			<SearchIcon
+				class="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"
+			/>
+			<Input
+				class="pl-8"
+				type="search"
+				placeholder="Filter by name or SteamID"
+				bind:value={speakerQuery}
+				aria-label="Filter speakers"
+			/>
 		</div>
 		{#if mutedCount > 0 || soloCount > 0}
 			<div class="flex flex-wrap gap-1">
@@ -402,62 +544,49 @@
 			</div>
 		{/if}
 		<ul class="space-y-1">
-			{#each tracks as track, index (track.steamId)}
+			{#each visibleTracks as track (track.steamId)}
+				{@const index = colorIndexBySteam[track.steamId] ?? 0}
 				{@const isActive = active.has(track.steamId)}
 				{@const steamHref = steamProfileUrl(track.steamId)}
 				{@const isMuted = mutedIds.has(track.steamId)}
 				{@const isSolo = soloIds.has(track.steamId)}
 				{@const audible = isAudible(track.steamId)}
+				{@const focused = focusedSteamId === track.steamId}
 				<li
 					class={cn(
 						'rounded-lg border px-3 py-2 transition-colors',
 						isActive && audible
 							? 'border-brand bg-brand/10 shadow-sm'
 							: 'border-border bg-background',
+						focused && 'ring-1 ring-brand/40',
 						!audible && 'opacity-55'
 					)}
 				>
 					<div class="flex items-center gap-2">
-						<span
-							class="inline-flex shrink-0 rounded-full p-0.5"
-							style:background={colorFor(index)}
+						<button
+							type="button"
+							class="flex min-w-0 flex-1 items-center gap-2 text-left"
+							onclick={() => jumpToSpeaker(track)}
+							title="Jump to next clip"
 						>
-							<PlayerAvatar
-								name={track.name}
-								avatarUrl={speakerAvatars[track.steamId]}
-								steamid={track.steamId}
-								size="sm"
-							/>
-						</span>
-						<div class="flex min-w-0 flex-1 flex-col leading-tight">
-							{#if steamHref}
-								<a
-									href={steamHref}
-									target="_blank"
-									rel="noopener noreferrer"
-									class="truncate text-sm font-medium hover:text-brand hover:underline"
-									title="Open Steam profile"
-								>
-									{track.name}
-								</a>
-							{:else}
-								<span class="truncate text-sm font-medium">{track.name}</span>
-							{/if}
-							{#if steamHref}
-								<a
-									href={steamHref}
-									target="_blank"
-									rel="noopener noreferrer"
-									class="truncate font-mono text-[10px] text-muted-foreground hover:text-brand hover:underline"
-								>
-									{track.steamId}
-								</a>
-							{:else}
-								<span class="truncate font-mono text-[10px] text-muted-foreground">
-									{track.steamId}
+							<span
+								class="inline-flex shrink-0 rounded-full p-0.5"
+								style:background={colorFor(index)}
+							>
+								<PlayerAvatar
+									name={track.name}
+									avatarUrl={speakerAvatars[track.steamId]}
+									size="sm"
+								/>
+							</span>
+							<div class="flex min-w-0 flex-1 flex-col leading-tight">
+								<span class="truncate text-sm font-medium hover:text-brand">{track.name}</span>
+								<span class="text-[10px] text-muted-foreground">
+									{track.segments.length}
+									{track.segments.length === 1 ? 'clip' : 'clips'}
 								</span>
-							{/if}
-						</div>
+							</div>
+						</button>
 						<div class="flex shrink-0 items-center gap-0.5">
 							{#if isActive && audible}
 								<Badge variant="secondary" class="mr-1">talking</Badge>
@@ -468,7 +597,6 @@
 								size="icon-xs"
 								class={cn(isSolo && 'text-brand ring-1 ring-brand/40')}
 								onclick={() => toggleSolo(track.steamId)}
-								disabled={loading || !!loadError}
 								aria-pressed={isSolo}
 								aria-label={isSolo ? `Unsolo ${track.name}` : `Solo ${track.name}`}
 								title={isSolo ? 'Unsolo' : 'Solo'}
@@ -481,7 +609,6 @@
 								size="icon-xs"
 								class={cn(isMuted && 'text-destructive')}
 								onclick={() => toggleMute(track.steamId)}
-								disabled={loading || !!loadError}
 								aria-pressed={isMuted}
 								aria-label={isMuted ? `Unmute ${track.name}` : `Mute ${track.name}`}
 								title={isMuted ? 'Unmute' : 'Mute'}
@@ -494,10 +621,26 @@
 							</Button>
 						</div>
 					</div>
+					{#if steamHref}
+						<a
+							href={steamHref}
+							target="_blank"
+							rel="noopener noreferrer"
+							class="mt-1 block truncate font-mono text-[10px] text-muted-foreground hover:text-brand hover:underline"
+						>
+							{track.steamId}
+						</a>
+					{:else}
+						<span class="mt-1 block truncate font-mono text-[10px] text-muted-foreground">
+							{track.steamId}
+						</span>
+					{/if}
 				</li>
 			{/each}
-			{#if !loading && tracks.length === 0}
+			{#if tracks.length === 0}
 				<li class="text-sm text-muted-foreground">No speakers in this demo.</li>
+			{:else if visibleTracks.length === 0}
+				<li class="text-sm text-muted-foreground">No speakers match that filter.</li>
 			{/if}
 		</ul>
 	</aside>

@@ -3,11 +3,12 @@
 	import Button from '$lib/components/ui/button/button.svelte';
 	import Badge from '$lib/components/ui/badge/badge.svelte';
 	import VoiceTimeline from '$lib/components/voice/voice-timeline.svelte';
+	import { instantToMs } from '$lib/voice/session-clock';
 
 	let { data } = $props();
 </script>
 
-<div class="flex min-w-0 w-full max-w-full flex-col gap-4 overflow-x-hidden">
+<div class="flex w-full max-w-full min-w-0 flex-col gap-4 overflow-x-hidden">
 	<div class="flex flex-wrap items-start justify-between gap-3">
 		<div class="space-y-1">
 			<div class="flex items-center gap-2">
@@ -35,7 +36,8 @@
 		<VoiceTimeline
 			demoId={data.demo.id}
 			manifest={data.manifest}
-			sessionStartedAtMs={data.sessionStartedAtMs}
+			filename={data.demo.originalFilename}
+			recordedAtMs={instantToMs(data.demo.recordedAt)}
 			speakerAvatars={data.speakerAvatars}
 		/>
 	{:else if data.demo.status !== 'processed'}
