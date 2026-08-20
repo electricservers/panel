@@ -107,6 +107,26 @@ export type SourceActivity = {
 	granularity: 'hour' | 'day';
 };
 
+export type RatingPoint = {
+	at: Date;
+	rating: number;
+};
+
+export type RatingHistory = {
+	series: RatingPoint[];
+	peak: RatingPoint | null;
+	low: RatingPoint | null;
+	/** Duels with ELO before downsample. */
+	samples: number;
+};
+
+export type ClassStatRow = {
+	classId: string;
+	wins: number;
+	losses: number;
+	matches: number;
+};
+
 export interface MgeAdapter {
 	getLeaderboard(query: RankQuery): Promise<{ items: Sourced<RankRow>[]; total: number }>;
 	getPlayer(steamid: SteamId): Promise<Sourced<PlayerSummary> | null>;
@@ -131,4 +151,12 @@ export interface MgeAdapter {
 		to?: Date;
 	}): Promise<Sourced<TrendingArenaRow>[]>;
 	getSourceActivity(opts: { from: Date; to?: Date }): Promise<Sourced<SourceActivity>>;
+	getRatingHistory(
+		steamid: SteamId,
+		opts: { from?: Date; to?: Date; maxPoints?: number }
+	): Promise<Sourced<RatingHistory>>;
+	getClassStats(
+		steamid: SteamId,
+		opts: { from?: Date; to?: Date }
+	): Promise<Sourced<ClassStatRow>[]>;
 }

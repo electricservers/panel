@@ -1,7 +1,9 @@
 import { and, asc, desc, eq, gt, gte, inArray, like, lte, or, sql, type SQL } from 'drizzle-orm';
 import { canonicalizeArenaName } from '$lib/mge/arena-names';
 import { maybeFixMojibake } from '$lib/mge/mojibake';
+import { downsampleRatingSeries, ratingExtrema, type RatingPoint } from '$lib/mge/rating-series';
 import { looksLikeSteamId, toSteamId2, tryParseSteamId } from '$lib/mge/steam-id';
+import { parsePlayedClasses } from '$lib/mge/tf2-classes';
 import type { Source } from '$lib/server/sources/types';
 import type { Sourced } from '$lib/server/sources/types';
 import { getMgemodDb } from './client';
@@ -9,6 +11,7 @@ import { mgemodDuels, mgemodStats } from './schema';
 import type {
 	ActivitySummary,
 	ArenaStatRow,
+	ClassStatRow,
 	Duel,
 	FoeRow,
 	GamesQuery,
@@ -16,6 +19,7 @@ import type {
 	PlayerSummary,
 	RankQuery,
 	RankRow,
+	RatingHistory,
 	SourceActivity,
 	TrendingArenaRow
 } from './types';
@@ -114,7 +118,8 @@ export function buildMgeAdapter(source: Source): MgeAdapter {
 			);
 		}
 
-		if (isValidDate(query.from)) conditions.push(gte(mgemodDuels.endtime, toUnixSeconds(query.from)));
+		if (isValidDate(query.from))
+			conditions.push(gte(mgemodDuels.endtime, toUnixSeconds(query.from)));
 		if (isValidDate(query.to)) conditions.push(lte(mgemodDuels.endtime, toUnixSeconds(query.to)));
 
 		return conditions.length > 0 ? and(...conditions) : undefined;
@@ -472,6 +477,89 @@ export function buildMgeAdapter(source: Source): MgeAdapter {
 				if (name) canonical.add(name);
 			}
 			return Array.from(canonical).sort((a, b) => a.localeCompare(b));
+		},
+
+		async getRatingHistory(steamid, opts) {
+			const id2 = toSteamId2(steamid);
+			const window = dateWindow(opts.from, opts.to);
+
+			const rows = await db
+				.select({
+					endtime: mgemodDuels.endtime,
+					winner: mgemodDuels.winner,
+					winnerPrevious: mgemodDuels.winner_previous_elo,
+					winnerNew: mgemodDuels.winner_new_elo,
+					loserPrevious: mgemodDuels.loser_previous_elo,
+					loserNew: mgemodDuels.loser_new_elo
+				})
+				.from(mgemodDuels)
+				.where(and(or(eq(mgemodDuels.winner, id2), eq(mgemodDuels.loser, id2)), ...window))
+				.orderBy(asc(mgemodDuels.endtime), asc(mgemodDuels.id));
+
+			const points: RatingPoint[] = [];
+			let seeded = false;
+			for (const row of rows) {
+				const isWinner = row.winner === id2;
+				const nextRating = isWinner ? row.winnerNew : row.loserNew;
+				if (nextRating == null) continue;
+				const at = toDate(row.endtime);
+				if (!at) continue;
+				if (!seeded) {
+					const previous = isWinner ? row.winnerPrevious : row.loserPrevious;
+					if (previous != null && previous !== nextRating) {
+						points.push({ at: new Date(at.getTime() - 1000), rating: previous });
+					}
+					seeded = true;
+				}
+				points.push({ at, rating: nextRating });
+			}
+
+			const { peak, low } = ratingExtrema(points);
+			const history: RatingHistory = {
+				series: downsampleRatingSeries(points, opts.maxPoints),
+				peak,
+				low,
+				samples: points.length
+			};
+			return tag(history);
+		},
+
+		async getClassStats(steamid, opts) {
+			const id2 = toSteamId2(steamid);
+			const window = dateWindow(opts.from, opts.to);
+
+			const rows = await db
+				.select({
+					winner: mgemodDuels.winner,
+					winnerclass: mgemodDuels.winnerclass,
+					loserclass: mgemodDuels.loserclass
+				})
+				.from(mgemodDuels)
+				.where(and(or(eq(mgemodDuels.winner, id2), eq(mgemodDuels.loser, id2)), ...window));
+
+			const byClass = new Map<string, { wins: number; losses: number }>();
+			for (const row of rows) {
+				const isWinner = row.winner === id2;
+				const classes = parsePlayedClasses(isWinner ? row.winnerclass : row.loserclass);
+				if (classes.length === 0) continue;
+				for (const classId of classes) {
+					const existing = byClass.get(classId) ?? { wins: 0, losses: 0 };
+					if (isWinner) existing.wins++;
+					else existing.losses++;
+					byClass.set(classId, existing);
+				}
+			}
+
+			const stats: ClassStatRow[] = Array.from(byClass.entries())
+				.map(([classId, { wins, losses }]) => ({
+					classId,
+					wins,
+					losses,
+					matches: wins + losses
+				}))
+				.sort((a, b) => b.matches - a.matches || a.classId.localeCompare(b.classId));
+
+			return stats.map(tag);
 		}
 	};
 }
