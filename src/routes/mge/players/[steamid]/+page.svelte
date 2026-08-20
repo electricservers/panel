@@ -9,11 +9,16 @@
 	let { data } = $props();
 </script>
 
-<div class="flex flex-col gap-6">
+<div class="mx-auto flex w-full max-w-5xl flex-col gap-6">
 	{#await data.player}
 		<PlayerHeaderSkeleton />
 	{:then player}
-		<PlayerHeader {player} avatarUrl={player?.avatarUrl}>
+		<PlayerHeader
+			{player}
+			avatarUrl={player?.avatarUrl}
+			sourceId={data.sourceId}
+			viewerSteam64={data.user?.steamId}
+		>
 			{#snippet presence()}
 				{#await data.presence then presence}
 					<PresenceBadges {presence} sources={data.sources} steam64={data.steam64} />
@@ -27,6 +32,8 @@
 			initialArenas={data.mostPlayedArenas}
 			initialActivity={data.activity}
 			initialFoes={data.topFoes}
+			initialClassStats={data.classStats}
+			initialRatingHistory={data.ratingHistory}
 			sourceId={data.sourceId}
 			steam64={data.steam64}
 		/>

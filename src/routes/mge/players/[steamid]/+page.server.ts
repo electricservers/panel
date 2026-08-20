@@ -45,6 +45,8 @@ export const load: PageServerLoad = ({ params, url }) => {
 		from,
 		to
 	});
+	const ratingHistory = adapter.getRatingHistory(parsed.steam2, { from, to });
+	const classStats = adapter.getClassStats(parsed.steam2, { from, to });
 
 	const otherMgeSources = listSources({ capability: 'mgemod', enabled: true }).filter(
 		(source) => source.id !== sourceId
@@ -61,6 +63,8 @@ export const load: PageServerLoad = ({ params, url }) => {
 		topFoes,
 		activity,
 		mostPlayedArenas,
+		ratingHistory,
+		classStats,
 		presence
 	};
 };

@@ -12,8 +12,9 @@ const ARENAS_TAKE = 5;
 
 /**
  * Backs the profile's day-preset chips: re-fetches only the stats cluster
- * (top foes, activity, most-played arenas) for a window, so the player
- * header and recent games stay mounted while this section re-skeletons.
+ * (top foes, activity, most-played arenas, rating history, class stats) for a
+ * window, so the player header and recent games stay mounted while this
+ * section re-skeletons.
  */
 export const GET: RequestHandler = async ({ params, url }) => {
 	requireModule('mgemod');
@@ -26,10 +27,12 @@ export const GET: RequestHandler = async ({ params, url }) => {
 	const adapter = mgeFor(sourceId);
 	const { from, to } = parseDateRange(url);
 
-	const [foes, activity, mostPlayedArenas] = await Promise.all([
+	const [foes, activity, mostPlayedArenas, ratingHistory, classStats] = await Promise.all([
 		adapter.getTopFoes(parsed.steam2, { take: TOP_FOES_TAKE, from, to }),
 		adapter.getActivity(parsed.steam2, { from, to }),
-		adapter.getMostPlayedArenas(parsed.steam2, { take: ARENAS_TAKE, from, to })
+		adapter.getMostPlayedArenas(parsed.steam2, { take: ARENAS_TAKE, from, to }),
+		adapter.getRatingHistory(parsed.steam2, { from, to }),
+		adapter.getClassStats(parsed.steam2, { from, to })
 	]);
 
 	const avatars = await getSteamProfiles(foes.map((foe) => toSteamId64(foe.steamid)));
@@ -38,5 +41,5 @@ export const GET: RequestHandler = async ({ params, url }) => {
 		avatarUrl: avatars.get(toSteamId64(foe.steamid))?.avatarmedium
 	}));
 
-	return json({ topFoes, activity, mostPlayedArenas });
+	return json({ topFoes, activity, mostPlayedArenas, ratingHistory, classStats });
 };

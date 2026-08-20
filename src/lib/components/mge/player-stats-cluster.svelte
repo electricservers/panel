@@ -5,24 +5,40 @@
 	import ActivityChartsSkeleton from './activity-charts-skeleton.svelte';
 	import TopFoes from './top-foes.svelte';
 	import TopFoesSkeleton from './top-foes-skeleton.svelte';
-	import type { ActivitySummary, ArenaStatRow, FoeRow } from '$lib/server/sources/mgemod/types';
+	import ClassStats from './class-stats.svelte';
+	import ClassStatsSkeleton from './class-stats-skeleton.svelte';
+	import RatingChart from './rating-chart.svelte';
+	import RatingChartSkeleton from './rating-chart-skeleton.svelte';
+	import type {
+		ActivitySummary,
+		ArenaStatRow,
+		ClassStatRow,
+		FoeRow,
+		RatingHistory
+	} from '$lib/server/sources/mgemod/types';
 
 	type StatsCluster = {
 		mostPlayedArenas: ArenaStatRow[];
 		activity: ActivitySummary;
 		topFoes: (FoeRow & { avatarUrl?: string })[];
+		classStats: ClassStatRow[];
+		ratingHistory: RatingHistory;
 	};
 
 	let {
 		initialArenas,
 		initialActivity,
 		initialFoes,
+		initialClassStats,
+		initialRatingHistory,
 		sourceId,
 		steam64
 	}: {
 		initialArenas: Promise<ArenaStatRow[]>;
 		initialActivity: Promise<ActivitySummary>;
 		initialFoes: Promise<(FoeRow & { avatarUrl?: string })[]>;
+		initialClassStats: Promise<ClassStatRow[]>;
+		initialRatingHistory: Promise<RatingHistory>;
 		sourceId: string;
 		steam64: string;
 	} = $props();
@@ -35,9 +51,19 @@
 	] as const;
 
 	function combineInitial(): Promise<StatsCluster> {
-		return Promise.all([initialArenas, initialActivity, initialFoes]).then(
-			([mostPlayedArenas, activity, topFoes]) => ({ mostPlayedArenas, activity, topFoes })
-		);
+		return Promise.all([
+			initialArenas,
+			initialActivity,
+			initialFoes,
+			initialClassStats,
+			initialRatingHistory
+		]).then(([mostPlayedArenas, activity, topFoes, classStats, ratingHistory]) => ({
+			mostPlayedArenas,
+			activity,
+			topFoes,
+			classStats,
+			ratingHistory
+		}));
 	}
 
 	let statsDays = $state<number | undefined>(undefined);
@@ -71,14 +97,18 @@
 		</div>
 	</div>
 	{#await stats}
-		<div class="grid gap-3 md:grid-cols-3">
+		<RatingChartSkeleton />
+		<div class="grid gap-3 md:grid-cols-2">
 			<MostPlayedArenasSkeleton />
+			<ClassStatsSkeleton />
 			<ActivityChartsSkeleton />
 			<TopFoesSkeleton />
 		</div>
 	{:then s}
-		<div class="grid gap-3 md:grid-cols-3">
+		<RatingChart history={s.ratingHistory} />
+		<div class="grid gap-3 md:grid-cols-2">
 			<MostPlayedArenas arenas={s.mostPlayedArenas} />
+			<ClassStats classes={s.classStats} />
 			<ActivityCharts activity={s.activity} />
 			<TopFoes foes={s.topFoes} {sourceId} perspective={steam64} />
 		</div>
