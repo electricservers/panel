@@ -7,7 +7,7 @@ import { loadVersusData, VERSUS_PAGE_SIZE } from '$lib/server/versus-summary';
 import { requireModule } from '$lib/server/require-module';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = ({ url }) => {
+export const load: PageServerLoad = ({ url, locals }) => {
 	requireModule('mgemod');
 	const sourceId = resolveMgeSourceId(url);
 	const adapter = mgeFor(sourceId);
@@ -32,7 +32,7 @@ export const load: PageServerLoad = ({ url }) => {
 	return {
 		sourceId,
 		sources: listSources({ capability: 'mgemod', enabled: true }),
-		aInput: aRaw ?? '',
+		aInput: aRaw ?? locals.user?.steamId ?? '',
 		bInput: bRaw ?? '',
 		invalidInput,
 		page,

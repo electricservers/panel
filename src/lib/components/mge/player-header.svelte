@@ -1,21 +1,47 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import Button from '$lib/components/ui/button/button.svelte';
 	import PlayerAvatar from '$lib/components/mge/player-avatar.svelte';
-	import { steamProfileUrl } from '$lib/mge/steam-id';
+	import { steamProfileUrl, toSteamId64 } from '$lib/mge/steam-id';
 	import type { PlayerSummary } from '$lib/server/sources/mgemod/types';
 	import type { Sourced } from '$lib/server/sources/types';
 
 	let {
 		player,
 		avatarUrl,
-		presence
-	}: { player: Sourced<PlayerSummary> | null; avatarUrl?: string; presence?: Snippet } = $props();
+		presence,
+		sourceId,
+		viewerSteam64
+	}: {
+		player: Sourced<PlayerSummary> | null;
+		avatarUrl?: string;
+		presence?: Snippet;
+		sourceId?: string;
+		viewerSteam64?: string | null;
+	} = $props();
 
 	const totalGames = $derived(player ? player.wins + player.losses : 0);
 	const winRate = $derived(
 		player && totalGames > 0 ? ((player.wins / totalGames) * 100).toFixed(1) : '0.0'
 	);
 	const steamHref = $derived(player ? steamProfileUrl(player.steamid) : null);
+	const profile64 = $derived.by(() => {
+		if (!player) return null;
+		try {
+			return toSteamId64(player.steamid);
+		} catch {
+			return null;
+		}
+	});
+	const vsHref = $derived.by(() => {
+		if (!sourceId || !profile64) return null;
+		if (viewerSteam64 && viewerSteam64 === profile64) return null;
+		if (viewerSteam64) {
+			return `/mge/players/${profile64}/versus/${viewerSteam64}?source=${encodeURIComponent(sourceId)}`;
+		}
+		const returnTo = `/mge/players/${profile64}/versus/me?source=${encodeURIComponent(sourceId)}`;
+		return `/api/auth/login?returnTo=${encodeURIComponent(returnTo)}`;
+	});
 </script>
 
 {#if !player}
@@ -65,6 +91,9 @@
 					<span class="text-danger"><span class="font-medium">{player.losses}</span> losses</span>
 					<span class="text-muted-foreground">{winRate}% win rate</span>
 				</div>
+				{#if vsHref}
+					<Button href={vsHref} variant="outline" size="sm">See my stats vs this player</Button>
+				{/if}
 			</div>
 		</div>
 		{#if presence}

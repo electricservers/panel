@@ -78,9 +78,23 @@
 					These players exist but have not played each other on this source.
 				</p>
 			{:else}
-				<VersusSummary a={versus.a} b={versus.b} summary={versus.summary} />
+				<VersusSummary
+					a={versus.a}
+					b={versus.b}
+					summary={versus.summary}
+					perspective={data.user?.steamId === versus.a.steam64 ||
+					data.user?.steamId === versus.b.steam64
+						? data.user?.steamId
+						: undefined}
+				/>
 				<div class="overflow-hidden rounded-lg border border-border">
-					<DuelsTable duels={versus.games} />
+					<DuelsTable
+						duels={versus.games}
+						perspective={data.user?.steamId === versus.a.steam64 ||
+						data.user?.steamId === versus.b.steam64
+							? data.user?.steamId
+							: undefined}
+					/>
 					<div class="flex items-center justify-between border-t border-border px-4 py-2 text-sm">
 						<a
 							href={hrefWith({ page: Math.max(1, data.page - 1) })}
