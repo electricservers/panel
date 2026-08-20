@@ -71,6 +71,10 @@ Ordered milestones for the rewrite. Each milestone should leave the app usable o
 
 **Exit:** staff can upload a TF2 demo, process voice, and replay a chronological reconstruction with a glowing speaker sidebar. Auth is existing Steam roles only.
 
+## Next (player MGE)
+
+- Profile versus CTA (“See my stats vs this player”), rating-over-time + peak, and class breakdown. Read-only from `mgemod_duels`. Not ELO reversion.
+
 ## Explicitly later
 
 - Named seasons / frozen period leaderboards
