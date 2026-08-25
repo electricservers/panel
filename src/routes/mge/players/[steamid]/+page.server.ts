@@ -6,20 +6,21 @@ import { getSteamProfiles } from '$lib/server/steam-profiles';
 import { withDuelAvatars } from '$lib/server/duel-avatars';
 import { toSteamId64, tryParseSteamId } from '$lib/mge/steam-id';
 import { parseDateRange } from '$lib/mge/date-range';
+import { resolveTimeZone, TIMEZONE_COOKIE } from '$lib/mge/activity';
 import { requireModule } from '$lib/server/require-module';
 import type { PageServerLoad } from './$types';
 
 const TOP_FOES_TAKE = 5;
 const ARENAS_TAKE = 5;
 
-export const load: PageServerLoad = ({ params, url }) => {
+export const load: PageServerLoad = ({ params, url, cookies }) => {
 	requireModule('mgemod');
 	const parsed = tryParseSteamId(params.steamid);
 	if (!parsed) {
 		throw error(400, `"${params.steamid}" is not a valid SteamID.`);
 	}
 
-	const sourceId = resolveMgeSourceId(url);
+	const sourceId = resolveMgeSourceId(cookies);
 	const adapter = mgeFor(sourceId);
 	const { from, to } = parseDateRange(url);
 
@@ -39,7 +40,11 @@ export const load: PageServerLoad = ({ params, url }) => {
 				avatarUrl: avatars.get(toSteamId64(foe.steamid))?.avatarmedium
 			}));
 		});
-	const activity = adapter.getActivity(parsed.steam2, { from, to });
+	const activity = adapter.getActivity(parsed.steam2, {
+		from,
+		to,
+		timeZone: resolveTimeZone(url.searchParams.get('tz') ?? cookies.get(TIMEZONE_COOKIE))
+	});
 	const mostPlayedArenas = adapter.getMostPlayedArenas(parsed.steam2, {
 		take: ARENAS_TAKE,
 		from,

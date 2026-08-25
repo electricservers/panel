@@ -1,4 +1,5 @@
 import { and, asc, desc, eq, gt, gte, inArray, like, lte, or, sql, type SQL } from 'drizzle-orm';
+import { summarizeActivity } from '$lib/mge/activity';
 import { canonicalizeArenaName } from '$lib/mge/arena-names';
 import { maybeFixMojibake } from '$lib/mge/mojibake';
 import { downsampleRatingSeries, ratingExtrema, type RatingPoint } from '$lib/mge/rating-series';
@@ -9,7 +10,6 @@ import type { Sourced } from '$lib/server/sources/types';
 import { getMgemodDb } from './client';
 import { mgemodDuels, mgemodStats } from './schema';
 import type {
-	ActivitySummary,
 	ArenaStatRow,
 	ClassStatRow,
 	Duel,
@@ -334,21 +334,23 @@ export function buildMgeAdapter(source: Source): MgeAdapter {
 			const window = dateWindow(opts.from, opts.to);
 
 			const rows = await db
-				.select({ endtime: mgemodDuels.endtime })
+				.select({ endtime: mgemodDuels.endtime, starttime: mgemodDuels.starttime })
 				.from(mgemodDuels)
-				.where(and(or(eq(mgemodDuels.winner, id2), eq(mgemodDuels.loser, id2)), ...window));
+				.where(and(or(eq(mgemodDuels.winner, id2), eq(mgemodDuels.loser, id2)), ...window))
+				.orderBy(asc(mgemodDuels.endtime));
 
-			const byWeekday = new Array(7).fill(0);
-			const byHour = new Array(24).fill(0);
+			const games = [];
 			for (const row of rows) {
-				const date = toDate(row.endtime);
-				if (!date) continue;
-				byWeekday[date.getUTCDay()]++;
-				byHour[date.getUTCHours()]++;
+				const ended = toDate(row.endtime);
+				if (!ended) continue;
+				const started = toDate(row.starttime);
+				games.push({
+					startMs: started ? started.getTime() : null,
+					endMs: ended.getTime()
+				});
 			}
 
-			const summary: ActivitySummary = { byWeekday, byHour };
-			return tag(summary);
+			return tag(summarizeActivity(games, opts.timeZone ?? 'UTC'));
 		},
 
 		async getMostPlayedArenas(steamid, opts) {

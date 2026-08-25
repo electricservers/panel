@@ -1,5 +1,8 @@
 import type { Sourced } from '$lib/server/sources/types';
 import type { SteamId } from '$lib/mge/steam-id';
+import type { ActivitySummary } from '$lib/mge/activity';
+
+export type { ActivitySummary };
 
 export type RankQuery = {
 	q?: string;
@@ -75,12 +78,6 @@ export type FoeRow = {
 	matches: number;
 };
 
-export type ActivitySummary = {
-	/** Sun=0..Sat=6; UI renders Mon-first. */
-	byWeekday: number[];
-	byHour: number[];
-};
-
 export type ArenaStatRow = {
 	arena: string;
 	wins: number;
@@ -139,7 +136,7 @@ export interface MgeAdapter {
 	): Promise<Sourced<FoeRow>[]>;
 	getActivity(
 		steamid: SteamId,
-		opts: { from?: Date; to?: Date }
+		opts: { from?: Date; to?: Date; timeZone?: string }
 	): Promise<Sourced<ActivitySummary>>;
 	getMostPlayedArenas(
 		steamid: SteamId,

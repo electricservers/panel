@@ -1,4 +1,7 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+	import { browser } from '$app/environment';
+	import { TIMEZONE_COOKIE } from '$lib/mge/activity';
 	import MostPlayedArenas from './most-played-arenas.svelte';
 	import MostPlayedArenasSkeleton from './most-played-arenas-skeleton.svelte';
 	import ActivityCharts from './activity-charts.svelte';
@@ -9,8 +12,8 @@
 	import ClassStatsSkeleton from './class-stats-skeleton.svelte';
 	import RatingChart from './rating-chart.svelte';
 	import RatingChartSkeleton from './rating-chart-skeleton.svelte';
+	import type { ActivitySummary } from '$lib/mge/activity';
 	import type {
-		ActivitySummary,
 		ArenaStatRow,
 		ClassStatRow,
 		FoeRow,
@@ -31,7 +34,6 @@
 		initialFoes,
 		initialClassStats,
 		initialRatingHistory,
-		sourceId,
 		steam64
 	}: {
 		initialArenas: Promise<ArenaStatRow[]>;
@@ -39,7 +41,6 @@
 		initialFoes: Promise<(FoeRow & { avatarUrl?: string })[]>;
 		initialClassStats: Promise<ClassStatRow[]>;
 		initialRatingHistory: Promise<RatingHistory>;
-		sourceId: string;
 		steam64: string;
 	} = $props();
 
@@ -66,16 +67,49 @@
 		}));
 	}
 
+	function viewerTimeZone(): string {
+		if (!browser) return 'UTC';
+		try {
+			return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+		} catch {
+			return 'UTC';
+		}
+	}
+
+	function persistTimeZone(tz: string) {
+		document.cookie = `${TIMEZONE_COOKIE}=${encodeURIComponent(tz)};path=/;max-age=31536000;samesite=lax`;
+	}
+
+	function fetchCluster(days: number | undefined, tz: string): Promise<StatsCluster> {
+		const params = new URLSearchParams({ tz });
+		if (days) params.set('days', String(days));
+		return fetch(`/mge/players/${steam64}/stats?${params}`).then((res) => res.json());
+	}
+
 	let statsDays = $state<number | undefined>(undefined);
 	let statsOverride = $state<Promise<StatsCluster> | null>(null);
+	let activityOverlay = $state<ActivitySummary | null>(null);
 	const stats = $derived(statsOverride ?? combineInitial());
 
 	function selectStatsDays(days: number | undefined) {
 		statsDays = days;
-		const params = new URLSearchParams({ source: sourceId });
-		if (days) params.set('days', String(days));
-		statsOverride = fetch(`/mge/players/${steam64}/stats?${params}`).then((res) => res.json());
+		activityOverlay = null;
+		statsOverride = fetchCluster(days, viewerTimeZone());
 	}
+
+	onMount(() => {
+		const tz = viewerTimeZone();
+		persistTimeZone(tz);
+		if (statsOverride) return;
+		void combineInitial().then((cluster) => {
+			if (statsOverride) return;
+			if (cluster.activity.timeZone === tz) return;
+			return fetchCluster(statsDays, tz).then((next) => {
+				if (statsOverride) return;
+				activityOverlay = next.activity;
+			});
+		});
+	});
 </script>
 
 <section class="flex flex-col gap-3">
@@ -98,19 +132,19 @@
 	</div>
 	{#await stats}
 		<RatingChartSkeleton />
+		<ActivityChartsSkeleton />
 		<div class="grid gap-3 md:grid-cols-2">
 			<MostPlayedArenasSkeleton />
 			<ClassStatsSkeleton />
-			<ActivityChartsSkeleton />
 			<TopFoesSkeleton />
 		</div>
 	{:then s}
 		<RatingChart history={s.ratingHistory} />
+		<ActivityCharts activity={activityOverlay ?? s.activity} />
 		<div class="grid gap-3 md:grid-cols-2">
 			<MostPlayedArenas arenas={s.mostPlayedArenas} />
 			<ClassStats classes={s.classStats} />
-			<ActivityCharts activity={s.activity} />
-			<TopFoes foes={s.topFoes} {sourceId} perspective={steam64} />
+			<TopFoes foes={s.topFoes} perspective={steam64} />
 		</div>
 	{/await}
 </section>

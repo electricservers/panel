@@ -13,12 +13,7 @@
 	{#await data.player}
 		<PlayerHeaderSkeleton />
 	{:then player}
-		<PlayerHeader
-			{player}
-			avatarUrl={player?.avatarUrl}
-			sourceId={data.sourceId}
-			viewerSteam64={data.user?.steamId}
-		>
+		<PlayerHeader {player} avatarUrl={player?.avatarUrl} viewerSteam64={data.user?.steamId}>
 			{#snippet presence()}
 				{#await data.presence then presence}
 					<PresenceBadges {presence} sources={data.sources} steam64={data.steam64} />
@@ -34,7 +29,6 @@
 			initialFoes={data.topFoes}
 			initialClassStats={data.classStats}
 			initialRatingHistory={data.ratingHistory}
-			sourceId={data.sourceId}
 			steam64={data.steam64}
 		/>
 	{/key}
@@ -42,9 +36,8 @@
 	<section class="flex flex-col gap-3">
 		<div class="flex items-center justify-between">
 			<h2 class="text-sm font-medium">Recent games</h2>
-			<a
-				href="/mge/games?source={data.sourceId}&q={data.steam64}"
-				class="text-sm text-brand hover:underline">View all games</a
+			<a href="/mge/games?q={data.steam64}" class="text-sm text-brand hover:underline"
+				>View all games</a
 			>
 		</div>
 		<div class="overflow-hidden rounded-lg border border-border">

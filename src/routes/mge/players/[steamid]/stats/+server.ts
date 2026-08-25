@@ -4,6 +4,7 @@ import { mgeFor } from '$lib/server/sources/mge';
 import { getSteamProfiles } from '$lib/server/steam-profiles';
 import { toSteamId64, tryParseSteamId } from '$lib/mge/steam-id';
 import { parseDateRange } from '$lib/mge/date-range';
+import { resolveTimeZone, TIMEZONE_COOKIE } from '$lib/mge/activity';
 import { requireModule } from '$lib/server/require-module';
 import type { RequestHandler } from './$types';
 
@@ -16,20 +17,24 @@ const ARENAS_TAKE = 5;
  * window, so the player header and recent games stay mounted while this
  * section re-skeletons.
  */
-export const GET: RequestHandler = async ({ params, url }) => {
+export const GET: RequestHandler = async ({ params, url, cookies }) => {
 	requireModule('mgemod');
 	const parsed = tryParseSteamId(params.steamid);
 	if (!parsed) {
 		error(400, `"${params.steamid}" is not a valid SteamID.`);
 	}
 
-	const sourceId = resolveMgeSourceId(url);
+	const sourceId = resolveMgeSourceId(cookies);
 	const adapter = mgeFor(sourceId);
 	const { from, to } = parseDateRange(url);
 
 	const [foes, activity, mostPlayedArenas, ratingHistory, classStats] = await Promise.all([
 		adapter.getTopFoes(parsed.steam2, { take: TOP_FOES_TAKE, from, to }),
-		adapter.getActivity(parsed.steam2, { from, to }),
+		adapter.getActivity(parsed.steam2, {
+			from,
+			to,
+			timeZone: resolveTimeZone(url.searchParams.get('tz') ?? cookies.get(TIMEZONE_COOKIE))
+		}),
 		adapter.getMostPlayedArenas(parsed.steam2, { take: ARENAS_TAKE, from, to }),
 		adapter.getRatingHistory(parsed.steam2, { from, to }),
 		adapter.getClassStats(parsed.steam2, { from, to })
