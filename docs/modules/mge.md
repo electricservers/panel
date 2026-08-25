@@ -55,7 +55,7 @@ Player display names live only in `mgemod_stats.name` (duels store SteamIDs). Hi
 | `/mge/players/[steamid]/versus/me`         | Alias: requires session (else Steam login with `returnTo`); replaces `me` with the viewer’s Steam64. Either path segment may be `me`. Same-player pair redirects to that profile. |
 | `/mge/me`                                  | Redirect to logged-in profile                                                                                                                                                     |
 
-`source` via query or layout state; default = last used enabled `mgemod` source.
+`source` is a cookie (`panel_source`), not a query param. Default = last chosen enabled `mgemod` source, else the first enabled one. Whois search is multi-source and ignores this cookie.
 
 ## Adapter surface
 

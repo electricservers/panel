@@ -2,13 +2,7 @@
 	import SourceActivitySkeleton from './source-activity-skeleton.svelte';
 	import type { SourceActivity } from '$lib/server/sources/mgemod/types';
 
-	let {
-		initialActivity,
-		sourceId
-	}: {
-		initialActivity: Promise<SourceActivity>;
-		sourceId: string;
-	} = $props();
+	let { initialActivity }: { initialActivity: Promise<SourceActivity> } = $props();
 
 	const DAY_CHIPS = [
 		{ label: '1d', days: 1 },
@@ -23,7 +17,7 @@
 
 	function selectDays(days: number) {
 		statsDays = days;
-		const params = new URLSearchParams({ source: sourceId, days: String(days) });
+		const params = new URLSearchParams({ days: String(days) });
 		activityOverride = fetch(`/mge/source-stats?${params}`).then((res) => res.json());
 	}
 

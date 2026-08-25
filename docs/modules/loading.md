@@ -23,7 +23,7 @@ Navigating to a page must feel immediate. The shell and **skeletons shaped like 
 ## SvelteKit rules
 
 - Do **not** `await` slow adapter/DB/Steam calls in `load` if that delays sending the page. Return promises (streamed/`deferred`) or fetch after the shell is up so the client can render pending UI.
-- `load` may still resolve **fast** sync needs up front (auth gate, parse params, resolve `sourceId`, list enabled sources for the switcher).
+- `load` may still resolve **fast** sync needs up front (auth gate, parse params, resolve `sourceId` from the source cookie, list enabled sources for the switcher).
 - Prefer streaming deferred data from the server over a blank wait, then client-only waterfalls, when SEO/first paint matter.
 - Layout `load` must stay light. Never put heavy MGE/Whois queries in root layout.
 

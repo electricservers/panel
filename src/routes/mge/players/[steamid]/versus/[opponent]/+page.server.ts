@@ -16,7 +16,7 @@ function pairPath(a64: string, b64: string, search: string): string {
 	return `/mge/players/${a64}/versus/${b64}${search}`;
 }
 
-export const load: PageServerLoad = ({ params, url, locals }) => {
+export const load: PageServerLoad = ({ params, url, locals, cookies }) => {
 	requireModule('mgemod');
 
 	if (isMeAlias(params.steamid) || isMeAlias(params.opponent)) {
@@ -47,7 +47,7 @@ export const load: PageServerLoad = ({ params, url, locals }) => {
 		throw redirect(308, pairPath(a.steam64, b.steam64, url.search));
 	}
 
-	const sourceId = resolveMgeSourceId(url);
+	const sourceId = resolveMgeSourceId(cookies);
 	const adapter = mgeFor(sourceId);
 	const page = Math.max(1, Number(url.searchParams.get('page')) || 1);
 	const versus = loadVersusData(adapter, a, b, { page, pageSize: VERSUS_PAGE_SIZE });

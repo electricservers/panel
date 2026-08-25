@@ -8,9 +8,9 @@ import type { RequestHandler } from './$types';
 const TAKE = 8;
 
 /** Backs the home page's trending-arenas day-preset chips. */
-export const GET: RequestHandler = async ({ url }) => {
+export const GET: RequestHandler = async ({ url, cookies }) => {
 	requireModule('mgemod');
-	const sourceId = resolveMgeSourceId(url);
+	const sourceId = resolveMgeSourceId(cookies);
 	if (!sourceHas(sourceId, 'mgemod')) {
 		error(404, `Source "${sourceId}" has no mgemod capability.`);
 	}

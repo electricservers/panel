@@ -97,8 +97,8 @@ v1 recommendation: **capability-scoped schema modules**, instantiate once per so
 ## UI contracts
 
 - Source switcher reads `listSources({ capability: 'mgemod', enabled: true })`.
-- Staff Whois landing can show which sources will be queried.
-- Deep links may include `?source=electric-ar` (or path segment). Persist last player-selected source in localStorage by `id`, not by hardcoded enum.
+- Staff Whois landing can show which sources will be queried. Whois search fans out to every enabled `whois` source. It does not use the MGE source cookie.
+- The selected MGE source lives in an httpOnly `panel_source` cookie (path `/`, SameSite=Lax, one year). Navigation does not carry `?source=`. A `?source=` on an HTML request is a one-shot: the hook writes the cookie and 303s to the same URL with that param stripped, so old bookmarks and “also on” badges still work.
 
 ## Domain DTO rule
 

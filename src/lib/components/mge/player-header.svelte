@@ -10,13 +10,11 @@
 		player,
 		avatarUrl,
 		presence,
-		sourceId,
 		viewerSteam64
 	}: {
 		player: Sourced<PlayerSummary> | null;
 		avatarUrl?: string;
 		presence?: Snippet;
-		sourceId?: string;
 		viewerSteam64?: string | null;
 	} = $props();
 
@@ -34,12 +32,12 @@
 		}
 	});
 	const vsHref = $derived.by(() => {
-		if (!sourceId || !profile64) return null;
+		if (!profile64) return null;
 		if (viewerSteam64 && viewerSteam64 === profile64) return null;
 		if (viewerSteam64) {
-			return `/mge/players/${profile64}/versus/${viewerSteam64}?source=${encodeURIComponent(sourceId)}`;
+			return `/mge/players/${profile64}/versus/${viewerSteam64}`;
 		}
-		const returnTo = `/mge/players/${profile64}/versus/me?source=${encodeURIComponent(sourceId)}`;
+		const returnTo = `/mge/players/${profile64}/versus/me`;
 		return `/api/auth/login?returnTo=${encodeURIComponent(returnTo)}`;
 	});
 </script>

@@ -6,9 +6,9 @@ import { requireModule } from '$lib/server/require-module';
 import type { RequestHandler } from './$types';
 
 /** Backs the home page's source-activity day-preset chips. */
-export const GET: RequestHandler = async ({ url }) => {
+export const GET: RequestHandler = async ({ url, cookies }) => {
 	requireModule('mgemod');
-	const sourceId = resolveMgeSourceId(url);
+	const sourceId = resolveMgeSourceId(cookies);
 	if (!sourceHas(sourceId, 'mgemod')) {
 		error(404, `Source "${sourceId}" has no mgemod capability.`);
 	}

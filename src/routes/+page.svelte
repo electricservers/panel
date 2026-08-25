@@ -41,9 +41,7 @@
 				<section class="flex flex-col gap-3">
 					<div class="flex items-center justify-between">
 						<h2 class="text-sm font-medium">Recent games</h2>
-						<a href="/mge/games?source={data.sourceId}" class="text-sm text-brand hover:underline"
-							>Browse all games</a
-						>
+						<a href="/mge/games" class="text-sm text-brand hover:underline">Browse all games</a>
 					</div>
 					<div class="overflow-hidden rounded-lg border border-border">
 						{#await data.recentGames}
@@ -56,7 +54,7 @@
 
 				{#if data.sourceActivity}
 					{#key data.sourceId}
-						<SourceActivity initialActivity={data.sourceActivity} sourceId={data.sourceId} />
+						<SourceActivity initialActivity={data.sourceActivity} />
 					{/key}
 				{/if}
 			</div>
@@ -65,9 +63,7 @@
 				<section class="flex flex-col gap-3">
 					<div class="flex items-center justify-between">
 						<h2 class="text-sm font-medium">Top players</h2>
-						<a href="/mge/ranking?source={data.sourceId}" class="text-sm text-brand hover:underline"
-							>View full ranking</a
-						>
+						<a href="/mge/ranking" class="text-sm text-brand hover:underline">View full ranking</a>
 					</div>
 					<div class="overflow-hidden rounded-lg border border-border">
 						{#await data.leaderboard}
@@ -80,7 +76,7 @@
 
 				{#if data.trendingArenas}
 					{#key data.sourceId}
-						<TrendingArenas initialArenas={data.trendingArenas} sourceId={data.sourceId} />
+						<TrendingArenas initialArenas={data.trendingArenas} />
 					{/key}
 				{/if}
 			</div>

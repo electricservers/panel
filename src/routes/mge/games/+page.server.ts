@@ -8,9 +8,9 @@ import type { PageServerLoad } from './$types';
 
 const PAGE_SIZE = 30;
 
-export const load: PageServerLoad = async ({ url }) => {
+export const load: PageServerLoad = async ({ url, cookies }) => {
 	requireModule('mgemod');
-	const sourceId = resolveMgeSourceId(url);
+	const sourceId = resolveMgeSourceId(cookies);
 	const adapter = mgeFor(sourceId);
 
 	const q = url.searchParams.get('q')?.trim() || undefined;

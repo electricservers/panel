@@ -3,13 +3,7 @@
 	import TrendingArenasSkeleton from './trending-arenas-skeleton.svelte';
 	import type { TrendingArenaRow } from '$lib/server/sources/mgemod/types';
 
-	let {
-		initialArenas,
-		sourceId
-	}: {
-		initialArenas: Promise<TrendingArenaRow[]>;
-		sourceId: string;
-	} = $props();
+	let { initialArenas }: { initialArenas: Promise<TrendingArenaRow[]> } = $props();
 
 	const DAY_CHIPS = [
 		{ label: '7d', days: 7 },
@@ -24,7 +18,7 @@
 
 	function selectDays(days: number) {
 		statsDays = days;
-		const params = new URLSearchParams({ source: sourceId, days: String(days) });
+		const params = new URLSearchParams({ days: String(days) });
 		arenasOverride = fetch(`/mge/trending-arenas?${params}`).then((res) => res.json());
 	}
 </script>

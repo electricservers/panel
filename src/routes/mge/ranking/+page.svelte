@@ -27,7 +27,6 @@
 	<div class="flex flex-wrap items-center justify-between gap-3">
 		<h1 class="font-heading text-2xl font-semibold tracking-tight">Ranking</h1>
 		<form method="GET" class="flex gap-2">
-			<input type="hidden" name="source" value={data.sourceId} />
 			<Input type="search" name="q" placeholder="Search player" value={data.filters.q ?? ''} />
 			<Button type="submit" variant="outline">Search</Button>
 		</form>

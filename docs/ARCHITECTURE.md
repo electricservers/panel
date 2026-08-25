@@ -72,7 +72,7 @@ UI (routes, components)
 Rules:
 
 - Route handlers and `load` functions stay thin.
-- Region/source switching is UI state that becomes a `sourceId` argument.
+- Region/source switching is a cookie preference (`panel_source`) that becomes a `sourceId` argument on MGE pages. Whois search fans out to every enabled `whois` source instead.
 - No `switch (db) { case 'ar': … case 'br': … }` copies of query logic.
 - Adapters may share SQL/Prisma schema fragments per capability, but each source gets its own client instance.
 
@@ -118,7 +118,7 @@ See [modules/auth.md](./modules/auth.md).
 
 Navigation must not block on slow game-DB or Steam work. Pages render shell + **skeletons**, then replace regions as data arrives.
 
-- Fast in `load`: auth, params, `sourceId`, source list for the switcher.
+- Fast in `load`: auth, params, `sourceId` from the `panel_source` cookie, source list for the switcher.
 - Slow work: return streamed/deferred promises (or equivalent) so the client can show pending UI. Do not `await` everything before the page is sent.
 - Keep root/layout `load` light. Heavy queries belong to the page (or page-scoped services), split by region when useful.
 

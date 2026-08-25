@@ -27,7 +27,6 @@
 
 	<div class="rounded-lg border border-border bg-card p-4">
 		<form method="GET" class="grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto_1fr_auto] md:items-end">
-			<input type="hidden" name="source" value={data.sourceId} />
 			<div class="flex flex-col gap-1">
 				<label for="a" class="text-xs text-muted-foreground">Player A</label>
 				<Input

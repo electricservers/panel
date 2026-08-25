@@ -5,11 +5,9 @@
 
 	let {
 		foes,
-		sourceId,
 		perspective
 	}: {
 		foes: (FoeRow & { avatarUrl?: string })[];
-		sourceId: string;
 		/** Steam64 of the profile owner, so links point at the head-to-head page. */
 		perspective: string;
 	} = $props();
@@ -24,7 +22,7 @@
 			{#each foes as foe (foe.steamid)}
 				<li>
 					<a
-						href="/mge/players/{perspective}/versus/{toSteamId64(foe.steamid)}?source={sourceId}"
+						href="/mge/players/{perspective}/versus/{toSteamId64(foe.steamid)}"
 						class="flex items-center gap-3 hover:text-brand"
 					>
 						<PlayerAvatar name={foe.name} avatarUrl={foe.avatarUrl} size="sm" />

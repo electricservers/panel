@@ -7,9 +7,9 @@ import { loadVersusData, VERSUS_PAGE_SIZE } from '$lib/server/versus-summary';
 import { requireModule } from '$lib/server/require-module';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = ({ url, locals }) => {
+export const load: PageServerLoad = ({ url, locals, cookies }) => {
 	requireModule('mgemod');
-	const sourceId = resolveMgeSourceId(url);
+	const sourceId = resolveMgeSourceId(cookies);
 	const adapter = mgeFor(sourceId);
 
 	const aRaw = url.searchParams.get('a')?.trim() || undefined;

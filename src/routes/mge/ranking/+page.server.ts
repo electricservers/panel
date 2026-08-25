@@ -9,9 +9,9 @@ import type { PageServerLoad } from './$types';
 const PAGE_SIZE = 25;
 const SORT_KEYS = ['rating', 'wins', 'losses', 'games'] as const;
 
-export const load: PageServerLoad = ({ url }) => {
+export const load: PageServerLoad = ({ url, cookies }) => {
 	requireModule('mgemod');
-	const sourceId = resolveMgeSourceId(url);
+	const sourceId = resolveMgeSourceId(cookies);
 	const adapter = mgeFor(sourceId);
 
 	const q = url.searchParams.get('q')?.trim() || undefined;

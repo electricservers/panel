@@ -28,7 +28,6 @@
 	<h1 class="font-heading text-2xl font-semibold tracking-tight">Games</h1>
 
 	<form method="GET" class="flex flex-wrap items-end gap-2">
-		<input type="hidden" name="source" value={data.sourceId} />
 		<div class="flex flex-col gap-1">
 			<label for="q" class="text-xs text-muted-foreground">Player</label>
 			<Input
@@ -60,7 +59,9 @@
 			<label for="outcome-trigger" class="text-xs text-muted-foreground">Outcome</label>
 			<Select.Root type="single" name="outcome" bind:value={outcomeValue}>
 				<Select.Trigger id="outcome-trigger" class="w-24">
-					<span class="min-w-0 flex-1 truncate text-left">{outcomeLabels[outcomeValue] ?? 'Any'}</span>
+					<span class="min-w-0 flex-1 truncate text-left"
+						>{outcomeLabels[outcomeValue] ?? 'Any'}</span
+					>
 				</Select.Trigger>
 				<Select.Content>
 					<Select.Item value="" label="Any" />

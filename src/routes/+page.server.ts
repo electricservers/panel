@@ -10,7 +10,7 @@ const TRENDING_ARENAS_TAKE = 8;
 const TRENDING_ARENAS_DEFAULT_DAYS = 7;
 const SOURCE_ACTIVITY_DEFAULT_DAYS = 7;
 
-export const load: PageServerLoad = async ({ url, parent }) => {
+export const load: PageServerLoad = async ({ cookies, parent }) => {
 	const { moduleToggles } = await parent();
 	const mgeEnabled = moduleToggles.some(
 		(toggle) => toggle.capability === 'mgemod' && toggle.enabled
@@ -28,7 +28,7 @@ export const load: PageServerLoad = async ({ url, parent }) => {
 		};
 	}
 
-	const sourceId = resolveMgeSourceId(url);
+	const sourceId = resolveMgeSourceId(cookies);
 	const adapter = mgeFor(sourceId);
 
 	const leaderboard = adapter.getLeaderboard({ take: 5 }).then(async (result) => {
