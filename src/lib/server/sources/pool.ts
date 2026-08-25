@@ -1,6 +1,6 @@
-import { env } from '$env/dynamic/private';
 import mysql from 'mysql2/promise';
-import { getSourceDsnEnv } from '$lib/server/sources/registry';
+import { getSourceDsn } from '$lib/server/db/sources';
+import { parseMysqlDsn } from '$lib/server/secrets/dsn';
 import type { Source } from '$lib/server/sources/types';
 
 const pools = new Map<string, mysql.Pool>();
@@ -16,15 +16,15 @@ export function getSourcePool(source: Source): mysql.Pool {
 	const existing = pools.get(source.id);
 	if (existing) return existing;
 
-	const dsnEnv = getSourceDsnEnv(source.id);
-	const dsn = env[dsnEnv];
-	if (!dsn) {
-		throw new Error(`Source "${source.id}" has no DSN in env var "${dsnEnv}".`);
-	}
-
-	// utf8mb4 keeps `mgemod_stats` names decoding correctly; the mojibake
-	// heuristic in $lib/mge/mojibake.ts covers older utf8-era rows.
-	const pool = mysql.createPool({ uri: dsn, charset: 'utf8mb4' });
+	const parts = parseMysqlDsn(getSourceDsn(source.id));
+	const pool = mysql.createPool({
+		host: parts.host,
+		port: parts.port,
+		user: parts.user,
+		password: parts.password,
+		database: parts.database,
+		charset: 'utf8mb4'
+	});
 	pools.set(source.id, pool);
 	return pool;
 }

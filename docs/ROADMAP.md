@@ -47,7 +47,7 @@ Ordered milestones for the rewrite. Each milestone should leave the app usable o
 ## M4 — Admin
 
 - [x] Admin: users/roles, site settings, module toggles (SQLite)
-- [x] `sources` SQLite table + admin UI (create/edit/enable/disable, `dsnEnv` pointer per source)
+- [x] `sources` SQLite table + admin UI (create/edit/enable/disable, encrypted DSN per source)
 - [x] Migrate `listSources`/`getSource` to read from SQLite; drop `PANEL_SOURCES` env parsing
 - [x] One-time import of existing `PANEL_SOURCES` entries into the new table (manual or scripted)
 
@@ -116,3 +116,4 @@ Ordered milestones for the rewrite. Each milestone should leave the app usable o
 | 2026-07-20 | CI hygiene gate runs sequentially on every push/PR to `master`: `check` → `lint` → `knip` → `build`; no test framework added in M5                                                                                                                                                                                                                  |
 | 2026-07-20 | Multi-source partial failures (Whois search/alt, MGE presence badges) render through one shared `source-error.svelte` (`panel`/`inline`/`badge` variants); user-facing copy stays generic, raw adapter errors only surface via `title` for staff                                                                                                    |
 | 2026-07-27 | Voice reconstruction is a staff module (`/voice`), not a MySQL `Capability`; processing is a panel-agnostic `voice-processor` CLI spawned as a subprocess, with demos/WAVs on the SQLite volume under `/app/data/voice`                                                                                                                             |
+| 2026-08-25 | Source MySQL URLs are panel data, not env config: owners paste a `mysql://` DSN in `/admin/sources`; SQLite stores AES-256-GCM ciphertext keyed from `SESSION_SECRET`. Runtime does not read `SOURCE_*_URL` or `dsnEnv`.                                                                                                                            |

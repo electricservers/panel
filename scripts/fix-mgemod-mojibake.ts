@@ -4,21 +4,27 @@
  * to write updates.
  *
  * Discovers targets from the panel SQLite `sources` table (enabled + `mgemod`
- * capability) and resolves each row's `dsn_env` against the process environment.
- * Override with `--dsn-env NAME` (repeatable) to skip the panel DB.
+ * capability) and decrypts each stored DSN. Override with `--dsn mysql://...`
+ * (repeatable) to skip the panel DB.
  *
  * Usage:
  *   bun run scripts/fix-mgemod-mojibake.ts
  *   bun run scripts/fix-mgemod-mojibake.ts --apply
- *   bun run scripts/fix-mgemod-mojibake.ts --dsn-env SOURCE_ELECTRIC_AR_URL --apply
+ *   bun run scripts/fix-mgemod-mojibake.ts --dsn mysql://user:pass@host:3306/db --apply
  */
 import { Database } from 'bun:sqlite';
 import mysql from 'mysql2/promise';
 import { maybeFixMojibake } from '../src/lib/mge/mojibake.ts';
+import {
+	decryptDsn,
+	deriveDsnKey,
+	parseMysqlDsn,
+	redactDsn
+} from '../src/lib/server/secrets/dsn-crypto.ts';
 
 type Target = {
 	label: string;
-	dsnEnv: string;
+	preview: string;
 	dsn: string;
 };
 
@@ -38,39 +44,53 @@ function resolveDbFile(panelDbUrl: string): string {
 
 function parseArgs(argv: string[]) {
 	const apply = argv.includes('--apply');
-	const dsnEnvs: string[] = [];
+	const dsns: string[] = [];
 	for (let i = 0; i < argv.length; i++) {
-		if (argv[i] === '--dsn-env') {
-			const name = argv[i + 1];
-			if (!name || name.startsWith('--')) {
-				throw new Error('--dsn-env requires an environment variable name.');
+		if (argv[i] === '--dsn') {
+			const value = argv[i + 1];
+			if (!value || value.startsWith('--')) {
+				throw new Error('--dsn requires a mysql:// URL.');
 			}
-			dsnEnvs.push(name);
+			dsns.push(value);
 			i++;
 		}
 	}
-	return { apply, dsnEnvs };
+	return { apply, dsns };
 }
 
 function loadTargetsFromPanelDb(): Target[] {
 	const panelDbUrl = process.env.PANEL_DB_URL;
+	const sessionSecret = process.env.SESSION_SECRET;
 	if (!panelDbUrl) {
 		throw new Error(
-			'PANEL_DB_URL is not set. Set it, or pass one or more --dsn-env SOURCE_*_URL flags.'
+			'PANEL_DB_URL is not set. Set it, or pass one or more --dsn mysql://... flags.'
 		);
+	}
+	if (!sessionSecret) {
+		throw new Error('SESSION_SECRET is not set. Needed to decrypt stored connection strings.');
 	}
 
 	const db = new Database(resolveDbFile(panelDbUrl), { readonly: true });
+	const columns = new Set(
+		(db.query(`PRAGMA table_info(sources)`).all() as Array<{ name: string }>).map((col) => col.name)
+	);
+	if (!columns.has('dsn_ciphertext')) {
+		throw new Error(
+			'sources.dsn_ciphertext is missing. Start the panel once so it can migrate stored DSNs, then retry.'
+		);
+	}
+
+	const key = deriveDsnKey(sessionSecret);
 	const rows = db
 		.query(
-			`SELECT id, label, dsn_env AS dsnEnv, capabilities, enabled
+			`SELECT id, label, dsn_ciphertext AS dsnCiphertext, capabilities, enabled
 			 FROM sources
 			 ORDER BY id`
 		)
 		.all() as Array<{
 		id: string;
 		label: string;
-		dsnEnv: string;
+		dsnCiphertext: string;
 		capabilities: string;
 		enabled: number;
 	}>;
@@ -87,25 +107,30 @@ function loadTargetsFromPanelDb(): Target[] {
 		}
 		if (!capabilities.includes('mgemod')) continue;
 
-		const dsn = process.env[row.dsnEnv];
-		if (!dsn) {
-			console.warn(
-				`Skipping source "${row.id}": env var "${row.dsnEnv}" is not set in this process.`
-			);
+		if (!row.dsnCiphertext) {
+			console.warn(`Skipping source "${row.id}": no connection string stored.`);
 			continue;
 		}
-		targets.push({ label: `${row.id} (${row.label})`, dsnEnv: row.dsnEnv, dsn });
+		try {
+			const dsn = decryptDsn(row.dsnCiphertext, row.id, key);
+			targets.push({
+				label: `${row.id} (${row.label})`,
+				preview: redactDsn(dsn),
+				dsn
+			});
+		} catch {
+			console.warn(
+				`Skipping source "${row.id}": stored connection string could not be decrypted with SESSION_SECRET.`
+			);
+		}
 	}
 	return targets;
 }
 
-function loadTargetsFromDsnEnvs(dsnEnvs: string[]): Target[] {
-	return dsnEnvs.map((dsnEnv) => {
-		const dsn = process.env[dsnEnv];
-		if (!dsn) {
-			throw new Error(`Environment variable "${dsnEnv}" is not set.`);
-		}
-		return { label: dsnEnv, dsnEnv, dsn };
+function loadTargetsFromDsns(dsns: string[]): Target[] {
+	return dsns.map((dsn, index) => {
+		parseMysqlDsn(dsn);
+		return { label: `cli-${index + 1}`, preview: redactDsn(dsn), dsn };
 	});
 }
 
@@ -124,7 +149,9 @@ async function repairStatsNames(
 		const repaired = maybeFixMojibake(row.name);
 		if (!repaired || repaired === row.name) continue;
 		wouldFix++;
-		console.log(`  [name] ${row.steamid}: ${JSON.stringify(row.name)} -> ${JSON.stringify(repaired)}`);
+		console.log(
+			`  [name] ${row.steamid}: ${JSON.stringify(row.name)} -> ${JSON.stringify(repaired)}`
+		);
 		if (apply) {
 			await connection.execute('UPDATE mgemod_stats SET name = ? WHERE steamid = ?', [
 				repaired,
@@ -178,8 +205,16 @@ async function tableExists(connection: mysql.Connection, table: string): Promise
 }
 
 async function repairTarget(target: Target, apply: boolean) {
-	console.log(`\n=== ${target.label} [${target.dsnEnv}] ===`);
-	const connection = await mysql.createConnection({ uri: target.dsn, charset: 'utf8mb4' });
+	console.log(`\n=== ${target.label} [${target.preview}] ===`);
+	const parts = parseMysqlDsn(target.dsn);
+	const connection = await mysql.createConnection({
+		host: parts.host,
+		port: parts.port,
+		user: parts.user,
+		password: parts.password,
+		database: parts.database,
+		charset: 'utf8mb4'
+	});
 
 	try {
 		const names = await repairStatsNames(connection, apply);
@@ -207,9 +242,8 @@ async function repairTarget(target: Target, apply: boolean) {
 }
 
 async function main() {
-	const { apply, dsnEnvs } = parseArgs(process.argv.slice(2));
-	const targets =
-		dsnEnvs.length > 0 ? loadTargetsFromDsnEnvs(dsnEnvs) : loadTargetsFromPanelDb();
+	const { apply, dsns } = parseArgs(process.argv.slice(2));
+	const targets = dsns.length > 0 ? loadTargetsFromDsns(dsns) : loadTargetsFromPanelDb();
 
 	if (targets.length === 0) {
 		console.log('No mgemod sources with resolvable DSNs found. Nothing to do.');

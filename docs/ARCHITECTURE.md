@@ -26,12 +26,11 @@ type SourceConfig = {
 	id: SourceId;
 	label: string; // "Argentina", "Brasil"
 	enabled: boolean;
-	dsnEnv: string; // env var name holding the MySQL URL
 	capabilities: Capability[];
 };
 ```
 
-Sources are loaded from a SQLite `sources` table, managed from `/admin/sources` (see [modules/sources.md](./modules/sources.md) and [modules/admin.md](./modules/admin.md)). Application code calls `getSource(id)`, never imports `prismaArg` / `prismaBr`.
+Sources are loaded from a SQLite `sources` table, managed from `/admin/sources` (see [modules/sources.md](./modules/sources.md) and [modules/admin.md](./modules/admin.md)). The MySQL URL is pasted in that UI and stored as AES-256-GCM ciphertext in the same row. It is not an env var. Application code calls `getSource(id)`, never imports `prismaArg` / `prismaBr`.
 
 ### Capability (plugin)
 
@@ -90,10 +89,10 @@ Failures are partial by default: one dead source should not fail the whole inves
 
 ## App state vs game state
 
-| Store               | Owns                                                                                  |
-| ------------------- | ------------------------------------------------------------------------------------- |
-| MySQL sources       | Authoritative game plugin data (stats, duels, whois logs)                             |
-| SQLite (local file) | Panel users/roles, site branding, enabled modules, optional source registry overrides |
+| Store               | Owns                                                                                           |
+| ------------------- | ---------------------------------------------------------------------------------------------- |
+| MySQL sources       | Authoritative game plugin data (stats, duels, whois logs)                                      |
+| SQLite (local file) | Panel users/roles, site branding, enabled modules, source registry (metadata + encrypted DSNs) |
 
 Panel DB is a single local file (e.g. `PANEL_DB_URL=file:./data/panel.db`). No MongoDB. Persist the file across deploys (Docker volume).
 
@@ -143,7 +142,7 @@ Details and acceptance checks: [modules/loading.md](./modules/loading.md).
 - Shared sequence IDs across MySQL instances
 - Named seasons as a storage model (date-range filters are enough until seasons are specified)
 
-Litmus test: _If a third identical MGE+Whois server appeared tomorrow, would it work with config only?_ If not, the seam is wrong.
+Litmus test: _If a third identical MGE+Whois server appeared tomorrow, would it work from `/admin/sources` with no code change?_ If not, the seam is wrong.
 
 ## Mapping from the old panel
 

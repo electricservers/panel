@@ -12,7 +12,7 @@ Owner-only panel management: users/roles, site branding, module toggles, and the
 
 - Fine-grained permissions beyond `user` / `admin` / `owner` (see [modules/auth.md](./auth.md)).
 - A plugin marketplace or runtime capability discovery — out of scope per [ARCHITECTURE.md](../ARCHITECTURE.md)'s YAGNI boundary. Capabilities are declared in code (`Capability` union); this module only toggles and configures them.
-- Editing raw DSNs from the UI. `dsnEnv` is a pointer to an env var; the secret itself never enters SQLite or the admin forms.
+- Showing a stored DSN back to the browser. The owner pastes a `mysql://` URL; the server encrypts it and the form never round-trips the secret. Edit forms show a redacted host/database preview only. Leave the field blank to keep the current DSN.
 
 ## Permissions
 
@@ -20,7 +20,7 @@ Per [modules/auth.md](./auth.md)'s permission table, all of `/admin/*` requires 
 
 ## Sources admin (`/admin/sources`)
 
-Source metadata (`id`, `label`, `dsnEnv`, `capabilities`, `enabled`) lives in the `sources` SQLite table (see [modules/sources.md](./sources.md)). The admin page is straightforward CRUD: create (id/label/dsnEnv/capability checkboxes), edit, enable/disable, delete.
+Source metadata (`id`, `label`, `capabilities`, `enabled`) plus an encrypted DSN (`dsn_ciphertext`) lives in the `sources` SQLite table (see [modules/sources.md](./sources.md)). The admin page is straightforward CRUD: create (id/label/connection string/capability checkboxes), edit, enable/disable, delete. The connection string is required on create and optional on edit.
 
 ### Cache invalidation contract
 

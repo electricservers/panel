@@ -18,7 +18,7 @@ export type NewUserRow = typeof users.$inferInsert;
 export const sources = sqliteTable('sources', {
 	id: text('id').primaryKey(),
 	label: text('label').notNull(),
-	dsnEnv: text('dsn_env').notNull(),
+	dsnCiphertext: text('dsn_ciphertext').notNull(),
 	capabilities: text('capabilities', { mode: 'json' }).notNull().$type<Capability[]>(),
 	enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
 	createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),

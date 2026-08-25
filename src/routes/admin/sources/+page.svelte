@@ -19,6 +19,7 @@
 		method="POST"
 		action="?/create"
 		use:enhance
+		autocomplete="off"
 		class="flex flex-col gap-2 rounded-lg border border-border p-4"
 	>
 		<h2 class="text-sm font-medium">New source</h2>
@@ -26,14 +27,19 @@
 		<Input id="new-id" type="text" name="id" placeholder="electric-ar" required />
 		<label for="new-label" class="text-xs text-muted-foreground">Label</label>
 		<Input id="new-label" type="text" name="label" placeholder="Argentina" required />
-		<label for="new-dsn-env" class="text-xs text-muted-foreground">DSN env var</label>
+		<label for="new-dsn" class="text-xs text-muted-foreground">Connection string</label>
 		<Input
-			id="new-dsn-env"
-			type="text"
-			name="dsnEnv"
-			placeholder="SOURCE_ELECTRIC_AR_URL"
+			id="new-dsn"
+			type="password"
+			name="dsn"
+			placeholder="mysql://user:pass@host:3306/database"
 			required
+			autocomplete="new-password"
+			spellcheck="false"
 		/>
+		<p class="text-xs text-muted-foreground">
+			Encrypted at rest. It is never shown again. URL-encode special characters in the password.
+		</p>
 		<span class="text-xs text-muted-foreground">Capabilities</span>
 		<div class="flex flex-wrap gap-3">
 			{#each data.knownCapabilities as capability (capability)}
@@ -60,12 +66,36 @@
 						<Button type="submit" variant="ghost" size="sm" class="text-danger">Delete</Button>
 					</form>
 				</div>
-				<form method="POST" action="?/update" use:enhance class="flex flex-col gap-2">
+				<form
+					method="POST"
+					action="?/update"
+					use:enhance
+					autocomplete="off"
+					class="flex flex-col gap-2"
+				>
 					<input type="hidden" name="id" value={row.id} />
 					<label for="label-{row.id}" class="text-xs text-muted-foreground">Label</label>
 					<Input id="label-{row.id}" type="text" name="label" value={row.label} required />
-					<label for="dsn-{row.id}" class="text-xs text-muted-foreground">DSN env var</label>
-					<Input id="dsn-{row.id}" type="text" name="dsnEnv" value={row.dsnEnv} required />
+					<label for="dsn-{row.id}" class="text-xs text-muted-foreground">Connection string</label>
+					<Input
+						id="dsn-{row.id}"
+						type="password"
+						name="dsn"
+						placeholder="Leave blank to keep the current connection string"
+						autocomplete="new-password"
+						spellcheck="false"
+					/>
+					{#if row.dsnPreview}
+						<p class="text-xs text-muted-foreground">Currently {row.dsnPreview}</p>
+					{:else if row.dsnConfigured && !row.dsnDecryptable}
+						<p class="text-xs text-danger">
+							Saved, but it cannot be decrypted with the current SESSION_SECRET. Paste it again.
+						</p>
+					{:else}
+						<p class="text-xs text-danger">
+							No connection string stored. Paste one to enable this source.
+						</p>
+					{/if}
 					<span class="text-xs text-muted-foreground">Capabilities</span>
 					<div class="flex flex-wrap gap-3">
 						{#each data.knownCapabilities as capability (capability)}

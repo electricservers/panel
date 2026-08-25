@@ -21,7 +21,7 @@ Players use it to understand how they play MGE: ratings, match history, head-to-
 
 ## Success for the rewrite
 
-- Adding a third game DB is a config change, not a route rewrite.
+- Adding a third game DB is an admin-UI action, not a route rewrite or a new env var.
 - Player core (home, ranking, games, profile, versus, date filters, Steam login) works against any `mgemod` source.
 - Staff Whois can search across all `whois`-capable sources with results tagged by source.
 - Old Flowbite template debt and duplicated AR/BR handlers are gone.

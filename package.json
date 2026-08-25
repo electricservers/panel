@@ -14,7 +14,8 @@
 		"lint": "prettier --check .",
 		"format": "prettier --write .",
 		"knip": "knip",
-		"db:generate": "drizzle-kit generate"
+		"db:generate": "drizzle-kit generate",
+		"db:fix-mojibake": "bun run scripts/fix-mgemod-mojibake.ts"
 	},
 	"devDependencies": {
 		"@fontsource-variable/oxanium": "^5.3.0",
