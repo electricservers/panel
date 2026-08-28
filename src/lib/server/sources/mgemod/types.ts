@@ -1,15 +1,18 @@
 import type { Sourced } from '$lib/server/sources/types';
 import type { SteamId } from '$lib/mge/steam-id';
 import type { ActivitySummary } from '$lib/mge/activity';
+import type { GlickoStatus, LeaderboardScope } from '$lib/mge/glicko';
 
 export type { ActivitySummary };
 
 export type RankQuery = {
 	q?: string;
-	sortKey?: 'rating' | 'wins' | 'losses' | 'games';
+	sortKey?: 'rating' | 'wins' | 'losses' | 'games' | 'rd';
 	sortDir?: 'asc' | 'desc';
 	skip?: number;
 	take?: number;
+	/** Ranked is the public Glicko-2 ladder. Elo sources ignore this. */
+	scope?: LeaderboardScope;
 };
 
 export type RankRow = {
@@ -21,6 +24,9 @@ export type RankRow = {
 	lastPlayed: Date | null;
 	totalGames: number;
 	winRate: number;
+	rd: number | null;
+	volatility: number | null;
+	status: GlickoStatus;
 };
 
 export type PlayerSummary = {
@@ -30,9 +36,16 @@ export type PlayerSummary = {
 	wins: number;
 	losses: number;
 	lastPlayed: Date | null;
-	/** 1-based position on the rating leaderboard. */
-	rank: number;
+	/** 1-based position on the public (ranked) ladder. Null when the player is not qualified. */
+	rank: number | null;
+	/** Players currently on the public ladder (everyone, on Elo). */
+	totalRanked: number;
+	/** 1-based position by raw rating among every player on this source. */
+	rawRank: number;
 	totalPlayers: number;
+	rd: number | null;
+	volatility: number | null;
+	status: GlickoStatus;
 };
 
 export type GamesQuery = {
@@ -125,7 +138,9 @@ export type ClassStatRow = {
 };
 
 export interface MgeAdapter {
-	getLeaderboard(query: RankQuery): Promise<{ items: Sourced<RankRow>[]; total: number }>;
+	getLeaderboard(
+		query: RankQuery
+	): Promise<{ items: Sourced<RankRow>[]; total: number; glicko: boolean }>;
 	getPlayer(steamid: SteamId): Promise<Sourced<PlayerSummary> | null>;
 	getGames(query: GamesQuery): Promise<{ items: Sourced<Duel>[]; total: number }>;
 	getArenas(): Promise<string[]>;

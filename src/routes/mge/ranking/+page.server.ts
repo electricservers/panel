@@ -7,7 +7,7 @@ import { requireModule } from '$lib/server/require-module';
 import type { PageServerLoad } from './$types';
 
 const PAGE_SIZE = 25;
-const SORT_KEYS = ['rating', 'wins', 'losses', 'games'] as const;
+const SORT_KEYS = ['rating', 'wins', 'losses', 'games', 'rd'] as const;
 
 export const load: PageServerLoad = ({ url, cookies }) => {
 	requireModule('mgemod');
@@ -20,10 +20,18 @@ export const load: PageServerLoad = ({ url, cookies }) => {
 		? (sortKeyParam as (typeof SORT_KEYS)[number])
 		: 'rating';
 	const sortDir = url.searchParams.get('sortDir') === 'asc' ? 'asc' : 'desc';
+	const scope = url.searchParams.get('scope') === 'all' ? 'all' : 'ranked';
 	const page = Math.max(1, Number(url.searchParams.get('page')) || 1);
 
 	const leaderboard = adapter
-		.getLeaderboard({ q, sortKey, sortDir, take: PAGE_SIZE, skip: (page - 1) * PAGE_SIZE })
+		.getLeaderboard({
+			q,
+			sortKey,
+			sortDir,
+			scope,
+			take: PAGE_SIZE,
+			skip: (page - 1) * PAGE_SIZE
+		})
 		.then(async (result) => {
 			const avatars = await getSteamProfiles(result.items.map((row) => toSteamId64(row.steamid)));
 			return {
@@ -39,6 +47,6 @@ export const load: PageServerLoad = ({ url, cookies }) => {
 		sourceId,
 		sources: listSources({ capability: 'mgemod', enabled: true }),
 		leaderboard,
-		filters: { q, sortKey, sortDir, page, pageSize: PAGE_SIZE }
+		filters: { q, sortKey, sortDir, scope, page, pageSize: PAGE_SIZE }
 	};
 };

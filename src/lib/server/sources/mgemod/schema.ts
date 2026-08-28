@@ -1,4 +1,4 @@
-import { mysqlTable, varchar, int } from 'drizzle-orm/mysql-core';
+import { mysqlTable, varchar, int, double } from 'drizzle-orm/mysql-core';
 
 /**
  * Player roster / leaderboard. `lastplayed` is read as text because older
@@ -11,7 +11,9 @@ export const mgemodStats = mysqlTable('mgemod_stats', {
 	rating: int('rating'),
 	wins: int('wins'),
 	losses: int('losses'),
-	lastplayed: varchar('lastplayed', { length: 255 })
+	lastplayed: varchar('lastplayed', { length: 255 }),
+	rd: double('rd'),
+	volatility: double('volatility')
 });
 
 /** 1v1 match log. `mgemod_duels_2v2` and `mgemod_migrations` are unused by the panel. */

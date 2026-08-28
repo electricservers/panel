@@ -2,7 +2,9 @@
 	import type { Snippet } from 'svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import PlayerAvatar from '$lib/components/mge/player-avatar.svelte';
+	import GlickoStatusBadge from '$lib/components/mge/glicko-status-badge.svelte';
 	import { steamProfileUrl, toSteamId64 } from '$lib/mge/steam-id';
+	import { formatRd, unrankedReason } from '$lib/mge/glicko';
 	import type { PlayerSummary } from '$lib/server/sources/mgemod/types';
 	import type { Sourced } from '$lib/server/sources/types';
 
@@ -40,6 +42,9 @@
 		const returnTo = `/mge/players/${profile64}/versus/me`;
 		return `/api/auth/login?returnTo=${encodeURIComponent(returnTo)}`;
 	});
+	const glicko = $derived(player != null && player.status !== 'elo');
+	const reason = $derived(player ? unrankedReason(player.rd, totalGames) : null);
+	const ratingMark = $derived(player?.status === 'provisional' ? '?' : '');
 </script>
 
 {#if !player}
@@ -74,21 +79,45 @@
 					{:else}
 						<h1 class="font-heading text-3xl font-semibold tracking-tight">{player.name}</h1>
 					{/if}
-					<span
-						class="inline-flex items-center rounded-full bg-brand/10 px-2.5 py-1 text-xs font-semibold text-brand"
-					>
-						Rank #{player.rank}
-						<span class="ml-1 font-normal text-brand/70">/ {player.totalPlayers}</span>
-					</span>
+					{#if glicko}
+						<GlickoStatusBadge status={player.status} />
+					{/if}
+					{#if player.rank != null}
+						<span
+							class="inline-flex items-center rounded-full bg-brand/10 px-2.5 py-1 text-xs font-semibold text-brand"
+						>
+							Rank #{player.rank}
+							<span class="ml-1 font-normal text-brand/70">
+								/ {glicko ? player.totalRanked : player.totalPlayers}
+							</span>
+						</span>
+					{/if}
 				</div>
 				<div
 					class="flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-sm sm:justify-start"
 				>
-					<span><span class="font-medium">{player.rating}</span> rating</span>
+					<span>
+						<span class="font-medium">{player.rating}{ratingMark}</span> rating
+					</span>
+					{#if glicko}
+						<span class="text-muted-foreground">
+							<span class="font-medium text-foreground">{formatRd(player.rd)}</span> RD
+						</span>
+					{/if}
 					<span class="text-success"><span class="font-medium">{player.wins}</span> wins</span>
 					<span class="text-danger"><span class="font-medium">{player.losses}</span> losses</span>
 					<span class="text-muted-foreground">{winRate}% win rate</span>
 				</div>
+				{#if glicko && player.rank === null}
+					<p class="text-xs text-muted-foreground">
+						Not on the public leaderboard{reason ? ` (${reason})` : ''}. #{player.rawRank} of {player.totalPlayers}
+						by raw rating.
+					</p>
+				{:else if glicko}
+					<p class="text-xs text-muted-foreground">
+						#{player.rawRank} of {player.totalPlayers} by raw rating.
+					</p>
+				{/if}
 				{#if vsHref}
 					<Button href={vsHref} variant="outline" size="sm">See my stats vs this player</Button>
 				{/if}

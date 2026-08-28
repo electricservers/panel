@@ -21,8 +21,8 @@
 	{#if !data.mgeEnabled}
 		<section class="flex flex-col gap-3">
 			<h2 class="text-sm font-medium">MGE module is disabled</h2>
-			<p class="text-sm text-muted-foreground">
-				An owner can re-enable it from <code class="rounded bg-muted px-1 py-0.5"
+			<p class="text-muted-foreground text-sm">
+				An owner can re-enable it from <code class="bg-muted rounded px-1 py-0.5"
 					>/admin/settings</code
 				>.
 			</p>
@@ -30,9 +30,9 @@
 	{:else if !data.leaderboard || !data.recentGames}
 		<section class="flex flex-col gap-3">
 			<h2 class="text-sm font-medium">No source configured</h2>
-			<p class="text-sm text-muted-foreground">
-				Add a <code class="rounded bg-muted px-1 py-0.5">mgemod</code>-capable source from
-				<code class="rounded bg-muted px-1 py-0.5">/admin/sources</code> to see rankings and games here.
+			<p class="text-muted-foreground text-sm">
+				Add a <code class="bg-muted rounded px-1 py-0.5">mgemod</code>-capable source from
+				<code class="bg-muted rounded px-1 py-0.5">/admin/sources</code> to see rankings and games here.
 			</p>
 		</section>
 	{:else}
@@ -41,9 +41,9 @@
 				<section class="flex flex-col gap-3">
 					<div class="flex items-center justify-between">
 						<h2 class="text-sm font-medium">Recent games</h2>
-						<a href="/mge/games" class="text-sm text-brand hover:underline">Browse all games</a>
+						<a href="/mge/games" class="text-brand text-sm hover:underline">Browse all games</a>
 					</div>
-					<div class="overflow-hidden rounded-lg border border-border">
+					<div class="border-border overflow-hidden rounded-lg border">
 						{#await data.recentGames}
 							<DuelsTableSkeleton rows={5} />
 						{:then recentGames}
@@ -63,13 +63,22 @@
 				<section class="flex flex-col gap-3">
 					<div class="flex items-center justify-between">
 						<h2 class="text-sm font-medium">Top players</h2>
-						<a href="/mge/ranking" class="text-sm text-brand hover:underline">View full ranking</a>
+						<a href="/mge/ranking" class="text-brand text-sm hover:underline">View full ranking</a>
 					</div>
-					<div class="overflow-hidden rounded-lg border border-border">
+					<div class="border-border overflow-hidden rounded-lg border">
 						{#await data.leaderboard}
 							<RankingTableSkeleton rows={5} />
 						{:then leaderboard}
-							<RankingTable rows={leaderboard.items} />
+							{#if leaderboard.glicko && leaderboard.items.length === 0}
+								<p class="text-muted-foreground px-4 py-8 text-center text-sm">
+									No ranked players yet.
+									<a href="/mge/ranking?scope=all" class="text-brand hover:underline"
+										>View all players</a
+									>
+								</p>
+							{:else}
+								<RankingTable rows={leaderboard.items} glicko={leaderboard.glicko} />
+							{/if}
 						{/await}
 					</div>
 				</section>

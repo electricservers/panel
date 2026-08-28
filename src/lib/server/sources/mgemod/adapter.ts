@@ -1,12 +1,20 @@
 import { and, asc, desc, eq, gt, gte, inArray, like, lte, or, sql, type SQL } from 'drizzle-orm';
+import type { RowDataPacket } from 'mysql2';
 import { summarizeActivity } from '$lib/mge/activity';
 import { canonicalizeArenaName } from '$lib/mge/arena-names';
+import {
+	GLICKO_RANKED_MIN_GAMES,
+	GLICKO_RANKED_RD,
+	glickoStatus,
+	parseOptionalRd
+} from '$lib/mge/glicko';
 import { maybeFixMojibake } from '$lib/mge/mojibake';
 import { downsampleRatingSeries, ratingExtrema, type RatingPoint } from '$lib/mge/rating-series';
 import { looksLikeSteamId, toSteamId2, tryParseSteamId } from '$lib/mge/steam-id';
 import { parsePlayedClasses } from '$lib/mge/tf2-classes';
 import type { Source } from '$lib/server/sources/types';
 import type { Sourced } from '$lib/server/sources/types';
+import { getSourcePool } from '$lib/server/sources/pool';
 import { getMgemodDb } from './client';
 import { mgemodDuels, mgemodStats } from './schema';
 import type {
@@ -42,12 +50,92 @@ function displayName(raw: string | null | undefined, steamid: string): string {
 	return maybeFixMojibake(raw) || `Unknown (${steamid})`;
 }
 
+const statsBaseSelect = {
+	steamid: mgemodStats.steamid,
+	name: mgemodStats.name,
+	rating: mgemodStats.rating,
+	wins: mgemodStats.wins,
+	losses: mgemodStats.losses,
+	lastplayed: mgemodStats.lastplayed
+};
+
+const statsGlickoSelect = {
+	...statsBaseSelect,
+	rd: mgemodStats.rd,
+	volatility: mgemodStats.volatility
+};
+
+function rankedSql(): SQL {
+	return sql`(
+		${mgemodStats.rd} IS NULL
+		OR (
+			${mgemodStats.rd} < ${GLICKO_RANKED_RD}
+			AND (COALESCE(${mgemodStats.wins}, 0) + COALESCE(${mgemodStats.losses}, 0)) >= ${GLICKO_RANKED_MIN_GAMES}
+		)
+	)`;
+}
+
+type StatsRow = {
+	steamid: string;
+	name: string | null;
+	rating: number | null;
+	wins: number | null;
+	losses: number | null;
+	lastplayed: string | null;
+	rd?: number | null;
+	volatility?: number | null;
+};
+
+function toRankFields(row: StatsRow) {
+	const wins = row.wins ?? 0;
+	const losses = row.losses ?? 0;
+	const totalGames = wins + losses;
+	const rd = parseOptionalRd(row.rd);
+	return {
+		wins,
+		losses,
+		totalGames,
+		rd,
+		volatility: parseOptionalRd(row.volatility),
+		status: glickoStatus(rd, totalGames),
+		winRate: totalGames > 0 ? (wins / totalGames) * 100 : 0
+	};
+}
+
 /** Builds an `MgeAdapter` backed by a source's MySQL `mgemod_stats`/`mgemod_duels` tables. */
 export function buildMgeAdapter(source: Source): MgeAdapter {
 	const db = getMgemodDb(source);
 
 	function tag<T>(data: T): Sourced<T> {
 		return { ...data, sourceId: source.id };
+	}
+
+	let glickoColumns: boolean | null = null;
+	async function hasGlickoColumns(): Promise<boolean> {
+		if (glickoColumns != null) return glickoColumns;
+		const pool = getSourcePool(source);
+		const [rows] = await pool.query<RowDataPacket[]>(
+			`SELECT COUNT(*) AS cnt
+			 FROM information_schema.columns
+			 WHERE table_schema = DATABASE()
+			   AND table_name = 'mgemod_stats'
+			   AND column_name = 'rd'`
+		);
+		glickoColumns = Number(rows[0]?.cnt ?? 0) > 0;
+		return glickoColumns;
+	}
+
+	let glickoLive: boolean | null = null;
+	async function sourceHasGlickoRows(): Promise<boolean> {
+		if (!(await hasGlickoColumns())) return false;
+		if (glickoLive != null) return glickoLive;
+		const rows = await db
+			.select({ steamid: mgemodStats.steamid })
+			.from(mgemodStats)
+			.where(sql`${mgemodStats.rd} IS NOT NULL`)
+			.limit(1);
+		glickoLive = rows.length > 0;
+		return glickoLive;
 	}
 
 	/** Resolves a free-text `q` to a set of matching steamid2s, or null if `q` is empty. */
@@ -147,14 +235,19 @@ export function buildMgeAdapter(source: Source): MgeAdapter {
 			const skip = query.skip ?? 0;
 			const sortDir = query.sortDir ?? 'desc';
 			const sortKey = query.sortKey ?? 'rating';
+			const glicko = await sourceHasGlickoRows();
+			const hasRd = await hasGlickoColumns();
+			const scope = glicko ? (query.scope ?? 'ranked') : 'all';
 
-			let where: SQL | undefined;
+			const conditions: SQL[] = [];
 			if (query.q) {
 				const parsed = looksLikeSteamId(query.q) ? tryParseSteamId(query.q) : null;
-				where = parsed
-					? eq(mgemodStats.steamid, parsed.steam2)
-					: like(mgemodStats.name, `%${query.q}%`);
+				conditions.push(
+					parsed ? eq(mgemodStats.steamid, parsed.steam2) : like(mgemodStats.name, `%${query.q}%`)
+				);
 			}
+			if (scope === 'ranked' && hasRd) conditions.push(rankedSql());
+			const where = conditions.length > 0 ? and(...conditions) : undefined;
 
 			const sortColumn =
 				sortKey === 'games'
@@ -163,11 +256,20 @@ export function buildMgeAdapter(source: Source): MgeAdapter {
 						? mgemodStats.wins
 						: sortKey === 'losses'
 							? mgemodStats.losses
-							: mgemodStats.rating;
+							: sortKey === 'rd' && hasRd
+								? mgemodStats.rd
+								: mgemodStats.rating;
 			const orderBy = sortDir === 'asc' ? asc(sortColumn) : desc(sortColumn);
+			const selectShape = hasRd ? statsGlickoSelect : statsBaseSelect;
 
 			const [rows, [{ total }]] = await Promise.all([
-				db.select().from(mgemodStats).where(where).orderBy(orderBy).limit(take).offset(skip),
+				db
+					.select(selectShape)
+					.from(mgemodStats)
+					.where(where)
+					.orderBy(orderBy)
+					.limit(take)
+					.offset(skip),
 				db
 					.select({ total: sql<number>`count(*)` })
 					.from(mgemodStats)
@@ -175,51 +277,85 @@ export function buildMgeAdapter(source: Source): MgeAdapter {
 			]);
 
 			const items = rows.map((row) => {
-				const wins = row.wins ?? 0;
-				const losses = row.losses ?? 0;
-				const totalGames = wins + losses;
+				const fields = toRankFields(row);
 				const rankRow: RankRow = {
 					steamid: row.steamid,
 					name: displayName(row.name, row.steamid),
 					rating: row.rating ?? 0,
-					wins,
-					losses,
+					wins: fields.wins,
+					losses: fields.losses,
 					lastPlayed: toDate(row.lastplayed),
-					totalGames,
-					winRate: totalGames > 0 ? (wins / totalGames) * 100 : 0
+					totalGames: fields.totalGames,
+					winRate: fields.winRate,
+					rd: fields.rd,
+					volatility: fields.volatility,
+					status: fields.status
 				};
 				return tag(rankRow);
 			});
 
-			return { items, total: Number(total) };
+			return { items, total: Number(total), glicko };
 		},
 
 		async getPlayer(steamid) {
 			const id2 = toSteamId2(steamid);
+			const hasRd = await hasGlickoColumns();
+			const glicko = await sourceHasGlickoRows();
+			const selectShape = hasRd ? statsGlickoSelect : statsBaseSelect;
 			const [row] = await db
-				.select()
+				.select(selectShape)
 				.from(mgemodStats)
 				.where(eq(mgemodStats.steamid, id2))
 				.limit(1);
 			if (!row) return null;
 
-			const [[{ ahead }], [{ total }]] = await Promise.all([
-				db
-					.select({ ahead: sql<number>`count(*)` })
-					.from(mgemodStats)
-					.where(gt(mgemodStats.rating, row.rating ?? 0)),
-				db.select({ total: sql<number>`count(*)` }).from(mgemodStats)
-			]);
+			const fields = toRankFields(row);
+			const rating = row.rating ?? 0;
+			const ranked = fields.status === 'ranked';
 
+			const aheadRaw = db
+				.select({ ahead: sql<number>`count(*)` })
+				.from(mgemodStats)
+				.where(gt(mgemodStats.rating, rating));
+			const totalQ = db.select({ total: sql<number>`count(*)` }).from(mgemodStats);
+			const rankedAheadQ =
+				glicko && ranked
+					? db
+							.select({ ahead: sql<number>`count(*)` })
+							.from(mgemodStats)
+							.where(and(gt(mgemodStats.rating, rating), rankedSql()))
+					: Promise.resolve([{ ahead: 0 }]);
+			const totalRankedQ = glicko
+				? db
+						.select({ total: sql<number>`count(*)` })
+						.from(mgemodStats)
+						.where(rankedSql())
+				: Promise.resolve([{ total: 0 }]);
+
+			const [
+				[{ ahead: rawAhead }],
+				[{ total }],
+				[{ ahead: rankedAhead }],
+				[{ total: rankedTotal }]
+			] = await Promise.all([aheadRaw, totalQ, rankedAheadQ, totalRankedQ]);
+
+			const totalPlayers = Number(total);
+			const totalRanked = glicko ? Number(rankedTotal) : totalPlayers;
+			const rawRank = Number(rawAhead) + 1;
 			const summary: PlayerSummary = {
 				steamid: row.steamid,
 				name: displayName(row.name, row.steamid),
-				rating: row.rating ?? 0,
-				wins: row.wins ?? 0,
-				losses: row.losses ?? 0,
+				rating,
+				wins: fields.wins,
+				losses: fields.losses,
 				lastPlayed: toDate(row.lastplayed),
-				rank: Number(ahead) + 1,
-				totalPlayers: Number(total)
+				rank: !glicko ? rawRank : ranked ? Number(rankedAhead) + 1 : null,
+				totalRanked,
+				rawRank,
+				totalPlayers,
+				rd: fields.rd,
+				volatility: fields.volatility,
+				status: fields.status
 			};
 			return tag(summary);
 		},

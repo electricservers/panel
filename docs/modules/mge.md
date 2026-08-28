@@ -8,6 +8,7 @@ Player-facing My Gaming ELO (MGEMod) stats.
 - Always scoped to **one source** unless a feature explicitly fan-outs.
 - Date-range filters for games and derived stats.
 - Port the useful analytics from the old panel without Flowbite layout debt.
+- On Glicko-2 sources, the public ladder matches MGEMod / mge.tf: only players below the ranked RD bar with enough games.
 
 ## Non-goals (v1)
 
@@ -22,6 +23,19 @@ Requires source capability: `mgemod`.
 
 Typical tables: `mgemod_stats`, `mgemod_duels` (and later `mgemod_duels_2v2` only if productized).
 
+## Glicko-2
+
+MGEMod can score a source with Elo or Glicko-2 (`mgemod_rating_engine`). The panel never writes ratings. It reads whatever the plugin stored.
+
+`mgemod_stats.rd` / `volatility` are nullable. NULL means Elo (or a schema that predates migration 007). Non-NULL means Glicko-2 is active for that row. Adapters probe `information_schema` before selecting those columns so Elo-only MariaDB installs keep working.
+
+Public-ladder rule, matching MGEMod `Rating_IsRankQualified` and mge-platform:
+
+- `rd IS NULL` (Elo) **or** (`rd < 100` and `wins + losses >= 10`)
+- Provisional HUD mark (not the ladder gate) is `rd > 200`
+
+Home “Top players” and `/mge/ranking` default to this filter. `/mge/ranking?scope=all` is the raw-rating list (the old panel sort). Profiles always show the player; on Glicko-2 they also show RD, ranked/unranked/provisional, ranked position when qualified, and raw position by rating.
+
 ## Name encoding
 
 Player display names live only in `mgemod_stats.name` (duels store SteamIDs). Historical rows may contain Windows-1252 mojibake from MySQL connections that were not `utf8mb4`.
@@ -32,8 +46,8 @@ Player display names live only in `mgemod_stats.name` (duels store SteamIDs). Hi
 
 ## User stories
 
-1. As a player, I switch source and see that ladder’s ranking.
-2. As a player, I open a profile by SteamID and see rating, W/L, recent games.
+1. As a player, I switch source and see that ladder’s ranking (ranked Glicko-2 players by default when the source uses that engine).
+2. As a player, I open a profile by SteamID and see rating, W/L, recent games, and (on Glicko-2) RD plus whether they qualify for the public ladder.
 3. As a player, I filter games by arena, player, opponent, and date range.
 4. As a player, I compare two players (versus) on one source.
 5. As a logged-in player, I jump to my profile on the current source.
@@ -41,13 +55,14 @@ Player display names live only in `mgemod_stats.name` (duels store SteamIDs). Hi
 7. As a player on someone else’s profile, I open head-to-head against them in one click (“See my stats vs this player”). Logged-out viewers are sent through Steam login and land on the same pair.
 8. As a player, I see that profile’s rating over time in the selected window, including peak.
 9. As a player, I see how many games that profile played on each TF2 class in the selected window.
+10. As a player, I can switch the ranking between ranked (public ladder) and all (raw rating) on a Glicko-2 source.
 
 ## Routes (proposed)
 
 | Route                                      | Scope                                                                                                                                                                             |
 | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/`                                        | Home: recent duels + ranking preview + source activity (quick stats, games-over-time) for selected source                                                                         |
-| `/mge/ranking`                             | Leaderboard                                                                                                                                                                       |
+| `/`                                        | Home: recent duels + ranked leaderboard preview + source activity (quick stats, games-over-time) for selected source                                                              |
+| `/mge/ranking`                             | Leaderboard. Glicko-2 sources default to `scope=ranked`; `scope=all` shows every player by raw rating. Elo sources ignore scope.                                                  |
 | `/mge/games`                               | Match browser                                                                                                                                                                     |
 | `/mge/versus`                              | Pick two players; scoreline, dual win-rate bars, per-arena breakdown, full match history                                                                                          |
 | `/mge/players/[steamid]`                   | Profile                                                                                                                                                                           |
@@ -61,8 +76,10 @@ Player display names live only in `mgemod_stats.name` (duels store SteamIDs). Hi
 
 ```ts
 interface MgeAdapter {
-	getLeaderboard(query: RankQuery): Promise<Sourced<RankRow>[]>;
-	/** Includes `rank`/`totalPlayers`, this player's 1-based position on the rating leaderboard. */
+	getLeaderboard(
+		query: RankQuery
+	): Promise<{ items: Sourced<RankRow>[]; total: number; glicko: boolean }>;
+	/** Includes `rank`/`totalPlayers`. On Glicko-2, `rank` is among ranked players (null if unranked) and `rawRank` is among everyone. */
 	getPlayer(steamid: SteamId): Promise<Sourced<PlayerSummary> | null>;
 	getGames(query: GamesQuery): Promise<{ items: Sourced<Duel>[]; total: number }>;
 	getArenas(): Promise<string[]>;
@@ -197,7 +214,7 @@ The pair URL stays lower-Steam64-first. If the viewer is one of the two players,
 - Presets: 7 / 30 / 90 days, all-time.
 - Custom `from` / `to` (inclusive bounds documented in API).
 - Applied to duel `endtime` (unix seconds in legacy schema).
-- Leaderboard “all-time” uses `mgemod_stats` as today.
+- Leaderboard “all-time” uses `mgemod_stats` as today. Glicko-2 ranked scope still uses that table; it does not reconstruct RD from duels.
 - Profile rating-over-time is **derived from duels** (`winner_new_elo` / `loser_new_elo`, plus `*_previous_elo` to seed the first point). Read-only. This is not ELO reversion and does not write rating tables. Peak/low are computed on the full window. The chart line uses last-per-day on long windows so play-session clusters do not scribble, then downsamples for the SVG.
 
 ## Arena names
@@ -226,6 +243,8 @@ Forbidden until productized:
 ## Acceptance checks
 
 - Same UI works for any configured `mgemod` source.
+- Glicko-2 home/ranking default lists match mge.tf (RD < 100, 10+ games). Elo sources still list everyone by rating.
+- A source without `rd`/`volatility` columns does not 500; it behaves as Elo.
 - Versus and games filters never leak rows from another source.
 - Profile badges call only `exists` on other sources; failure on one source does not blank the page.
 - Ranking, games, profile, and versus paint skeletons on entry, then swap in data (see [loading.md](./loading.md)).

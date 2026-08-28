@@ -31,7 +31,7 @@ export const load: PageServerLoad = async ({ cookies, parent }) => {
 	const sourceId = resolveMgeSourceId(cookies);
 	const adapter = mgeFor(sourceId);
 
-	const leaderboard = adapter.getLeaderboard({ take: 5 }).then(async (result) => {
+	const leaderboard = adapter.getLeaderboard({ take: 5, scope: 'ranked' }).then(async (result) => {
 		const avatars = await getSteamProfiles(result.items.map((row) => toSteamId64(row.steamid)));
 		return {
 			...result,
