@@ -47,13 +47,13 @@
 	</div>
 
 	{#await data.leaderboard}
-		<div class="text-muted-foreground flex gap-3 text-sm">
+		<div class="flex gap-3 text-sm text-muted-foreground">
 			<span>Rating</span>
 			<span>Wins</span>
 			<span>Losses</span>
 			<span>Games</span>
 		</div>
-		<div class="border-border overflow-hidden rounded-lg border">
+		<div class="overflow-hidden rounded-lg border border-border">
 			<RankingTableSkeleton rows={data.filters.pageSize} />
 		</div>
 	{:then leaderboard}
@@ -80,7 +80,7 @@
 			</div>
 		{/if}
 
-		<div class="text-muted-foreground flex flex-wrap gap-3 text-sm">
+		<div class="flex flex-wrap gap-3 text-sm text-muted-foreground">
 			<a href={sortHref('rating')} class="hover:text-brand">Rating</a>
 			{#if leaderboard.glicko}
 				<a href={sortHref('rd')} class="hover:text-brand">RD</a>
@@ -90,9 +90,9 @@
 			<a href={sortHref('games')} class="hover:text-brand">Games</a>
 		</div>
 
-		<div class="border-border overflow-hidden rounded-lg border">
+		<div class="overflow-hidden rounded-lg border border-border">
 			{#if leaderboard.glicko && data.filters.scope === 'ranked' && leaderboard.items.length === 0 && !data.filters.q}
-				<p class="text-muted-foreground px-4 py-8 text-center text-sm">
+				<p class="px-4 py-8 text-center text-sm text-muted-foreground">
 					Nobody has RD below 100 with at least 10 games yet.
 					<a href={scopeHref.all} class="text-brand hover:underline">View all players</a>
 				</p>
@@ -104,7 +104,7 @@
 					showStatus={leaderboard.glicko && data.filters.scope === 'all'}
 				/>
 			{/if}
-			<div class="border-border flex items-center justify-between border-t px-4 py-2 text-sm">
+			<div class="flex items-center justify-between border-t border-border px-4 py-2 text-sm">
 				<a
 					href={hrefWith({ page: Math.max(1, data.filters.page - 1) })}
 					class:pointer-events-none={data.filters.page <= 1}
