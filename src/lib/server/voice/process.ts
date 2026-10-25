@@ -12,13 +12,16 @@ import type { VoiceManifest } from '$lib/voice/types';
 function runProcessor(demoPath: string, outDir: string): Promise<{ code: number; stderr: string }> {
 	const bin = getVoiceProcessorPath();
 	return new Promise((resolvePromise, reject) => {
+		// stdout is unused; leaving it as an unread pipe lets a chatty processor
+		// fill the OS buffer and block forever.
 		const child = spawn(bin, [demoPath, outDir], {
-			stdio: ['ignore', 'pipe', 'pipe'],
+			stdio: ['ignore', 'ignore', 'pipe'],
 			windowsHide: true
 		});
 		let stderr = '';
 		child.stderr.on('data', (chunk: Buffer) => {
-			stderr += chunk.toString();
+			// Only the tail is surfaced (errorMessage is capped at 2000 chars).
+			stderr = (stderr + chunk.toString()).slice(-8000);
 		});
 		child.on('error', (err) => reject(err));
 		child.on('close', (code) => {

@@ -2,7 +2,7 @@ import { resolveMgeSourceId } from '$lib/server/sources/resolve-source';
 import { mgeFor } from '$lib/server/sources/mge';
 import { listSources } from '$lib/server/sources/registry';
 import { getSteamProfiles } from '$lib/server/steam-profiles';
-import { toSteamId64 } from '$lib/mge/steam-id';
+import { trySteamId64 } from '$lib/mge/steam-id';
 import { requireModule } from '$lib/server/require-module';
 import type { PageServerLoad } from './$types';
 
@@ -33,12 +33,14 @@ export const load: PageServerLoad = ({ url, cookies }) => {
 			skip: (page - 1) * PAGE_SIZE
 		})
 		.then(async (result) => {
-			const avatars = await getSteamProfiles(result.items.map((row) => toSteamId64(row.steamid)));
+			const avatars = await getSteamProfiles(
+				result.items.map((row) => trySteamId64(row.steamid) ?? '')
+			);
 			return {
 				...result,
 				items: result.items.map((row) => ({
 					...row,
-					avatarUrl: avatars.get(toSteamId64(row.steamid))?.avatarmedium
+					avatarUrl: avatars.get(trySteamId64(row.steamid) ?? '')?.avatarmedium
 				}))
 			};
 		});

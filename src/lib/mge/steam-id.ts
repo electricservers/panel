@@ -23,6 +23,18 @@ export function toSteamId64(input: SteamId): string {
 }
 
 /**
+ * Steam64 form of `input`, or `null` if it is not a parseable SteamID (mgemod
+ * tables can hold junk like `BOT` that `toSteamId64` throws on).
+ */
+export function trySteamId64(input: SteamId): string | null {
+	try {
+		return toSteamId64(input);
+	} catch {
+		return null;
+	}
+}
+
+/**
  * Steam Community profile URL for any parseable SteamID form, or `null`
  * if the input cannot be converted.
  */

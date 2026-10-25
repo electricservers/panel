@@ -2,7 +2,7 @@ import { error, json } from '@sveltejs/kit';
 import { resolveMgeSourceId } from '$lib/server/sources/resolve-source';
 import { mgeFor } from '$lib/server/sources/mge';
 import { getSteamProfiles } from '$lib/server/steam-profiles';
-import { toSteamId64, tryParseSteamId } from '$lib/mge/steam-id';
+import { trySteamId64, tryParseSteamId } from '$lib/mge/steam-id';
 import { parseDateRange } from '$lib/mge/date-range';
 import { resolveTimeZone, TIMEZONE_COOKIE } from '$lib/mge/activity';
 import { requireModule } from '$lib/server/require-module';
@@ -40,10 +40,10 @@ export const GET: RequestHandler = async ({ params, url, cookies }) => {
 		adapter.getClassStats(parsed.steam2, { from, to })
 	]);
 
-	const avatars = await getSteamProfiles(foes.map((foe) => toSteamId64(foe.steamid)));
+	const avatars = await getSteamProfiles(foes.map((foe) => trySteamId64(foe.steamid) ?? ''));
 	const topFoes = foes.map((foe) => ({
 		...foe,
-		avatarUrl: avatars.get(toSteamId64(foe.steamid))?.avatarmedium
+		avatarUrl: avatars.get(trySteamId64(foe.steamid) ?? '')?.avatarmedium
 	}));
 
 	return json({ topFoes, activity, mostPlayedArenas, ratingHistory, classStats });

@@ -3,7 +3,7 @@
 	import * as Tooltip from '$lib/components/ui/tooltip/index.js';
 	import PlayerAvatar from '$lib/components/mge/player-avatar.svelte';
 	import GlickoStatusBadge from '$lib/components/mge/glicko-status-badge.svelte';
-	import { toSteamId64 } from '$lib/mge/steam-id';
+	import { trySteamId64 } from '$lib/mge/steam-id';
 	import { formatRd } from '$lib/mge/glicko';
 	import type { RankRow } from '$lib/server/sources/mgemod/types';
 	import type { Sourced } from '$lib/server/sources/types';
@@ -22,7 +22,7 @@
 </script>
 
 {#if rows.length === 0}
-	<p class="text-muted-foreground py-8 text-center text-sm">No players found.</p>
+	<p class="py-8 text-center text-sm text-muted-foreground">No players found.</p>
 {:else}
 	<Table.Root>
 		<Table.Header>
@@ -54,8 +54,8 @@
 					<Table.Cell>
 						<div class="flex items-center gap-2">
 							<a
-								href="/mge/players/{toSteamId64(row.steamid)}"
-								class="hover:text-brand flex items-center gap-2 font-medium hover:underline"
+								href="/mge/players/{trySteamId64(row.steamid) ?? row.steamid}"
+								class="flex items-center gap-2 font-medium hover:text-brand hover:underline"
 							>
 								<PlayerAvatar name={row.name} avatarUrl={row.avatarUrl} size="sm" />
 								{row.name}
@@ -67,12 +67,12 @@
 					</Table.Cell>
 					<Table.Cell class="text-right font-medium">{row.rating}</Table.Cell>
 					{#if glicko}
-						<Table.Cell class="text-muted-foreground text-right">{formatRd(row.rd)}</Table.Cell>
+						<Table.Cell class="text-right text-muted-foreground">{formatRd(row.rd)}</Table.Cell>
 					{/if}
-					<Table.Cell class="text-success text-right">{row.wins}</Table.Cell>
-					<Table.Cell class="text-danger text-right">{row.losses}</Table.Cell>
-					<Table.Cell class="text-muted-foreground text-right">{row.totalGames}</Table.Cell>
-					<Table.Cell class="text-muted-foreground text-right">{row.winRate.toFixed(1)}%</Table.Cell
+					<Table.Cell class="text-right text-success">{row.wins}</Table.Cell>
+					<Table.Cell class="text-right text-danger">{row.losses}</Table.Cell>
+					<Table.Cell class="text-right text-muted-foreground">{row.totalGames}</Table.Cell>
+					<Table.Cell class="text-right text-muted-foreground">{row.winRate.toFixed(1)}%</Table.Cell
 					>
 				</Table.Row>
 			{/each}

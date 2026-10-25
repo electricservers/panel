@@ -4,7 +4,7 @@ import { mgeFor } from '$lib/server/sources/mge';
 import { listSources, fanOut } from '$lib/server/sources/registry';
 import { getSteamProfiles } from '$lib/server/steam-profiles';
 import { withDuelAvatars } from '$lib/server/duel-avatars';
-import { toSteamId64, tryParseSteamId } from '$lib/mge/steam-id';
+import { trySteamId64, tryParseSteamId } from '$lib/mge/steam-id';
 import { parseDateRange } from '$lib/mge/date-range';
 import { resolveTimeZone, TIMEZONE_COOKIE } from '$lib/mge/activity';
 import { requireModule } from '$lib/server/require-module';
@@ -34,10 +34,10 @@ export const load: PageServerLoad = ({ params, url, cookies }) => {
 	const topFoes = adapter
 		.getTopFoes(parsed.steam2, { take: TOP_FOES_TAKE, from, to })
 		.then(async (foes) => {
-			const avatars = await getSteamProfiles(foes.map((foe) => toSteamId64(foe.steamid)));
+			const avatars = await getSteamProfiles(foes.map((foe) => trySteamId64(foe.steamid) ?? ''));
 			return foes.map((foe) => ({
 				...foe,
-				avatarUrl: avatars.get(toSteamId64(foe.steamid))?.avatarmedium
+				avatarUrl: avatars.get(trySteamId64(foe.steamid) ?? '')?.avatarmedium
 			}));
 		});
 	const activity = adapter.getActivity(parsed.steam2, {

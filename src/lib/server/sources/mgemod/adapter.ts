@@ -46,6 +46,8 @@ function isValidDate(date: Date | undefined): date is Date {
 	return date instanceof Date && !Number.isNaN(date.getTime());
 }
 
+const ARENA_NAMES_TTL_MS = 5 * 60 * 1000;
+
 function displayName(raw: string | null | undefined, steamid: string): string {
 	return maybeFixMojibake(raw) || `Unknown (${steamid})`;
 }
@@ -151,13 +153,34 @@ export function buildMgeAdapter(source: Source): MgeAdapter {
 		return rows.map((row) => row.steamid);
 	}
 
+	let arenaNamesCache: { at: number; promise: Promise<string[]> } | null = null;
+	/**
+	 * Raw distinct `arenaname`s, cached for a few minutes: it is a full scan of
+	 * `mgemod_duels` and the arena set barely changes. A failed lookup is evicted
+	 * so the next request retries instead of serving a cached rejection.
+	 */
+	function distinctArenaNames(): Promise<string[]> {
+		if (arenaNamesCache && Date.now() - arenaNamesCache.at < ARENA_NAMES_TTL_MS) {
+			return arenaNamesCache.promise;
+		}
+		const promise = db
+			.selectDistinct({ arenaname: mgemodDuels.arenaname })
+			.from(mgemodDuels)
+			.then((rows) =>
+				rows.map((row) => row.arenaname).filter((value): value is string => Boolean(value))
+			);
+		const entry = { at: Date.now(), promise };
+		arenaNamesCache = entry;
+		promise.catch(() => {
+			if (arenaNamesCache === entry) arenaNamesCache = null;
+		});
+		return promise;
+	}
+
 	/** Expands a canonical arena name to the raw `arenaname` variants it groups. */
 	async function resolveArenaVariants(canonical: string): Promise<string[]> {
-		const rows = await db.selectDistinct({ arenaname: mgemodDuels.arenaname }).from(mgemodDuels);
-		return rows
-			.map((row) => row.arenaname)
-			.filter((value): value is string => Boolean(value))
-			.filter((value) => canonicalizeArenaName(value) === canonical);
+		const names = await distinctArenaNames();
+		return names.filter((value) => canonicalizeArenaName(value) === canonical);
 	}
 
 	async function buildGamesWhere(query: GamesQuery): Promise<SQL | undefined> {
@@ -608,10 +631,10 @@ export function buildMgeAdapter(source: Source): MgeAdapter {
 		},
 
 		async getArenas() {
-			const rows = await db.selectDistinct({ arenaname: mgemodDuels.arenaname }).from(mgemodDuels);
+			const names = await distinctArenaNames();
 			const canonical = new Set<string>();
-			for (const row of rows) {
-				const name = canonicalizeArenaName(row.arenaname);
+			for (const raw of names) {
+				const name = canonicalizeArenaName(raw);
 				if (name) canonical.add(name);
 			}
 			return Array.from(canonical).sort((a, b) => a.localeCompare(b));

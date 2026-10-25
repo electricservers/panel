@@ -1,6 +1,6 @@
 <script lang="ts">
 	import PlayerAvatar from '$lib/components/mge/player-avatar.svelte';
-	import { toSteamId64 } from '$lib/mge/steam-id';
+	import { trySteamId64 } from '$lib/mge/steam-id';
 	import type { FoeRow } from '$lib/server/sources/mgemod/types';
 
 	let {
@@ -22,7 +22,7 @@
 			{#each foes as foe (foe.steamid)}
 				<li>
 					<a
-						href="/mge/players/{perspective}/versus/{toSteamId64(foe.steamid)}"
+						href="/mge/players/{perspective}/versus/{trySteamId64(foe.steamid) ?? foe.steamid}"
 						class="flex items-center gap-3 hover:text-brand"
 					>
 						<PlayerAvatar name={foe.name} avatarUrl={foe.avatarUrl} size="sm" />

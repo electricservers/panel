@@ -1,5 +1,5 @@
 import { getSteamProfiles } from '$lib/server/steam-profiles';
-import { toSteamId64 } from '$lib/mge/steam-id';
+import { trySteamId64 } from '$lib/mge/steam-id';
 import type {
 	AltCandidate,
 	AltInvestigation,
@@ -17,14 +17,6 @@ export type AltInvestigationWithProfiles = {
 	linkedAlts: AltInvestigationLinkWithProfile[];
 	linkedMain: AltInvestigationLinkWithProfile | null;
 };
-
-function safeSteamId64(steamid2: string): string | null {
-	try {
-		return toSteamId64(steamid2);
-	} catch {
-		return null;
-	}
-}
 
 /**
  * Batch-fetches Steam avatars/persona names for the subject plus every
@@ -47,12 +39,12 @@ export async function withAltProfiles(
 	}
 
 	const steam64Ids = Array.from(steamid2s)
-		.map(safeSteamId64)
+		.map(trySteamId64)
 		.filter((id): id is string => Boolean(id));
 	const profiles = await getSteamProfiles(steam64Ids);
 
 	function profileFor(steamid2: string): SteamProfileInfo {
-		const steam64 = safeSteamId64(steamid2);
+		const steam64 = trySteamId64(steamid2);
 		const profile = steam64 ? profiles.get(steam64) : undefined;
 		return { name: profile?.personaname ?? steamid2, avatarUrl: profile?.avatarmedium };
 	}

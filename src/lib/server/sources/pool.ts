@@ -23,7 +23,20 @@ export function getSourcePool(source: Source): mysql.Pool {
 		user: parts.user,
 		password: parts.password,
 		database: parts.database,
-		charset: 'utf8mb4'
+		charset: 'utf8mb4',
+		// Fail a request fast when the remote DB is unreachable instead of hanging it.
+		connectTimeout: 10_000,
+		// Keeps idle sockets from being silently dropped by NAT/firewalls between
+		// Railway and the game-server DB host.
+		enableKeepAlive: true,
+		keepAliveInitialDelay: 10_000
+	});
+	// A connection the server drops while idle emits `error`; without a
+	// listener that becomes an uncaught exception and kills the process.
+	pool.pool.on('connection', (connection) => {
+		connection.on('error', (err) => {
+			console.error(`MySQL connection error on source "${source.id}":`, err.message);
+		});
 	});
 	pools.set(source.id, pool);
 	return pool;
@@ -34,5 +47,7 @@ export function invalidateSourcePool(sourceId: string): void {
 	const pool = pools.get(sourceId);
 	if (!pool) return;
 	pools.delete(sourceId);
-	void pool.end();
+	pool.end().catch((err) => {
+		console.error(`Failed to close MySQL pool for source "${sourceId}":`, err);
+	});
 }

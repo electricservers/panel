@@ -3,7 +3,7 @@ import { resolveMgeSourceId } from '$lib/server/sources/resolve-source';
 import { mgeFor } from '$lib/server/sources/mge';
 import { getSteamProfiles } from '$lib/server/steam-profiles';
 import { withDuelAvatars } from '$lib/server/duel-avatars';
-import { toSteamId64 } from '$lib/mge/steam-id';
+import { trySteamId64 } from '$lib/mge/steam-id';
 import type { PageServerLoad } from './$types';
 
 const TRENDING_ARENAS_TAKE = 8;
@@ -32,12 +32,14 @@ export const load: PageServerLoad = async ({ cookies, parent }) => {
 	const adapter = mgeFor(sourceId);
 
 	const leaderboard = adapter.getLeaderboard({ take: 5, scope: 'ranked' }).then(async (result) => {
-		const avatars = await getSteamProfiles(result.items.map((row) => toSteamId64(row.steamid)));
+		const avatars = await getSteamProfiles(
+			result.items.map((row) => trySteamId64(row.steamid) ?? '')
+		);
 		return {
 			...result,
 			items: result.items.map((row) => ({
 				...row,
-				avatarUrl: avatars.get(toSteamId64(row.steamid))?.avatarmedium
+				avatarUrl: avatars.get(trySteamId64(row.steamid) ?? '')?.avatarmedium
 			}))
 		};
 	});

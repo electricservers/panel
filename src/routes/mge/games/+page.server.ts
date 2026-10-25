@@ -20,6 +20,10 @@ export const load: PageServerLoad = async ({ url, cookies }) => {
 	const { from, to } = parseDateRange(url);
 	const page = Math.max(1, Number(url.searchParams.get('page')) || 1);
 
+	// Await before starting the streamed `games` query: if this throws after
+	// `games` exists, nobody ever handles its rejection and Node exits.
+	const arenas = await adapter.getArenas();
+
 	const games = adapter
 		.getGames({
 			q,
@@ -35,7 +39,7 @@ export const load: PageServerLoad = async ({ url, cookies }) => {
 	return {
 		sourceId,
 		sources: listSources({ capability: 'mgemod', enabled: true }),
-		arenas: await adapter.getArenas(),
+		arenas,
 		games,
 		filters: {
 			q,

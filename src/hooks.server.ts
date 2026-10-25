@@ -1,8 +1,19 @@
-import { redirect, type Handle } from '@sveltejs/kit';
+import { redirect, type Handle, type ServerInit } from '@sveltejs/kit';
 import { SESSION_COOKIE_NAME, unsealSession } from '$lib/server/session';
 import { listSources } from '$lib/server/sources/registry';
 import { SOURCE_COOKIE, SOURCE_COOKIE_OPTIONS } from '$lib/server/sources/resolve-source';
 import '$lib/server/sources/register-capabilities';
+
+/**
+ * Last line of defence: Node exits on an unhandled rejection by default, so a
+ * single stray failed query (e.g. a streamed `load` promise nobody awaited)
+ * takes the whole panel down. Log it and keep serving instead.
+ */
+export const init: ServerInit = () => {
+	process.on('unhandledRejection', (reason) => {
+		console.error('Unhandled promise rejection:', reason);
+	});
+};
 
 /**
  * `?source=` on an HTML request is a one-shot switch: write `panel_source`
